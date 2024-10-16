@@ -136,3 +136,8 @@ function measure(a::Bodies,x,t;kwargs...)
     measure(sdf,map,x,t;kwargs...)
 end
 
+"""
+    measure_sdf!(a::AbstractArray, body::AbstractBody, t=0)
+
+Fill the array `a` with the signed distance field from `body` at time `t`.
+"""

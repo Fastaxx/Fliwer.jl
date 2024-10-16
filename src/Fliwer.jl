@@ -27,8 +27,4 @@ export AutoBody,Bodies,measure,sdf,+,-
 include("Vizualize.jl")
 
 
-
-
-
-
 end
