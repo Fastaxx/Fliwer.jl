@@ -16,6 +16,8 @@ using Reexport
 @reexport using StaticArrays
 @reexport using ForwardDiff
 
+include("Utils.jl")
+
 include("Body.jl")
 export AbstractBody,measure_sdf!
 
@@ -24,8 +26,7 @@ export AutoBody,Bodies,measure,sdf,+,-
 
 include("Vizualize.jl")
 
-include("Utils.jl")
-export loc, δ, inside, @inside
+
 
 
 
