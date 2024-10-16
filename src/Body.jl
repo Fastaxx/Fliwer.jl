@@ -28,5 +28,5 @@ struct NoBody <: AbstractBody end
 
 Fill the array `a` with the signed distance field from `body` at time `t`.
 """
-measure_sdf!(a::AbstractArray,body::AbstractBody,t=0;kwargs...) = a[I] = sdf(body,loc(0,I,eltype(a)),t;kwargs...)
+measure_sdf!(a::AbstractArray,body::AbstractBody,t=0;kwargs...) = @inside a[I] = sdf(body,loc(0,I,eltype(a)),t;kwargs...)
 

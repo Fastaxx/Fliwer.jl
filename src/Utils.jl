@@ -25,6 +25,29 @@ CIj(j, I::CartesianIndex{d}, k) where d = CI(ntuple(i -> i == j ? k : I[i], d))
 
 
 """
+    @inside <expr>
+
+Simple macro to automate efficient loops over cells excluding ghosts. For example,
+
+    @inside p[I] = sum(loc(0,I))
+
+becomes
+
+    @loop p[I] = sum(loc(0,I)) over I ∈ inside(p)
+
+See [`@loop`](@ref).
+"""
+macro inside(ex)
+    # Make sure it's a single assignment
+    @assert ex.head == :(=) && ex.args[1].head == :(ref)
+    a,I = ex.args[1].args[1:2]
+    return quote # loop over the size of the reference
+        WaterLily.@loop $ex over $I ∈ inside($a)
+    end |> esc
+end
+
+
+"""
     inside_u(dims,j)
 
 Return CartesianIndices range excluding the ghost-cells on the boundaries of
