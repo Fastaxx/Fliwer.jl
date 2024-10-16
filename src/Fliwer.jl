@@ -25,7 +25,7 @@ export AutoBody,Bodies,measure,sdf,+,-
 include("Vizualize.jl")
 
 include("Utils.jl")
-export loc, δ, inside
+export loc, δ, inside, @inside
 
 
 
