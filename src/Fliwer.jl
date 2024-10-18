@@ -2,19 +2,19 @@ module Fliwer
 
 using Reexport
 
-@reexport using IterativeSolvers
-@reexport using LinearAlgebra
-@reexport using SparseArrays
-@reexport using LsqFit
-@reexport using Makie
-@reexport using SpecialFunctions
-@reexport using Test
-@reexport using CairoMakie
-@reexport using Roots
-@reexport using DataFrames
-@reexport using Polynomials
-@reexport using StaticArrays
-@reexport using ForwardDiff
+using IterativeSolvers
+using LinearAlgebra
+using SparseArrays
+using LsqFit
+using Makie
+using SpecialFunctions
+using Test
+using CairoMakie
+using Roots
+using DataFrames
+using Polynomials
+using StaticArrays
+using ForwardDiff
 
 include("Utils.jl")
 

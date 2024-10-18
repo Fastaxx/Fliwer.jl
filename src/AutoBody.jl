@@ -104,17 +104,15 @@ Computes distance for `Bodies` type.
 sdf(a::Bodies,x,t;kwargs...) = sdf_map_d(a.bodies,a.ops,x,t)[end]
 
 """
-    d,n,V = measure(body::AutoBody||Bodies,x,t;fastd²=Inf)
+    d,n,V = measure(body::AutoBody||Bodies,x,t)
 
 Determine the implicit geometric properties from the `sdf` and `map`.
 The gradient of `d=sdf(map(x,t))` is used to improve `d` for pseudo-sdfs.
 The velocity is determined _solely_ from the optional `map` function.
-Skips the `n,V` calculation when `d²>fastd²`.
 """
-function measure(sdf,map,x,t;fastd²=Inf)
+function measure(sdf,map,x,t)
     # eval d=f(x,t), and n̂ = ∇f
     d = sdf(x,t)
-    d^2>fastd² && return (d,zero(x),zero(x)) # skip n,V
     n = ForwardDiff.gradient(x->sdf(x,t), x)
     any(isnan.(n)) && return (d,zero(x),zero(x))
 
@@ -139,5 +137,5 @@ end
 """
     measure_sdf!(a::AbstractArray, body::AbstractBody, t=0)
 
-Fill the array `a` with the signed distance field from `body` at time `t`.
+Fill the array `a` of any size with the signed distance field from `body` at time `t`.
 """
