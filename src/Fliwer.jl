@@ -16,7 +16,8 @@ using Polynomials
 using StaticArrays
 using ForwardDiff
 
-include("Utils.jl")
+include("Capacity.jl")
+export AbstractFluid,Fluid,evaluate_capacity
 
 include("Body.jl")
 export AbstractBody,measure_sdf!

@@ -1,8 +1,3 @@
-using SparseArrays
-
-abstract type AbstractBody end
-
-struct NoBody <: AbstractBody end
 abstract type AbstractFluid end
 
 # Routine pour évaluer les capacités
@@ -29,14 +24,3 @@ function Fluid{N,T}(body::AbstractBody) where {N,T}
     Fluid{N,T}(body, A, B, V, W)
 end
 
-# Test
-body = NoBody()
-fluid = Fluid{2,Float64}(body)
-
-println(fluid)
-
-println(fluid.body)
-println(fluid.A)
-println(fluid.B)
-println(fluid.V)
-println(fluid.W)
