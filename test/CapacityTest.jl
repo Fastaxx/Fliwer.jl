@@ -27,4 +27,11 @@ using SparseArrays
     @test typeof(fluid.B) == NTuple{1, SparseMatrixCSC{Float64, Int}}
     @test typeof(fluid.W) == NTuple{1, SparseMatrixCSC{Float64, Int}}
     @test typeof(fluid.V) == SparseMatrixCSC{Float64, Int}
+
+    measure!(fluid, body, t=0.5)
+
+    println("Fluid : ", fluid)
+    
+
+
 end

@@ -20,16 +20,3 @@ abstract type AbstractBody end
 Use for a simulation without any body.
 """
 struct NoBody <: AbstractBody end
-
-"""
-    measure!(fluid::AbstractFluid, body::AbstractBody; t=0)
-
-Queries the body geometry to fill the arrays:
-
-- `fluid.A`, A geometric capacity
-- `fluid.B`, B geometric capacity
-- `fluid.V`, V geometric capacity
-- `fluid.W`, W geometric capacity
-
-at time `t`.
-"""

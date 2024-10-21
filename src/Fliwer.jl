@@ -26,7 +26,10 @@ include("AutoBody.jl")
 export AutoBody,Bodies,measure,sdf,+,-
 
 include("Capacity.jl")
-export AbstractFluid,Fluid,evaluate_capacity
+export AbstractFluid,Fluid,measure!
+
+include("Operators.jl")
+
 
 include("Vizualize.jl")
 
