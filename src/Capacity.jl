@@ -1,7 +1,7 @@
 abstract type AbstractFluid end
 
 # Routine pour évaluer les capacités
-function evaluate_capacity(body::AbstractBody, ::Type{T}, ::Val{N}) where {N, T}
+function evaluate_capacity(body, ::Type{T}, ::Val{N}) where {N, T}
     # Exemple de matrices pour 2D
     A = ntuple(i -> sparse([1.0 0.0; 0.0 1.0]), N)
     B = ntuple(i -> sparse([1.0 0.0; 0.0 1.0]), N)

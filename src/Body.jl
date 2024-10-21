@@ -33,9 +33,3 @@ Queries the body geometry to fill the arrays:
 
 at time `t`.
 """
-function measure!(fluid::AbstractFluid{N,T}, body::AbstractBody; t=zero(T)) where {N,T}
-    fluid.A .= zero(T); fluid.B .= zero(T); fluid.V .= zero(T); fluid.W .= zero(T)
-    
-
-end
-

@@ -1,9 +1,9 @@
-using Fliwer
 using Test
+using Fliwer
 
 @testset "Capacity.jl" begin
     # Write your tests here.
-    body = NoBody()
+    body = AutoBody((x,t)->√sum(abs2, x .- 64) - 16)
     fluid = Fluid{2,Float64}(body)
 
     println(fluid)
