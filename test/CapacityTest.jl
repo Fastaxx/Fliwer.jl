@@ -1,16 +1,30 @@
 using Test
 using Fliwer
+using SparseArrays
 
-@testset "Capacity.jl" begin
-    # Write your tests here.
-    body = AutoBody((x,t)->√sum(abs2, x .- 64) - 16)
-    fluid = Fluid{2,Float64}(body)
+@testset "Test Fluid Construction" begin
+    # Cas Test 1D
+    nx = 10
+    hx = ones(nx)
+    x0 = 0.
+    body = AutoBody((x,t)->√sum(abs2, x .- 0.5) - 0.25)
+    mesh = CartesianMesh((hx,), (x0,))
 
-    println(fluid)
+    fluid = Fluid(body, mesh)
 
-    println(fluid.body)
-    println(fluid.A)
-    println(fluid.B)
-    println(fluid.V)
-    println(fluid.W)
+    println("Fluid : ", fluid)
+
+    # Vérifier que les longueurs des tuples sont correctes
+    @test length(fluid.A) == 1
+    @test length(fluid.B) == 1
+    @test length(fluid.W) == 1
+
+    # Vérifier que la matrice V a la bonne taille
+    @test size(fluid.V) == (nx, nx)
+
+    # Vérifier les types des champs
+    @test typeof(fluid.A) == NTuple{1, SparseMatrixCSC{Float64, Int}}
+    @test typeof(fluid.B) == NTuple{1, SparseMatrixCSC{Float64, Int}}
+    @test typeof(fluid.W) == NTuple{1, SparseMatrixCSC{Float64, Int}}
+    @test typeof(fluid.V) == SparseMatrixCSC{Float64, Int}
 end

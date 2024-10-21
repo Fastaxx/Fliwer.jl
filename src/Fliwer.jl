@@ -17,7 +17,7 @@ using StaticArrays
 using ForwardDiff
 
 include("Mesh.jl")
-export CartesianMesh, nodes, centers
+export CartesianMesh, nodes, centers, nC
 
 include("Body.jl")
 export AbstractBody,measure_sdf!
