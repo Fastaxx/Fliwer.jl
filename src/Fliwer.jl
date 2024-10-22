@@ -26,7 +26,10 @@ export AbstractCapacity,Capacity,measure!
 include("Operators.jl")
 export  AbstractOperators, DiffusionOps, ConvectionOps, ẟ_m, δ_p, Σ_m, Σ_p, I
 
-include("Vizualize.jl")
+include("Boundary.jl")
+export AbstractBoundary, Dirichlet, Neumann, Robin, Periodic, AbstractInterface, ScalarJump, FluxJump
+
+include("Solver.jl")
 
 
 end
