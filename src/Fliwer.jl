@@ -10,20 +10,18 @@ using Makie
 using SpecialFunctions
 using Test
 using CairoMakie
-using Roots
-using DataFrames
-using Polynomials
 using StaticArrays
 using ForwardDiff
+using CartesianGeometry
 
 include("Mesh.jl")
 export CartesianMesh, nodes, centers, nC
 
 include("Body.jl")
-export AbstractBody,measure_sdf!
+export AbstractBody,Body,NoBody,sdf
 
-include("AutoBody.jl")
-export AutoBody,Bodies,measure,sdf,+,-
+#include("AutoBody.jl")
+#export AutoBody,Bodies,measure,sdf,+,-
 
 include("Capacity.jl")
 export AbstractFluid,Fluid,measure!
