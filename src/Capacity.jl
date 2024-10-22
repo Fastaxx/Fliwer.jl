@@ -14,15 +14,14 @@ function VOFI(body::AbstractBody, mesh::CartesianMesh)
     # Déduction de la dimension N à partir du maillage
     N = length(mesh.h)  # Puisque h est un NTuple{N, Array{Float64}}
     nc = nC(mesh)
-    mesh = centers(mesh)
 
     Vs, bary = spzeros(nc), zeros(N)
     As, Bs, Ws = (spzeros(nc), spzeros(nc), spzeros(nc)), (spzeros(nc), spzeros(nc), spzeros(nc)), (spzeros(nc), spzeros(nc), spzeros(nc))
 
-    Vs, bary = integrate(Tuple{0}, body.sdf, mesh, Float64, zero)
-    As = integrate(Tuple{1}, body.sdf, mesh, Float64, zero)
-    Ws = integrate(Tuple{0}, body.sdf, mesh, Float64, zero, bary)
-    Bs = integrate(Tuple{1}, body.sdf, mesh, Float64, zero, bary)
+    Vs, bary = integrate(Tuple{0}, body.sdf, mesh.centers, Float64, zero)
+    As = integrate(Tuple{1}, body.sdf, mesh.centers, Float64, zero)
+    Ws = integrate(Tuple{0}, body.sdf, mesh.centers, Float64, zero, bary)
+    Bs = integrate(Tuple{1}, body.sdf, mesh.centers, Float64, zero, bary)
     
     # Génération des tuples A, B, W avec N matrices creuses
     if N == 1

@@ -15,7 +15,7 @@ using ForwardDiff
 using CartesianGeometry
 
 include("Mesh.jl")
-export CartesianMesh, nodes, centers, nC
+export CartesianMesh, nC
 
 include("Body.jl")
 export AbstractBody,Body,NoBody,sdf,+,⊖,c,measure

@@ -2,7 +2,7 @@ using Test
 using Fliwer
 using SparseArrays
 
-@testset "Test Fluid Construction" begin
+@testset "CapacityTest.jl" begin
     # Cas Test 1D
     nx = 10
     hx = ones(nx)
