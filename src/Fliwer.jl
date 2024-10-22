@@ -27,7 +27,7 @@ include("Capacity.jl")
 export AbstractFluid,Fluid,measure!
 
 include("Operators.jl")
-
+export  AbstractOperators, DiffusionOps, ConvectionOps, ẟ_m, δ_p, Σ_m, Σ_p, I
 
 include("Vizualize.jl")
 
