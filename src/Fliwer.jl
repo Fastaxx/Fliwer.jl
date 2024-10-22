@@ -21,7 +21,7 @@ include("Body.jl")
 export AbstractBody,Body,NoBody,sdf,+,⊖,c,measure
 
 include("Capacity.jl")
-export AbstractFluid,Fluid,measure!
+export AbstractCapacity,Capacity,measure!
 
 include("Operators.jl")
 export  AbstractOperators, DiffusionOps, ConvectionOps, ẟ_m, δ_p, Σ_m, Σ_p, I
