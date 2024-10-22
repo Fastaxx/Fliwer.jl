@@ -8,4 +8,5 @@ using Test
 
     include("BodyTest.jl")
     include("CapacityTest.jl")
+    include("OperatorsTest.jl")
 end

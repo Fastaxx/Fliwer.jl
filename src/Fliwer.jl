@@ -18,10 +18,7 @@ include("Mesh.jl")
 export CartesianMesh, nodes, centers, nC
 
 include("Body.jl")
-export AbstractBody,Body,NoBody,sdf
-
-#include("AutoBody.jl")
-#export AutoBody,Bodies,measure,sdf,+,-
+export AbstractBody,Body,NoBody,sdf,+,⊖,c,measure
 
 include("Capacity.jl")
 export AbstractFluid,Fluid,measure!

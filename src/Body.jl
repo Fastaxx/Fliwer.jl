@@ -34,3 +34,38 @@ struct Body{N} <: AbstractBody
 end
 
 sdf(body::Body, x, t=0; kwargs...) = body.sdf(x, t; kwargs...)
+
+Base.:+(a::Body, b::Body) = Body((x,t)->min(a.sdf(x,t), b.sdf(x,t)), (x,t)->ifelse(a.sdf(x,t) < b.sdf(x,t), a.map(x,t), b.map(x,t)), a.domain, a.compose || b.compose)
+∩(a::Body, b::Body) = Body((x,t)->max(a.sdf(x,t), b.sdf(x,t)), (x,t)->ifelse(a.sdf(x,t) > b.sdf(x,t), a.map(x,t), b.map(x,t)), a.domain, a.compose || b.compose)
+⊖(a::Body, b::Body) = Body((x,t)->max(a.sdf(x,t), -b.sdf(x,t)), a.map, a.domain, a.compose)
+c(a::Body) = Body((x,t)->-a.sdf(x,t), a.map, a.domain, false)
+
+function measure(sdf, map, x, t)
+    # Définir une fonction qui ne dépend que de x, en fixant t
+    f(x_vec) = sdf(x_vec, t)
+    
+    # Calculer la distance signée
+    d = f(x)
+    
+    # Calculer le gradient de la distance signée par rapport à x
+    ∇d = ForwardDiff.gradient(f, x)
+    
+    # Vérifier si le gradient est nul pour éviter la division par zéro
+    if norm(∇d) == 0
+        n = zeros(Float64, length(x))
+    else
+        # Calculer le vecteur normal
+        n = ∇d ./ norm(∇d)
+    end
+    
+    # Calculer la matrice jacobienne de la fonction map par rapport à x
+    J = ForwardDiff.jacobian(x_vec -> map(x_vec, t), x)
+    
+    # Calculer la dérivée temporelle de la fonction map
+    dot = ForwardDiff.derivative(t_val -> map(x, t_val), t)
+    
+    # Calculer la vitesse
+    v = -J \ dot
+    
+    return d, n, v
+end
