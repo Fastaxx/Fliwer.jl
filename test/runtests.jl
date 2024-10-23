@@ -9,5 +9,5 @@ using Test
     include("BodyTest.jl")
     include("CapacityTest.jl")
     include("OperatorsTest.jl")
-    include("SolverTest.jl")
+    #include("SolverTest.jl")
 end

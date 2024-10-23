@@ -5,6 +5,7 @@ struct DiffusionOps{N} <: AbstractOperators where N
     G::SparseMatrixCSC{Float64, Int}
     H::SparseMatrixCSC{Float64, Int}
     Wꜝ::SparseMatrixCSC{Float64, Int}
+    V::SparseMatrixCSC{Float64, Int}
     size::NTuple{N, Int}
 end
 
@@ -44,7 +45,7 @@ function DiffusionOps(A, B, V, W, size)
         Wꜝ = spdiagm(0 => new_diagW)
     end
 
-    return DiffusionOps{N}(G, H, Wꜝ, size)
+    return DiffusionOps{N}(G, H, Wꜝ, V, size)
 end
 
 struct ConvectionOps <: AbstractOperators

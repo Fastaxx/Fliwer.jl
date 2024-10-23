@@ -5,7 +5,7 @@ using Fliwer
     # Write your tests here.
 
     s1 = DiffusionSolver(true, true, 1.0)
-    initialize(s1)
+    initialize!()
 
     @test s1.time_type == TimeType(0)
     @test s1.phase_type == PhaseType(0)

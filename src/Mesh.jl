@@ -21,6 +21,7 @@ struct CartesianMesh{N} <: AbstractMesh
     nodes::NTuple{N, Vector{Float64}}    # Nodes (cell edges) for each dimension
     centers::NTuple{N, Vector{Float64}}  # Cell centres for each dimension
 
+    # Principal constructor
     function CartesianMesh(h::NTuple{N, Vector{Float64}}, x0::NTuple{N, Float64}) where N
         center = ntuple(i -> cumsum([x0[i]; h[i]]), N)
         nodes = ntuple(i -> (center[i][1:end-1] .+ center[i][2:end]) ./ 2.0, N)
@@ -30,3 +31,4 @@ struct CartesianMesh{N} <: AbstractMesh
 end
 
 nC(mesh::CartesianMesh{N}) where N = prod(length.(mesh.h))
+

@@ -33,7 +33,7 @@ include("Utils.jl")
 export find_border, eval_sdf, find_cut
 
 include("Solver.jl")
-export TimeType, PhaseType, EquationType, Solver, DiffusionSolver, AdvectionSolver, AdvectionDiffusionSolver, initialize
+export TimeType, PhaseType, EquationType, Solver, DiffusionSolver, AdvectionSolver, AdvectionDiffusionSolver, initialize!, solve!
 
 
 end

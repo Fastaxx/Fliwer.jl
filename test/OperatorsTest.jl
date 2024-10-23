@@ -22,8 +22,8 @@ using SparseArrays
     # Test de la structure DiffusionOps pour 1D
     A = [spdiagm(0 => ones(nx))]
     B = [spdiagm(0 => ones(nx))]
-    V = [spdiagm(0 => ones(nx))]
-    W = spdiagm(0 => ones(nx))
+    V = spdiagm(0 => ones(nx))
+    W = (spdiagm(0 => ones(nx)))
 
     diffusion_ops_1d = DiffusionOps(A, B, V, W, (nx,))
     @test typeof(diffusion_ops_1d) == DiffusionOps{1}
