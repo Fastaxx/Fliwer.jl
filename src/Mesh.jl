@@ -28,6 +28,22 @@ struct CartesianMesh{N} <: AbstractMesh
 
         return new{N}(h, x0, nodes, center)
     end
+
+     # Constructeur pour un maillage cartésien uniforme avec moins de paramètres
+    function CartesianMesh(n::NTuple{N, Int}, domain_size::NTuple{N, Float64}, 
+        x0::NTuple{N, Float64}=ntuple(_ -> 0.0, N)) where N
+        # Calcul des tailles des cellules uniformes
+        h_uniform = ntuple(i -> fill(domain_size[i] / n[i], n[i]), N)
+
+        # Calcul des centres des cellules
+        centers_uniform = ntuple(i -> [x0[i] + (j + 0.5) * (domain_size[i] / n[i]) for j in 0:(n[i]-1)], N)
+
+        # Calcul des noeuds 
+        nodes_uniform  = ntuple(i -> [x0[i] + j * (domain_size[i] / n[i]) for j in 0:n[i]], N)
+
+        # Création de l'instance en utilisant l'constructeur interne
+        new{N}(h_uniform, x0, nodes_uniform, centers_uniform)
+    end
 end
 
 nC(mesh::CartesianMesh{N}) where N = prod(length.(mesh.h))
