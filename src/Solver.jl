@@ -220,7 +220,91 @@ function solve!(s::Solver, phase::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderC
 end
 
 
+# Constructeur de solveur : Diffusion - Unsteady - Diphasic
+function DiffusionUnsteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderConditions, ic::InterfaceConditions, Δt::Float64, Tₑ::Float64, Tᵢ::Vector{Float64})
+    println("Création du solveur:")
+    println("- Diphasic problem")
+    println("- Unsteady problem")
+    println("- Diffusion problem")
+    
+    s = Solver(Unsteady, Diphasic, Diffusion, nothing, nothing)
+    
+    s.A = build_diph_unstead_diff_matrix(phase1.operator, phase2.operator, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic, Δt)
+    s.b = build_rhs(phase1.operator, phase2.operator, phase1.source, phase2.source, bc_b, ic, Tᵢ, Δt, 0.0)
 
+    return s
+end
+
+function build_diph_unstead_diff_matrix(operator1::DiffusionOps, operator2::DiffusionOps, D1::Float64, D2::Float64, bc_b::BorderConditions, ic::InterfaceConditions, Δt::Float64)
+    n = prod(operator1.size)
+
+    jump, flux = ic.scalar, ic.flux
+    Iₐ1, Iₐ2 = jump.α₁*I(n), jump.α₂*I(n)
+    Iᵦ1, Iᵦ2 = flux.β₁*I(n), flux.β₂*I(n)
+
+    block1 = operator1.V + Δt/2 * operator1.G' * operator1.Wꜝ * operator1.G
+    block2 = Δt/2 * operator1.G' * operator1.Wꜝ * operator1.H
+    block3 = operator2.V + Δt/2 * operator2.G' * operator2.Wꜝ * operator2.G
+    block4 = Δt/2 * operator2.G' * operator2.Wꜝ * operator2.H
+    block5 = Iᵦ1 * operator1.H' * operator1.Wꜝ * operator1.G
+    block6 = Iᵦ1 * operator1.H' * operator1.Wꜝ * operator1.H
+    block7 = Iᵦ2 * operator2.H' * operator2.Wꜝ * operator2.G
+    block8 = Iᵦ2 * operator2.H' * operator2.Wꜝ * operator2.H
+
+    A = vcat(hcat(block1, block2, zeros(n, n), zeros(n, n)),
+             hcat(zeros(n, n), Iₐ1, zeros(n, n), -Iₐ2),
+             hcat(zeros(n, n), zeros(n, n), block3, block4),
+             hcat(Iᵦ1*block5, Iᵦ1*block6, Iᵦ2*block7, Iᵦ2*block8))
+
+    #BC_border!(A, bc_b1, bc_b2)
+    return A
+end
+
+function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, bc_b::BorderConditions, ic::InterfaceConditions, Tᵢ, Δt::Float64, t::Float64)
+    N = prod(operator1.size)
+    b = zeros(4N)
+
+    jump, flux = ic.scalar, ic.flux
+    Iᵧ1, Iᵧ2 = build_I_g(operator1), build_I_g(operator2)
+    gᵧ, hᵧ = build_g_g(operator1, jump), build_g_g(operator2, flux)
+
+    fₒn1, fₒn2 = build_source(operator1, f1, t), build_source(operator2, f2, t)
+    fₒn1p1, fₒn2p1 = build_source(operator1, f1, t+Δt), build_source(operator2, f2, t+Δt)
+
+    Tₒ1, Tᵧ1 = Tᵢ[1:N], Tᵢ[N+1:2N]
+    Tₒ2, Tᵧ2 = Tᵢ[2N+1:3N], Tᵢ[3N+1:end]
+
+    # Build the right-hand side
+    b = vcat((operator1.V - Δt/2 * operator1.G' * operator1.Wꜝ * operator1.G)*Tₒ1 - Δt/2 * operator1.G' * operator1.Wꜝ * operator1.H * Tᵧ1 + Δt/2 * operator1.V * (fₒn1 + fₒn1p1), gᵧ, (operator2.V - Δt/2 * operator2.G' * operator2.Wꜝ * operator2.G)*Tₒ2 - Δt/2 * operator2.G' * operator2.Wꜝ * operator2.H * Tᵧ2 + Δt/2 * operator2.V * (fₒn2 + fₒn2p1), Iᵧ2*hᵧ)
+
+    #BC_border_b!(b, bc_b)
+    #BC_interface_b!(b, ic)
+
+    return b
+end
+
+function solve!(s::Solver, phase1::Phase, phase2::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderConditions, ic::InterfaceConditions)
+    if s.A === nothing
+        error("Solver is not initialized. Call a solver constructor first.")
+    end
+
+    T = cg(s.A, s.b)
+    t=0.0
+    states = []
+    while t < Tₑ
+        t+=Δt
+        println("Time: ", t)
+        s.b = build_rhs(phase1.operator, phase2.operator, phase1.source, phase2.source, bc_b, ic, Tᵢ, Δt, t)
+        
+        T = gmres(s.A, s.b)
+        push!(states, T)
+        
+
+        Tᵢ = T
+
+    end
+    return T, states
+end
 
 
 

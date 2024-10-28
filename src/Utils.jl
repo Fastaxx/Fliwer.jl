@@ -131,7 +131,7 @@ function identify!(MeshTag, mesh::CartesianMesh)
     MeshTag.border_cells = border_cells
     
     # Identify cut cells
-    cut_cells = find_cut(mesh)
+    cut_cells = find_cut(mesh, body)
     MeshTag.cut_cells = cut_cells
 
     # Identify regular cells
