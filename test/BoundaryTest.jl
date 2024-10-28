@@ -19,12 +19,12 @@ using Fliwer
 
     interfaces = Dict{Symbol, AbstractInterfaceBC}()
 
-    interfaces[:scalar] = ScalarJump(1.0, 1.0, 0.0)
-    interfaces[:flux] = FluxJump(1.0, 1.0, 0.0)
+    scalar = ScalarJump(1.0, 1.0, 0.0)
+    flux = FluxJump(1.0, 1.0, 0.0)
 
     bc = BorderConditions(borders)
-    ic = InterfaceConditions(interfaces)
-    @show bc
-    @show ic
+    ic = InterfaceConditions(scalar, flux)
+    
+    @test ic == InterfaceConditions(ScalarJump(1.0, 1.0, 0.0), FluxJump(1.0, 1.0, 0.0))
 
 end

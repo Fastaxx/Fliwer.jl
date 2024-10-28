@@ -9,5 +9,6 @@ using Test
     include("CapacityTest.jl")
     include("OperatorsTest.jl")
     include("UtilsTest.jl")
+    include("BoundaryTest.jl")
     #include("SolverTest.jl")
 end
