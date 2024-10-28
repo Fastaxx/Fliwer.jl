@@ -33,7 +33,7 @@ include("Phase.jl")
 export Phase
 
 include("Utils.jl")
-export find_border, eval_sdf, find_cut
+export MeshTag, identify!, find_border, find_cut, eval_sdf
 
 include("Solver.jl")
 export TimeType, PhaseType, EquationType, Solver, DiffusionSteadyMono, DiffusionSteadyDiph, DiffusionUnsteadyMono, DiffusionUnsteadyDiph, solve!

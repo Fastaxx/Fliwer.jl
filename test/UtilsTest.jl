@@ -40,9 +40,14 @@ using Fliwer
     @test cut_cells_1d[1] == (CartesianIndex(5,), 5)
 
     # Test 2D
-    body = Body((x, y, _=0) -> x^2 + y^2 - 1.0, (x, y, _=0) -> (x, y, _=0), ((-1.0, 1.0), (-1.0, 1.0)), false)
+    body = Body((x, y, _=0) -> (x-5)^2 + (y-2)^2 - 1.0, (x, y, _=0) -> (x, y, _=0), ((-1.0, 1.0), (-1.0, 1.0)), false)
     sdf_2D = eval_sdf(mesh_2d, body)
+    cut_cells_2d = find_cut(mesh_2d, body)
 
+    @test length(cut_cells_2d) == 8
+    @test cut_cells_2d[1] == (CartesianIndex(4, 1), 4)
 
+    tag = MeshTag([], [], [])
+    identify!(tag, mesh_2d, body)
 
 end
