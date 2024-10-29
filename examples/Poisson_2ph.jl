@@ -31,8 +31,8 @@ bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc
 ic = InterfaceConditions(ScalarJump(1.0, 0.0, 0.0), FluxJump(1.0, 1.0, 0.0))
 
 # Define the source term
-f1 = (x,y,_)->1.0
-f2 = (x,y,_)->0.0
+f1 = (x,y,_)->cos(x)*sin(10*y)
+f2 = (x,y,_)->cos(x)*sin(10*y)
 
 # Define the phases
 Fluide_1 = Phase(capacity, operator, f1, 1.0)

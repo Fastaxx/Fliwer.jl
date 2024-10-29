@@ -2,7 +2,7 @@ using Fliwer
 
 ### 2D Test Case : Monophasic Steady Diffusion Equation inside a Disk
 # Define the mesh
-nx, ny = 40, 40
+nx, ny = 80, 80
 lx, ly = 4., 4.
 x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
@@ -27,7 +27,7 @@ bc = Dirichlet(0.0)
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc, :top => bc, :bottom => bc))
 
 # Define the source term
-f = (x,y,_)->1.0
+f = (x,y,_)->sin(x)*cos(10*y)
 
 Fluide = Phase(capacity, operator, f, 1.0)
 
@@ -45,7 +45,10 @@ reshaped_u = reshape(u[1:length(u) ÷ 2], (nx + 1, ny + 1))'
 # Tracer la solution avec heatmap
 fig = Figure()
 ax = Axis(fig[1, 1], title = "Solution Plot", xlabel = "x", ylabel = "y")
-hm = heatmap!(ax, reshaped_u, colormap = :viridis)
+hm = heatmap!(ax, mesh.centers[1], mesh.centers[2], reshaped_u, colormap = :viridis)
+
+# Ajouter le zéro de la fonction distance signée de Body
+contour!(ax, mesh.nodes[1], mesh.nodes[2], [circle.sdf(xi, yi, 0.0) for yi in mesh.nodes[2], xi in mesh.nodes[1]], levels = [0.0], color = :red, linewidth = 2, label = "Contour SDF=0")
 
 # Ajouter une colorbar
 Colorbar(fig[1, 2], hm, label = "Intensity")

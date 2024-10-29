@@ -32,29 +32,30 @@ function DiffusionSteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::Abstrac
     
     s = Solver(Steady, Monophasic, Diffusion, nothing, nothing)
     
-    s.A = build_mono_stead_diff_matrix(phase.operator, phase.Diffusion_coeff, bc_b, bc_i)
-    s.b = build_rhs(phase.operator, phase.source, bc_b, bc_i)
+    s.A = build_mono_stead_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i)
+    s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc_i)
 
     return s
 end
 
-function build_mono_stead_diff_matrix(operator::DiffusionOps, D::Float64, bc_b::BorderConditions, bc::AbstractBoundary)
+function build_mono_stead_diff_matrix(operator::DiffusionOps, capacity::Capacity, D::Union{Float64,Function}, bc_b::BorderConditions, bc::AbstractBoundary)
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
     Iᵧ = build_I_g(operator)
+    Id = build_I_D(operator, D)
 
-    A = vcat(hcat(operator.G' * operator.Wꜝ * operator.G, operator.G' * operator.Wꜝ * operator.H), hcat(Iᵦ * operator.H' * operator.Wꜝ * operator.G, Iᵦ * operator.H' * operator.Wꜝ * operator.H + Iₐ * Iᵧ))
+    A = vcat(hcat(Id * operator.G' * operator.Wꜝ * operator.G, Id * operator.G' * operator.Wꜝ * operator.H), hcat(Iᵦ * operator.H' * operator.Wꜝ * operator.G, Iᵦ * operator.H' * operator.Wꜝ * operator.H + Iₐ * Iᵧ))
 
-    #BC_border!(A, bc_b)
+    #BC_border!(A, bc_b, capacity.mesh.tag)
     return A
 end
 
-function build_rhs(operator::DiffusionOps, f, bc_b::BorderConditions, bc::AbstractBoundary)
+function build_rhs(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary)
     N = prod(operator.size)
     b = zeros(2N)
 
     Iᵧ = build_I_g(operator)
-    fₒ = build_source(operator, f)
+    fₒ = build_source(operator, f, capacite)
     gᵧ = build_g_g(operator, bc)
 
     # Build the right-hand side
@@ -86,7 +87,7 @@ function DiffusionSteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderCondition
     s = Solver(Steady, Diphasic, Diffusion, nothing, nothing)
     
     s.A = build_diph_stead_diff_matrix(phase1.operator, phase2.operator, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic)
-    s.b = build_rhs(phase1.operator, phase2.operator, phase1.source, phase2.source, bc_b, ic)
+    s.b = build_rhs(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic)
 
     return s
 end
@@ -116,7 +117,7 @@ function build_diph_stead_diff_matrix(operator1::DiffusionOps, operator2::Diffus
     return A
 end
 
-function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, bc_b::BorderConditions, ic::InterfaceConditions)
+function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, capacite1::Capacity, capacite2::Capacity, bc_b::BorderConditions, ic::InterfaceConditions)
     N = prod(operator1.size)
     b = zeros(4N)
 
@@ -124,8 +125,8 @@ function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, bc_
     Iᵧ1, Iᵧ2 = build_I_g(operator1), build_I_g(operator2)
     gᵧ, hᵧ = build_g_g(operator1, jump), build_g_g(operator2, flux)
 
-    fₒ1 = build_source(operator1, f1)
-    fₒ2 = build_source(operator2, f2)
+    fₒ1 = build_source(operator1, f1, capacite1)
+    fₒ2 = build_source(operator2, f2, capacite2)
 
     # Build the right-hand side
     b = vcat(operator1.V*fₒ1, gᵧ, operator2.V*fₒ2, Iᵧ2*hᵧ)
@@ -156,7 +157,7 @@ function DiffusionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::Abstr
     s = Solver(Unsteady, Monophasic, Diffusion, nothing, nothing)
     
     s.A = build_mono_unstead_diff_matrix(phase.operator, phase.Diffusion_coeff, bc_b, bc_i, Δt)
-    s.b = build_rhs(phase.operator, phase.source, bc_b, bc_i, Tᵢ, Δt, 0.0)
+    s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0)
 
     return s
 end
@@ -177,12 +178,12 @@ function build_mono_unstead_diff_matrix(operator::DiffusionOps, D::Float64, bc_b
     return A
 end
 
-function build_rhs(operator::DiffusionOps, f, bc_b::BorderConditions, bc::AbstractBoundary, Tᵢ, Δt::Float64, t::Float64)
+function build_rhs(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary, Tᵢ, Δt::Float64, t::Float64)
     N = prod(operator.size)
     b = zeros(2N)
 
     Iᵧ = build_I_g(operator)
-    fₒn, fₒn1 = build_source(operator, f, t), build_source(operator, f, t+Δt)
+    fₒn, fₒn1 = build_source(operator, f, t, capacite), build_source(operator, f, t+Δt, capacite)
     gᵧ = build_g_g(operator, bc)
 
     Tₒ, Tᵧ = Tᵢ[1:N], Tᵢ[N+1:end]
@@ -207,7 +208,7 @@ function solve!(s::Solver, phase::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderC
     while t < Tₑ
         t+=Δt
         println("Time: ", t)
-        s.b = build_rhs(phase.operator, phase.source, bc_b, bc, Tᵢ, Δt, t)
+        s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc, Tᵢ, Δt, t)
         
         T = cg(s.A, s.b)
         push!(states, T)
@@ -230,7 +231,7 @@ function DiffusionUnsteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderConditi
     s = Solver(Unsteady, Diphasic, Diffusion, nothing, nothing)
     
     s.A = build_diph_unstead_diff_matrix(phase1.operator, phase2.operator, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic, Δt)
-    s.b = build_rhs(phase1.operator, phase2.operator, phase1.source, phase2.source, bc_b, ic, Tᵢ, Δt, 0.0)
+    s.b = build_rhs(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, 0.0)
 
     return s
 end
@@ -260,7 +261,7 @@ function build_diph_unstead_diff_matrix(operator1::DiffusionOps, operator2::Diff
     return A
 end
 
-function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, bc_b::BorderConditions, ic::InterfaceConditions, Tᵢ, Δt::Float64, t::Float64)
+function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, capacite1::Capacity, capacite2::Capacity, bc_b::BorderConditions, ic::InterfaceConditions, Tᵢ, Δt::Float64, t::Float64)
     N = prod(operator1.size)
     b = zeros(4N)
 
@@ -268,8 +269,8 @@ function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, bc_
     Iᵧ1, Iᵧ2 = build_I_g(operator1), build_I_g(operator2)
     gᵧ, hᵧ = build_g_g(operator1, jump), build_g_g(operator2, flux)
 
-    fₒn1, fₒn2 = build_source(operator1, f1, t), build_source(operator2, f2, t)
-    fₒn1p1, fₒn2p1 = build_source(operator1, f1, t+Δt), build_source(operator2, f2, t+Δt)
+    fₒn1, fₒn2 = build_source(operator1, f1, t, capacite1), build_source(operator2, f2, t, capacite2)
+    fₒn1p1, fₒn2p1 = build_source(operator1, f1, t+Δt, capacite1), build_source(operator2, f2, t+Δt, capacite2)
 
     Tₒ1, Tᵧ1 = Tᵢ[1:N], Tᵢ[N+1:2N]
     Tₒ2, Tᵧ2 = Tᵢ[2N+1:3N], Tᵢ[3N+1:end]
@@ -294,7 +295,7 @@ function solve!(s::Solver, phase1::Phase, phase2::Phase, Tᵢ, Δt::Float64, T�
     while t < Tₑ
         t+=Δt
         println("Time: ", t)
-        s.b = build_rhs(phase1.operator, phase2.operator, phase1.source, phase2.source, bc_b, ic, Tᵢ, Δt, t)
+        s.b = build_rhs(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, t)
         
         T = gmres(s.A, s.b)
         push!(states, T)
@@ -312,8 +313,18 @@ end
 
 
 
+    
+function build_I_D(operator::DiffusionOps, D::Union{Float64,Function})
+    n = prod(operator.size)
+    Id = spdiagm(0 => ones(n))
 
-
+    if D isa Function
+        Id = D(Id)
+    else
+        Id = D * Id
+    end
+    return Id
+end
 
 function build_I_bc(operator,bc::AbstractBoundary)
     n = prod(operator.size)
@@ -325,10 +336,13 @@ function build_I_bc(operator,bc::AbstractBoundary)
     elseif bc isa Neumann
         Iᵦ = I(n)
     elseif bc isa Robin
-        Iₐ = bc.α * I(n)
-        Iᵦ = bc.β * I(n)
+        if bc.α isa Function
+            Iₐ = bc.α(I(n))
+        else
+            Iₐ = bc.α * I(n)
+            Iᵦ = bc.β * I(n)
+        end 
     end
-
     return Iₐ, Iᵦ
 end
 
@@ -350,28 +364,41 @@ function build_g_g(operator::DiffusionOps, bc::Union{AbstractBoundary, AbstractI
     return gᵧ
 end
 
-function build_source(operator::DiffusionOps, f)
+function build_source(operator::DiffusionOps, f, capacite::Capacity)
     N = prod(operator.size)
     fₒ = zeros(N)
 
     # Compute the source term
     for i in 1:N
-        x, y, z = 0., 0., 0.
+        x, y, z = get_coordinates(i, capacite.C_ω)
         fₒ[i] = f(x, y, z)
     end
 
     return fₒ
 end
 
-function build_source(operator::DiffusionOps, f, t)
+function build_source(operator::DiffusionOps, f, t, capacite::Capacity)
     N = prod(operator.size)
     fₒ = zeros(N)
 
     # Compute the source term
     for i in 1:N
-        x, y, z = 0., 0., 0.
+        x, y, z = get_coordinates(i, capacite.C_ω)
         fₒ[i] = f(x, y, z, t)
     end
 
     return fₒ
+end
+
+function get_coordinates(i, C_ω)
+    if length(C_ω[1]) == 1
+        x = C_ω[i][1]
+        return x, 0., 0.
+    elseif length(C_ω[1]) == 2
+        x, y = C_ω[i][1], C_ω[i][2]
+        return x, y, 0.
+    else
+        x, y, z = C_ω[i][1], C_ω[i][2], C_ω[i][3]
+        return x, y, z
+    end
 end

@@ -27,7 +27,7 @@ bc = Dirichlet(10.0)
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc, :top => bc, :bottom => bc))
 
 # Define the source term
-f = (x,y,z,t)->0.0
+f = (x,y,z,t)->1.0
 
 # Define the phase
 Fluide = Phase(capacity, operator, f, 1.0)
@@ -38,7 +38,7 @@ u0ᵧ = ones((nx+1)*(ny+1))
 u0 = vcat(u0ₒ, u0ᵧ)
 
 # Define the solver
-Δt = 0.001
+Δt = 0.01
 Tend = 1.0
 solver = DiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0)
 
