@@ -35,12 +35,12 @@ Fluide = Phase(capacity, operator, f, 1.0)
 solver = DiffusionSteadyMono(Fluide, bc_b, bc)
 
 # Solve the problem
-u = solve!(solver, Fluide)
+solve!(solver, Fluide)
 
 # Plot the solution usign Makie
 using CairoMakie
 # Reshaper la solution
-reshaped_u = reshape(u[1:length(u) ÷ 2], (nx + 1, ny + 1))'
+reshaped_u = reshape(solver.x[1:length(solver.x) ÷ 2], (nx + 1, ny + 1))'
 
 # Tracer la solution avec heatmap
 fig = Figure()
@@ -57,4 +57,4 @@ Colorbar(fig[1, 2], hm, label = "Intensity")
 display(fig)
 
 # Fonction pour trouver la valeur maximale d'un tableau
-println(maximum(u))
+println(maximum(solver.x))

@@ -20,6 +20,8 @@ mutable struct Solver{TT<:TimeType, PT<:PhaseType, ET<:EquationType}
     equation_type::ET
     A::Union{SparseMatrixCSC{Float64, Int}, Nothing}
     b::Union{Vector{Float64}, Nothing}
+    x::Union{Vector{Float64}, Nothing}
+    states::Vector{Any}
 end
 
 
@@ -30,7 +32,7 @@ function DiffusionSteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::Abstrac
     println("- Steady problem")
     println("- Diffusion problem")
     
-    s = Solver(Steady, Monophasic, Diffusion, nothing, nothing)
+    s = Solver(Steady, Monophasic, Diffusion, nothing, nothing, nothing, [])
     
     s.A = build_mono_stead_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i)
     s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc_i)
@@ -38,7 +40,7 @@ function DiffusionSteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::Abstrac
     return s
 end
 
-function build_mono_stead_diff_matrix(operator::DiffusionOps, capacity::Capacity, D::Union{Float64,Function}, bc_b::BorderConditions, bc::AbstractBoundary)
+function build_mono_stead_diff_matrix(operator::DiffusionOps, capacity::Capacity, D::Float64, bc_b::BorderConditions, bc::AbstractBoundary)
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
     Iᵧ = build_I_g(operator)
@@ -56,7 +58,7 @@ function build_rhs(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderCo
 
     Iᵧ = build_I_g(operator)
     fₒ = build_source(operator, f, capacite)
-    gᵧ = build_g_g(operator, bc)
+    gᵧ = build_g_g(operator, bc, capacite)
 
     # Build the right-hand side
     b = vcat(operator.V*fₒ, Iᵧ * gᵧ)
@@ -72,8 +74,7 @@ function solve!(s::Solver, phase::Phase)
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
-    T = gmres(s.A, s.b, abstol=1e-15)
-    return T
+    s.x = gmres(s.A, s.b, abstol=1e-15)
 end
 
 
@@ -84,7 +85,7 @@ function DiffusionSteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderCondition
     println("- Steady problem")
     println("- Diffusion problem")
     
-    s = Solver(Steady, Diphasic, Diffusion, nothing, nothing)
+    s = Solver(Steady, Diphasic, Diffusion, nothing, nothing, nothing, [])
     
     s.A = build_diph_stead_diff_matrix(phase1.operator, phase2.operator, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic)
     s.b = build_rhs(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic)
@@ -98,11 +99,13 @@ function build_diph_stead_diff_matrix(operator1::DiffusionOps, operator2::Diffus
     jump, flux = ic.scalar, ic.flux
     Iₐ1, Iₐ2 = jump.α₁*I(n), jump.α₂*I(n)
     Iᵦ1, Iᵦ2 = flux.β₁*I(n), flux.β₂*I(n)
+    Id1, Id2 = build_I_D(operator1, D1), build_I_D(operator2, D2)
 
-    block1 = operator1.G' * operator1.Wꜝ * operator1.G
-    block2 = operator1.G' * operator1.Wꜝ * operator1.H
-    block3 = operator2.G' * operator2.Wꜝ * operator2.G
-    block4 = operator2.G' * operator2.Wꜝ * operator2.H
+
+    block1 = Id1 * operator1.G' * operator1.Wꜝ * operator1.G
+    block2 = Id1 * operator1.G' * operator1.Wꜝ * operator1.H
+    block3 = Id2 * operator2.G' * operator2.Wꜝ * operator2.G
+    block4 = Id2 * operator2.G' * operator2.Wꜝ * operator2.H
     block5 = operator1.H' * operator1.Wꜝ * operator1.G
     block6 = operator1.H' * operator1.Wꜝ * operator1.H 
     block7 = operator2.H' * operator2.Wꜝ * operator2.G
@@ -123,7 +126,7 @@ function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, cap
 
     jump, flux = ic.scalar, ic.flux
     Iᵧ1, Iᵧ2 = build_I_g(operator1), build_I_g(operator2)
-    gᵧ, hᵧ = build_g_g(operator1, jump), build_g_g(operator2, flux)
+    gᵧ, hᵧ = build_g_g(operator1, jump, capacite1), build_g_g(operator2, flux, capacite2)
 
     fₒ1 = build_source(operator1, f1, capacite1)
     fₒ2 = build_source(operator2, f2, capacite2)
@@ -142,8 +145,7 @@ function solve!(s::Solver, phase1::Phase, phase2::Phase)
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
-    T = bicgstabl(s.A, s.b, abstol=1e-15)
-    return T
+    s.x = bicgstabl(s.A, s.b, abstol=1e-15)
 end
 
 
@@ -154,7 +156,7 @@ function DiffusionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::Abstr
     println("- Unsteady problem")
     println("- Diffusion problem")
     
-    s = Solver(Unsteady, Monophasic, Diffusion, nothing, nothing)
+    s = Solver(Unsteady, Monophasic, Diffusion, nothing, nothing, nothing, [])
     
     s.A = build_mono_unstead_diff_matrix(phase.operator, phase.Diffusion_coeff, bc_b, bc_i, Δt)
     s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0)
@@ -166,9 +168,10 @@ function build_mono_unstead_diff_matrix(operator::DiffusionOps, D::Float64, bc_b
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
     Iᵧ = build_I_g(operator)
+    Id = build_I_D(operator, D)
 
-    block1 = operator.V + Δt/2 * operator.G' * operator.Wꜝ * operator.G
-    block2 = Δt/2 * operator.G' * operator.Wꜝ * operator.H
+    block1 = operator.V + Δt/2 * Id * operator.G' * operator.Wꜝ * operator.G
+    block2 = Δt/2 * Id * operator.G' * operator.Wꜝ * operator.H
     block3 = Iᵦ * operator.H' * operator.Wꜝ * operator.G
     block4 = Iᵦ * operator.H' * operator.Wꜝ * operator.H + Iₐ * Iᵧ
 
@@ -184,7 +187,7 @@ function build_rhs(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderCo
 
     Iᵧ = build_I_g(operator)
     fₒn, fₒn1 = build_source(operator, f, t, capacite), build_source(operator, f, t+Δt, capacite)
-    gᵧ = build_g_g(operator, bc)
+    gᵧ = build_g_g(operator, bc, capacite)
 
     Tₒ, Tᵧ = Tᵢ[1:N], Tᵢ[N+1:end]
 
@@ -202,22 +205,20 @@ function solve!(s::Solver, phase::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderC
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
-    T = cg(s.A, s.b)
+    s.x = cg(s.A, s.b)
     t=0.0
-    states = []
     while t < Tₑ
         t+=Δt
         println("Time: ", t)
         s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc, Tᵢ, Δt, t)
         
-        T = cg(s.A, s.b)
-        push!(states, T)
-        @show maximum(T)
+        s.x = cg(s.A, s.b)
+        push!(s.states, s.x)
+        @show maximum(s.x)
 
-        Tᵢ = T
+        Tᵢ = s.x
 
     end
-    return T, states
 end
 
 
@@ -228,7 +229,7 @@ function DiffusionUnsteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderConditi
     println("- Unsteady problem")
     println("- Diffusion problem")
     
-    s = Solver(Unsteady, Diphasic, Diffusion, nothing, nothing)
+    s = Solver(Unsteady, Diphasic, Diffusion, nothing, nothing, nothing, [])
     
     s.A = build_diph_unstead_diff_matrix(phase1.operator, phase2.operator, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic, Δt)
     s.b = build_rhs(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, 0.0)
@@ -242,11 +243,12 @@ function build_diph_unstead_diff_matrix(operator1::DiffusionOps, operator2::Diff
     jump, flux = ic.scalar, ic.flux
     Iₐ1, Iₐ2 = jump.α₁*I(n), jump.α₂*I(n)
     Iᵦ1, Iᵦ2 = flux.β₁*I(n), flux.β₂*I(n)
+    Id1, Id2 = build_I_D(operator1, D1), build_I_D(operator2, D2)
 
-    block1 = operator1.V + Δt/2 * operator1.G' * operator1.Wꜝ * operator1.G
-    block2 = Δt/2 * operator1.G' * operator1.Wꜝ * operator1.H
-    block3 = operator2.V + Δt/2 * operator2.G' * operator2.Wꜝ * operator2.G
-    block4 = Δt/2 * operator2.G' * operator2.Wꜝ * operator2.H
+    block1 = operator1.V + Δt/2 * Id1 * operator1.G' * operator1.Wꜝ * operator1.G
+    block2 = Δt/2 * Id1 * operator1.G' * operator1.Wꜝ * operator1.H
+    block3 = operator2.V + Δt/2 * Id2 * operator2.G' * operator2.Wꜝ * operator2.G
+    block4 = Δt/2 * Id2 * operator2.G' * operator2.Wꜝ * operator2.H
     block5 = Iᵦ1 * operator1.H' * operator1.Wꜝ * operator1.G
     block6 = Iᵦ1 * operator1.H' * operator1.Wꜝ * operator1.H
     block7 = Iᵦ2 * operator2.H' * operator2.Wꜝ * operator2.G
@@ -267,7 +269,7 @@ function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, cap
 
     jump, flux = ic.scalar, ic.flux
     Iᵧ1, Iᵧ2 = build_I_g(operator1), build_I_g(operator2)
-    gᵧ, hᵧ = build_g_g(operator1, jump), build_g_g(operator2, flux)
+    gᵧ, hᵧ = build_g_g(operator1, jump,capacite1), build_g_g(operator2, flux, capacite2)
 
     fₒn1, fₒn2 = build_source(operator1, f1, t, capacite1), build_source(operator2, f2, t, capacite2)
     fₒn1p1, fₒn2p1 = build_source(operator1, f1, t+Δt, capacite1), build_source(operator2, f2, t+Δt, capacite2)
@@ -289,22 +291,20 @@ function solve!(s::Solver, phase1::Phase, phase2::Phase, Tᵢ, Δt::Float64, T�
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
-    T = cg(s.A, s.b)
+    s.x = cg(s.A, s.b)
     t=0.0
-    states = []
     while t < Tₑ
         t+=Δt
         println("Time: ", t)
         s.b = build_rhs(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, t)
         
-        T = gmres(s.A, s.b)
-        push!(states, T)
+        s.x = gmres(s.A, s.b)
+        push!(s.states, s.x)
         
 
-        Tᵢ = T
+        Tᵢ = s.x
 
     end
-    return T, states
 end
 
 
@@ -356,11 +356,18 @@ function build_I_g(operator::AbstractOperators)
     return Iᵧ
 end
 
-function build_g_g(operator::DiffusionOps, bc::Union{AbstractBoundary, AbstractInterfaceBC})
+function build_g_g(operator::DiffusionOps, bc::Union{AbstractBoundary, AbstractInterfaceBC}, capacite::Capacity)
     n = prod(operator.size)
     gᵧ = ones(n)
 
-    gᵧ = bc.value * gᵧ
+    if bc.value isa Function
+        for i in 1:n
+            x, y, z = get_coordinates(i, capacite.C_γ)
+            gᵧ[i] = bc.value(x, y, z)
+        end
+    else
+        gᵧ = bc.value * gᵧ
+    end
     return gᵧ
 end
 

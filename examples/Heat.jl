@@ -43,14 +43,14 @@ Tend = 1.0
 solver = DiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0)
 
 # Solve the problem
-u, states = solve!(solver, Fluide, u0, Δt, Tend, bc_b, bc)
+solve!(solver, Fluide, u0, Δt, Tend, bc_b, bc)
 
 # Plot the solution using Makie
 using CairoMakie
 
 # Reshaper la solution
-uₒ = reshape(u[1:length(u) ÷ 2], (nx + 1, ny + 1))'
-uᵧ = reshape(u[length(u) ÷ 2 + 1:end], (nx + 1, ny + 1))'
+uₒ = reshape(solver.x[1:length(solver.x) ÷ 2], (nx + 1, ny + 1))'
+uᵧ = reshape(solver.x[length(solver.x) ÷ 2 + 1:end], (nx + 1, ny + 1))'
 
 # Tracer la solution avec heatmap
 fig = Figure()
@@ -77,20 +77,20 @@ xlims!(ax, 0, nx)
 ylims!(ax, 0, ny)
 
 # Déterminer les limites de la couleur à partir des états
-min_val = minimum([minimum(reshape(state[1:length(state) ÷ 2], (nx + 1, ny + 1))') for state in states])
-max_val = maximum([maximum(reshape(state[1:length(state) ÷ 2], (nx + 1, ny + 1))') for state in states])
+min_val = minimum([minimum(reshape(state[1:length(state) ÷ 2], (nx + 1, ny + 1))') for state in solver.states])
+max_val = maximum([maximum(reshape(state[1:length(state) ÷ 2], (nx + 1, ny + 1))') for state in solver.states])
 
 # Tracer la première heatmap avec les limites de couleur fixées
-hm = heatmap!(ax, reshape(states[1][1:length(states[1]) ÷ 2], (nx + 1, ny + 1))', colormap = :viridis, colorrange = (min_val, max_val))
+hm = heatmap!(ax, reshape(solver.states[1][1:length(solver.states[1]) ÷ 2], (nx + 1, ny + 1))', colormap = :viridis, colorrange = (min_val, max_val))
 cb = Colorbar(fig[1, 2], hm, label = "Intensity")
 
 # Fonction pour mettre à jour l'animation
 function update_heatmap!(frame)
-    hm[1] = reshape(states[frame][1:length(states[frame]) ÷ 2], (nx + 1, ny + 1))'
+    hm[1] = reshape(solver.states[frame][1:length(solver.states[frame]) ÷ 2], (nx + 1, ny + 1))'
 end
 
 # Créer l'animation
-record(fig, "heat_DiffUnsteadyMono.mp4", 1:length(states); framerate = 10) do frame
+record(fig, "heat_DiffUnsteadyMono.mp4", 1:length(solver.states); framerate = 10) do frame
     update_heatmap!(frame)
 end
 

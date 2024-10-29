@@ -33,6 +33,9 @@ struct Body{N} <: AbstractBody
     compose::Bool
 end
 
+"""
+    d = sdf(body::AutoBody,x,t) = body.sdf(x,t)
+"""
 sdf(body::Body, x, t=0; kwargs...) = body.sdf(x, t; kwargs...)
 
 Base.:+(a::Body, b::Body) = Body((x,t)->min(a.sdf(x,t), b.sdf(x,t)), (x,t)->ifelse(a.sdf(x,t) < b.sdf(x,t), a.map(x,t), b.map(x,t)), a.domain, a.compose || b.compose)
@@ -40,31 +43,33 @@ Base.:+(a::Body, b::Body) = Body((x,t)->min(a.sdf(x,t), b.sdf(x,t)), (x,t)->ifel
 ⊖(a::Body, b::Body) = Body((x,t)->max(a.sdf(x,t), -b.sdf(x,t)), a.map, a.domain, a.compose)
 c(a::Body) = Body((x,t)->-a.sdf(x,t), a.map, a.domain, false)
 
+
+# TO ADAPT
 function measure(sdf, map, x, t)
-    # Définir une fonction qui ne dépend que de x, en fixant t
+    # Define a function that depends only on x, by setting t
     f(x_vec) = sdf(x_vec, t)
     
-    # Calculer la distance signée
+    # Calculate the signed distance
     d = f(x)
     
-    # Calculer le gradient de la distance signée par rapport à x
+    # Calculate the gradient of the signed distance with respect to x
     ∇d = ForwardDiff.gradient(f, x)
     
-    # Vérifier si le gradient est nul pour éviter la division par zéro
+    # Check if the gradient is zero to avoid division by zero
     if norm(∇d) == 0
         n = zeros(Float64, length(x))
     else
-        # Calculer le vecteur normal
+        # Calculate the normal vector
         n = ∇d ./ norm(∇d)
     end
     
-    # Calculer la matrice jacobienne de la fonction map par rapport à x
+    # Calculate the Jacobian matrix of the map function with respect to x
     J = ForwardDiff.jacobian(x_vec -> map(x_vec, t), x)
     
-    # Calculer la dérivée temporelle de la fonction map
+    # Calculate the time derivative of the map function
     dot = ForwardDiff.derivative(t_val -> map(x, t_val), t)
     
-    # Calculer la vitesse
+    # Calculate velocity
     v = -J \ dot
     
     return d, n, v

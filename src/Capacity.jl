@@ -1,5 +1,25 @@
+"""
+    abstract type AbstractCapacity
+
+Abstract type representing a capacity.
+"""
 abstract type AbstractCapacity end
 
+"""
+    mutable struct Capacity{N} <: AbstractCapacity
+
+The `Capacity` struct represents the capacity of a system in `N` dimensions.
+
+# Fields
+- `A`: A capacity represented by `N` sparse matrices (`Ax`, `Ay`).
+- `B`: B capacity represented by `N` sparse matrices (`Bx`, `By`).
+- `V`: Volume capacity represented by a sparse matrix.
+- `W`: Staggered volume capacity represented by `N` sparse matrices.
+- `C_ω`: Cell centroid represented by a vector of `N`-dimensional static vectors.
+- `C_γ`: Interface centroid represented by a vector of `N`-dimensional static vectors.
+- `mesh`: Cartesian mesh of `N` dimensions.
+
+"""
 mutable struct Capacity{N} <: AbstractCapacity
     A :: NTuple{N, SparseMatrixCSC{Float64, Int}}   # A capacity : Ax, Ay
     B :: NTuple{N, SparseMatrixCSC{Float64, Int}}   # B capacity : Bx, By

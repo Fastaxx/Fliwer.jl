@@ -42,17 +42,17 @@ Fluide_2 = Phase(capacity_c, operator_c, f2, 1.0)
 solver = DiffusionSteadyDiph(Fluide_1, Fluide_2, bc_b, ic)
 
 # Solve the problem
-u = solve!(solver, Fluide_1, Fluide_2)
+solve!(solver, Fluide_1, Fluide_2)
 
 # Plot the solution usign Makie
 
 using CairoMakie
 
 # Reshaper la solution
-u1ₒ = reshape(u[1:length(u) ÷ 4], (nx + 1, ny + 1))'
-u1ᵧ = reshape(u[length(u) ÷ 4 + 1:2*length(u) ÷ 4], (nx + 1, ny + 1))'
-u2ₒ = reshape(u[2*length(u) ÷ 4 + 1:3*length(u) ÷ 4], (nx + 1, ny + 1))'
-u2ᵧ = reshape(u[3*length(u) ÷ 4 + 1:end], (nx + 1, ny + 1))'
+u1ₒ = reshape(solver.x[1:length(solver.x) ÷ 4], (nx + 1, ny + 1))'
+u1ᵧ = reshape(solver.x[length(solver.x) ÷ 4 + 1:2*length(solver.x) ÷ 4], (nx + 1, ny + 1))'
+u2ₒ = reshape(solver.x[2*length(solver.x) ÷ 4 + 1:3*length(solver.x) ÷ 4], (nx + 1, ny + 1))'
+u2ᵧ = reshape(solver.x[3*length(solver.x) ÷ 4 + 1:end], (nx + 1, ny + 1))'
 
 # Tracer la solution avec heatmap
 fig = Figure()
