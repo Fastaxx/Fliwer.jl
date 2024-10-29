@@ -15,7 +15,7 @@ using ForwardDiff
 using CartesianGeometry
 
 include("Mesh.jl")
-export CartesianMesh, nC
+export CartesianMesh, nC, MeshTag
 
 include("Body.jl")
 export AbstractBody,Body,NoBody,sdf,+,⊖,c,measure
@@ -33,7 +33,7 @@ include("Phase.jl")
 export Phase
 
 include("Utils.jl")
-export MeshTag, identify!, find_border, find_cut, eval_sdf
+export identify!, find_border, find_cut, eval_sdf
 
 include("Solver.jl")
 export TimeType, PhaseType, EquationType, Solver, DiffusionSteadyMono, DiffusionSteadyDiph, DiffusionUnsteadyMono, DiffusionUnsteadyDiph, solve!

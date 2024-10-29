@@ -13,6 +13,9 @@ radius, center = ly/4, (lx/2, ly/2) .+ (0.01, 0.01)
 circle = Body((x,y,_=0)->sqrt((x-center[1])^2 + (y-center[2])^2) - radius, (x,y,_)->(x,y), domain, false)
 circle_c = Body((x,y,_=0)->-(sqrt((x-center[1])^2 + (y-center[2])^2) - radius), (x,y,_)->(x,y), domain, false)
 
+# Identify cells
+identify!(mesh, circle)
+
 # Define the capacity
 capacity = Capacity(circle, mesh)
 capacity_c = Capacity(circle_c, mesh)

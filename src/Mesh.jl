@@ -1,3 +1,9 @@
+mutable struct MeshTag
+    border_cells::Array{Tuple{CartesianIndex, Int}, 1}
+    cut_cells::Array{Tuple{CartesianIndex, Int}, 1}
+    regular_cells::Array{Tuple{CartesianIndex, Int}, 1}
+end
+
 abstract type AbstractMesh end
 
 
@@ -15,18 +21,21 @@ x: cell center
 - `nodes::NTuple{N, Vector{Float64}}`: Nodes (cell boundaries) for each dimension.
 - `centers::NTuple{N, Vector{Float64}}`: Centers of the cells for each dimension.
 """
-struct CartesianMesh{N} <: AbstractMesh
+mutable struct CartesianMesh{N} <: AbstractMesh
     h::NTuple{N, Vector{Float64}}        # Cell sizes for each dimension
     x0::NTuple{N, Float64}               # Origin for each dimension
     nodes::NTuple{N, Vector{Float64}}    # Nodes (cell edges) for each dimension
     centers::NTuple{N, Vector{Float64}}  # Cell centres for each dimension
+    tag::MeshTag                         # Tagging information for cells
 
     # Principal constructor
     function CartesianMesh(h::NTuple{N, Vector{Float64}}, x0::NTuple{N, Float64}) where N
         center = ntuple(i -> cumsum([x0[i]; h[i]]), N)
         nodes = ntuple(i -> (center[i][1:end-1] .+ center[i][2:end]) ./ 2.0, N)
 
-        return new{N}(h, x0, nodes, center)
+        tag = MeshTag([], [], [])
+
+        return new{N}(h, x0, nodes, center, tag)
     end
 
      # Constructeur pour un maillage cartésien uniforme avec moins de paramètres
@@ -41,8 +50,10 @@ struct CartesianMesh{N} <: AbstractMesh
         # Calcul des noeuds 
         nodes_uniform  = ntuple(i -> [x0[i] + j * (domain_size[i] / n[i]) for j in 0:n[i]], N)
 
+        tag = MeshTag([], [], [])
+
         # Création de l'instance en utilisant l'constructeur interne
-        new{N}(h_uniform, x0, nodes_uniform, centers_uniform)
+        new{N}(h_uniform, x0, nodes_uniform, centers_uniform, tag)
     end
 end
 

@@ -48,6 +48,6 @@ using Fliwer
     @test cut_cells_2d[1] == (CartesianIndex(4, 1), 4)
 
     tag = MeshTag([], [], [])
-    identify!(tag, mesh_2d, body)
+    identify!(mesh_2d, body)
 
 end

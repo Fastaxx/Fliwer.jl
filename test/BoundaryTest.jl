@@ -10,6 +10,8 @@ using Fliwer
     radius, center = ly/4, (lx/2, ly/2)
     circle = Body((x,y,_=0)->sqrt((x-center[1])^2 + (y-center[2])^2) - radius, (x,y,_)->(x,y), ((x0, lx), (y0, ly)), false)
 
+    identify!(mesh, circle)
+
     borders = Dict{Symbol, AbstractBoundary}()
 
     borders[:left] = Dirichlet(0.0)

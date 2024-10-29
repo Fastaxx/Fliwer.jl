@@ -10,6 +10,9 @@ using SparseArrays
     body = Body((x, _=0) -> x^2 - 1.0, (x, _=0) -> (x, _=0), ((-1.0, 1.0),), false)
     mesh = CartesianMesh((hx,), (x0,))
 
+    # Identify cells
+    identify!(mesh, body)
+
     capacity = Capacity(body, mesh)
 
     # Vérifier que les longueurs des tuples sont correctes

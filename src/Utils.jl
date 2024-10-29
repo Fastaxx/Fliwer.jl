@@ -1,9 +1,3 @@
-mutable struct MeshTag
-    border_cells::Array{Tuple{CartesianIndex, Int}, 1}
-    cut_cells::Array{Tuple{CartesianIndex, Int}, 1}
-    regular_cells::Array{Tuple{CartesianIndex, Int}, 1}
-end
-
 function find_border(mesh)
     centers = mesh.centers
     dims = length(centers)
@@ -160,18 +154,18 @@ function find_regular(mesh::CartesianMesh)
     return regular_cells
 end
 
-function identify!(MeshTag, mesh::CartesianMesh, body::Body)
+function identify!(mesh::CartesianMesh{N}, body::Body) where N
     # Identify border cells
     border_cells = find_border(mesh)
-    MeshTag.border_cells = border_cells
+    mesh.tag.border_cells = border_cells
     
     # Identify cut cells
     cut_cells = find_cut(mesh, body)
-    MeshTag.cut_cells = cut_cells
+    mesh.tag.cut_cells = cut_cells
 
     # Identify regular cells
     regular_cells = find_regular(mesh)
-    MeshTag.regular_cells = regular_cells
+    mesh.tag.regular_cells = regular_cells
 
     return MeshTag
 end

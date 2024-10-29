@@ -45,4 +45,9 @@ using Fliwer
     @test mesh.centers ==([0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5], [0.5, 1.5, 2.5, 3.5, 4.5],)  
     @test mesh.nodes == ([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0], [0.0, 1.0, 2.0, 3.0, 4.0, 5.0],)
 
+    circle = Body((x, y, _=0) -> (x-5)^2 + (y-2)^2 - 2.0, (x, y, _=0) -> (x, y, _=0), ((-1.0, 1.0), (-1.0, 1.0)), false)
+
+    identify!(mesh, circle)
+    
+    @test mesh.tag.cut_cells == Tuple{CartesianIndex, Int64}[(CartesianIndex(5, 1), 5), (CartesianIndex(6, 1), 6), (CartesianIndex(4, 2), 14), (CartesianIndex(7, 2), 17), (CartesianIndex(4, 3), 24), (CartesianIndex(7, 3), 27), (CartesianIndex(5, 4), 35), (CartesianIndex(6, 4), 36)]
 end
