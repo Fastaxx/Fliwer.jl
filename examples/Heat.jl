@@ -1,4 +1,5 @@
 using Fliwer
+using IterativeSolvers
 
 ### 2D Test Case : Monophasic Unsteady Diffusion Equation inside a Disk
 # Define the mesh
@@ -43,7 +44,7 @@ Tend = 1.0
 solver = DiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0)
 
 # Solve the problem
-solve!(solver, Fluide, u0, Δt, Tend, bc_b, bc)
+solve!(solver, Fluide, u0, Δt, Tend, bc_b, bc; method=IterativeSolvers.cg, abstol=1e-15, verbose=false)
 
 # Plot the solution using Makie
 using CairoMakie

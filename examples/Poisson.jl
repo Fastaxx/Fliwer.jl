@@ -1,4 +1,5 @@
 using Fliwer
+using IterativeSolvers
 
 ### 2D Test Case : Monophasic Steady Diffusion Equation inside a Disk
 # Define the mesh
@@ -35,7 +36,7 @@ Fluide = Phase(capacity, operator, f, 1.0)
 solver = DiffusionSteadyMono(Fluide, bc_b, bc)
 
 # Solve the problem
-solve!(solver, Fluide)
+solve!(solver, Fluide; method=IterativeSolvers.cg, abstol=1e-15, maxiter=1000, verbose=true)
 
 # Plot the solution usign Makie
 using CairoMakie

@@ -1,4 +1,5 @@
 using Fliwer
+using IterativeSolvers
 
 ### 2D Test Case : Diphasic Unsteady Diffusion Equation with a Disk
 # Define the mesh
@@ -46,12 +47,12 @@ u0ᵧ2 = ones((nx+1)*(ny+1))
 u0 = vcat(u0ₒ1, u0ᵧ1, u0ₒ2, u0ᵧ2)
 
 # Define the solver
-Δt = 0.01
+Δt = 0.01/2
 Tend = 1.0
 solver = DiffusionUnsteadyDiph(Fluide_1, Fluide_2, bc_b, ic, Δt, Tend, u0)
 
 # Solve the problem
-solve!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic)
+solve!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=IterativeSolvers.gmres, abstol=1e-15, verbose=false)
 
 # Plot the solution using Makie
 using CairoMakie
@@ -62,71 +63,77 @@ u1ᵧ = reshape(solver.x[length(solver.x) ÷ 4 + 1:2*length(solver.x) ÷ 4], (nx
 u2ₒ = reshape(solver.x[2*length(solver.x) ÷ 4 + 1:3*length(solver.x) ÷ 4], (nx + 1, ny + 1))'
 u2ᵧ = reshape(solver.x[3*length(solver.x) ÷ 4 + 1:end], (nx + 1, ny + 1))'
 
-# Tracer la solution avec heatmap
+# Créer les coordonnées x et y
+x = range(0, stop=1, length=nx+1)
+y = range(0, stop=1, length=ny+1)
+
+# Tracer la solution en 3D
 fig = Figure()
 
 # Phase 1 - Bulk
-ax1 = Axis(fig[1, 1], title = "Phase 1 - Bulk", xlabel = "x", ylabel = "y")
-hm1 = heatmap!(ax1, u1ₒ, colormap = :viridis)
-cb1 = Colorbar(fig[1, 2], hm1, label = "Intensity")
+ax1 = Axis3(fig[1, 1], title = "Phase 1 - Bulk", xlabel = "x", ylabel = "y", zlabel = "u1ₒ")
+surface!(ax1, x, y, u1ₒ, colormap = :viridis)
 
 # Phase 1 - Interface
-ax2 = Axis(fig[1, 3], title = "Phase 1 - Interface", xlabel = "x", ylabel = "y")
-hm2 = heatmap!(ax2, u1ᵧ, colormap = :viridis)
-cb2 = Colorbar(fig[1, 4], hm2, label = "Intensity")
+ax2 = Axis3(fig[1, 2], title = "Phase 1 - Interface", xlabel = "x", ylabel = "y", zlabel = "u1ᵧ")
+surface!(ax2, x, y, u1ᵧ, colormap = :viridis)
 
 # Phase 2 - Bulk
-ax3 = Axis(fig[2, 1], title = "Phase 2 - Bulk", xlabel = "x", ylabel = "y")
-hm3 = heatmap!(ax3, u2ₒ, colormap = :viridis)
-cb3 = Colorbar(fig[2, 2], hm3, label = "Intensity")
+ax3 = Axis3(fig[2, 1], title = "Phase 2 - Bulk", xlabel = "x", ylabel = "y", zlabel = "u2ₒ")
+surface!(ax3, x, y, u2ₒ, colormap = :viridis)
 
 # Phase 2 - Interface
-ax4 = Axis(fig[2, 3], title = "Phase 2 - Interface", xlabel = "x", ylabel = "y")
-hm4 = heatmap!(ax4, u2ᵧ, colormap = :viridis)
-cb4 = Colorbar(fig[2, 4], hm4, label = "Intensity")
+ax4 = Axis3(fig[2, 2], title = "Phase 2 - Interface", xlabel = "x", ylabel = "y", zlabel = "u2ᵧ")
+surface!(ax4, x, y, u2ᵧ, colormap = :viridis)
 
 # Afficher le graphique
 display(fig)
+
+# Reshaper la solution
+u1ₒ = reshape(solver.x[1:length(solver.x) ÷ 4], (nx + 1, ny + 1))'
+u1ᵧ = reshape(solver.x[length(solver.x) ÷ 4 + 1:2*length(solver.x) ÷ 4], (nx + 1, ny + 1))'
+u2ₒ = reshape(solver.x[2*length(solver.x) ÷ 4 + 1:3*length(solver.x) ÷ 4], (nx + 1, ny + 1))'
+u2ᵧ = reshape(solver.x[3*length(solver.x) ÷ 4 + 1:end], (nx + 1, ny + 1))'
+
+# Créer les coordonnées x et y
+x = range(0, stop=1, length=nx+1)
+y = range(0, stop=1, length=ny+1)
 
 # Déterminer les limites de la couleur à partir des états
 min_val = minimum([minimum(reshape(state[1:length(state) ÷ 4], (nx + 1, ny + 1))') for state in solver.states])
 max_val = maximum([maximum(reshape(state[1:length(state) ÷ 4], (nx + 1, ny + 1))') for state in solver.states])
 
 # Créer une figure pour l'animation
-fig = Figure()
+fig = Figure(size = (800, 600))
 
 # Phase 1 - Bulk
-ax1 = Axis(fig[1, 1], title = "Phase 1 - Bulk", xlabel = "x", ylabel = "y")
-hm1 = heatmap!(ax1, reshape(solver.states[1][1:length(solver.states[1]) ÷ 4], (nx + 1, ny + 1))', colormap = :viridis, colorrange = (min_val, max_val))
-cb1 = Colorbar(fig[1, 2], hm1, label = "Intensity")
+ax1 = Axis3(fig[1, 1], title = "Phase 1 - Bulk", xlabel = "x", ylabel = "y", zlabel = "u1ₒ")
+s1 = surface!(ax1, x, y, u1ₒ, colormap = :viridis, colorrange = (min_val, max_val))
 
 # Phase 1 - Interface
-ax2 = Axis(fig[1, 3], title = "Phase 1 - Interface", xlabel = "x", ylabel = "y")
-hm2 = heatmap!(ax2, reshape(solver.states[1][length(solver.states[1]) ÷ 4 + 1:2*length(solver.states[1]) ÷ 4], (nx + 1, ny + 1))', colormap = :viridis, colorrange = (min_val, max_val))
-cb2 = Colorbar(fig[1, 4], hm2, label = "Intensity")
+ax2 = Axis3(fig[1, 2], title = "Phase 1 - Interface", xlabel = "x", ylabel = "y", zlabel = "u1ᵧ")
+s2 = surface!(ax2, x, y, u1ᵧ, colormap = :viridis, colorrange = (min_val, max_val))
 
 # Phase 2 - Bulk
-ax3 = Axis(fig[2, 1], title = "Phase 2 - Bulk", xlabel = "x", ylabel = "y")
-hm3 = heatmap!(ax3, reshape(solver.states[1][2*length(solver.states[1]) ÷ 4 + 1:3*length(solver.states[1]) ÷ 4], (nx + 1, ny + 1))', colormap = :viridis, colorrange = (min_val, max_val))
-cb3 = Colorbar(fig[2, 2], hm3, label = "Intensity")
+ax3 = Axis3(fig[2, 1], title = "Phase 2 - Bulk", xlabel = "x", ylabel = "y", zlabel = "u2ₒ")
+s3 = surface!(ax3, x, y, u2ₒ, colormap = :viridis, colorrange = (min_val, max_val))
 
 # Phase 2 - Interface
-ax4 = Axis(fig[2, 3], title = "Phase 2 - Interface", xlabel = "x", ylabel = "y")
-hm4 = heatmap!(ax4, reshape(solver.states[1][3*length(solver.states[1]) ÷ 4 + 1:end], (nx + 1, ny + 1))', colormap = :viridis, colorrange = (min_val, max_val))
-cb4 = Colorbar(fig[2, 4], hm4, label = "Intensity")
+ax4 = Axis3(fig[2, 2], title = "Phase 2 - Interface", xlabel = "x", ylabel = "y", zlabel = "u2ᵧ")
+s4 = surface!(ax4, x, y, u2ᵧ, colormap = :viridis, colorrange = (min_val, max_val))
 
-# Fonction pour mettre à jour l'animation
-function update_heatmaps!(frame)
-    hm1[1] = reshape(solver.states[frame][1:length(solver.states[frame]) ÷ 4], (nx + 1, ny + 1))'
-    hm2[1] = reshape(solver.states[frame][length(solver.states[frame]) ÷ 4 + 1:2*length(solver.states[frame]) ÷ 4], (nx + 1, ny + 1))'
-    hm3[1] = reshape(solver.states[frame][2*length(solver.states[frame]) ÷ 4 + 1:3*length(solver.states[frame]) ÷ 4], (nx + 1, ny + 1))'
-    hm4[1] = reshape(solver.states[frame][3*length(solver.states[frame]) ÷ 4 + 1:end], (nx + 1, ny + 1))'
+# Fonction pour mettre à jour les surfaces
+function update_surfaces!(frame)
+    s1[:z] = reshape(solver.states[frame][1:length(solver.states[frame]) ÷ 4], (nx + 1, ny + 1))'
+    s2[:z] = reshape(solver.states[frame][length(solver.states[frame]) ÷ 4 + 1:2*length(solver.states[frame]) ÷ 4], (nx + 1, ny + 1))'
+    s3[:z] = reshape(solver.states[frame][2*length(solver.states[frame]) ÷ 4 + 1:3*length(solver.states[frame]) ÷ 4], (nx + 1, ny + 1))'
+    s4[:z] = reshape(solver.states[frame][3*length(solver.states[frame]) ÷ 4 + 1:end], (nx + 1, ny + 1))'
 end
 
 # Créer l'animation
 record(fig, "heat_DiffUnsteadyDiph.mp4", 1:length(solver.states); framerate = 10) do frame
-    update_heatmaps!(frame)
+    update_surfaces!(frame)
 end
 
-# Afficher la figure
+# Afficher la figure finale
 display(fig)

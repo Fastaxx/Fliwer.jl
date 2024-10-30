@@ -69,12 +69,12 @@ function build_rhs(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderCo
     return b
 end
 
-function solve!(s::Solver, phase::Phase)
+function solve!(s::Solver, phase::Phase; method::Function = gmres, kwargs...)
     if s.A === nothing
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
-    s.x = gmres(s.A, s.b, abstol=1e-15)
+    s.x = method(s.A, s.b; kwargs...)
 end
 
 
@@ -140,12 +140,12 @@ function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, cap
     return b
 end
 
-function solve!(s::Solver, phase1::Phase, phase2::Phase)
+function solve!(s::Solver, phase1::Phase, phase2::Phase; method::Function = gmres, kwargs...)
     if s.A === nothing
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
-    s.x = bicgstabl(s.A, s.b, abstol=1e-15)
+    s.x = method(s.A, s.b; kwargs...)
 end
 
 
@@ -200,19 +200,19 @@ function build_rhs(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderCo
     return b
 end
 
-function solve!(s::Solver, phase::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderConditions, bc::AbstractBoundary)
+function solve!(s::Solver, phase::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderConditions, bc::AbstractBoundary; method::Function = gmres, kwargs...)
     if s.A === nothing
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
-    s.x = cg(s.A, s.b)
+    s.x = method(s.A, s.b; kwargs...)
     t=0.0
     while t < Tₑ
         t+=Δt
         println("Time: ", t)
         s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc, Tᵢ, Δt, t)
         
-        s.x = cg(s.A, s.b)
+        s.x = method(s.A, s.b; kwargs...)
         push!(s.states, s.x)
         @show maximum(s.x)
 
@@ -286,19 +286,19 @@ function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, cap
     return b
 end
 
-function solve!(s::Solver, phase1::Phase, phase2::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderConditions, ic::InterfaceConditions)
+function solve!(s::Solver, phase1::Phase, phase2::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderConditions, ic::InterfaceConditions; method::Function = gmres, kwargs...)
     if s.A === nothing
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
-    s.x = cg(s.A, s.b)
+    s.x = method(s.A, s.b; kwargs...)
     t=0.0
     while t < Tₑ
         t+=Δt
         println("Time: ", t)
         s.b = build_rhs(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, t)
         
-        s.x = gmres(s.A, s.b)
+        s.x = method(s.A, s.b; kwargs...)
         push!(s.states, s.x)
         
 
