@@ -14,6 +14,21 @@ end
     DiffusionAdvection  # ∂ₜT = ∇·(D∇T) - ∇·(uT) + S
 end
 
+"""
+    mutable struct Solver{TT<:TimeType, PT<:PhaseType, ET<:EquationType}
+
+The `Solver` struct represents a solver for a specific type of problem.
+
+# Fields
+- `time_type::TT`: The type of time used in the solver : `Steady` or `Unsteady`.
+- `phase_type::PT`: The type of phase used in the solver : `Monophasic` or `Diphasic`.
+- `equation_type::ET`: The type of equation used in the solver : `Diffusion`, `Advection` or `DiffusionAdvection`.
+- `A::Union{SparseMatrixCSC{Float64, Int}, Nothing}`: The coefficient matrix A of the equation system, if applicable.
+- `b::Union{Vector{Float64}, Nothing}`: The right-hand side vector b of the equation system, if applicable.
+- `x::Union{Vector{Float64}, Nothing}`: The solution vector x of the equation system, if applicable.
+- `states::Vector{Any}`: The states of the system at different times, if applicable.
+
+"""
 mutable struct Solver{TT<:TimeType, PT<:PhaseType, ET<:EquationType}
     time_type::TT
     phase_type::PT
@@ -25,7 +40,20 @@ mutable struct Solver{TT<:TimeType, PT<:PhaseType, ET<:EquationType}
 end
 
 
-# Constructeur de solveur : Diffusion - Steady - Monophasic
+# Diffusion - Steady - Monophasic
+"""
+    DiffusionSteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::AbstractBoundary)
+
+Create a solver for a steady-state monophasic diffusion problem.
+
+Arguments:
+- `phase` : Phase object representing the phase of the problem.
+- `bc_b` : BorderConditions object representing the boundary conditions of the problem at the boundary.
+- `bc_i` : AbstractBoundary object representing the internal boundary conditions of the problem.
+
+Returns:
+- `s` : Solver object representing the created solver.
+"""
 function DiffusionSteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::AbstractBoundary)
     println("Création du solveur:")
     println("- Monophasic problem")
@@ -78,7 +106,18 @@ function solve!(s::Solver, phase::Phase; method::Function = gmres, kwargs...)
 end
 
 
-# Constructeur de solveur : Diffusion - Steady - Diphasic
+# Diffusion - Steady - Diphasic
+"""
+    DiffusionSteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderConditions, ic::InterfaceConditions)
+
+Creates a solver for a steady-state two-phase diffusion problem.
+
+# Arguments
+- `phase1::Phase`: The first phase of the problem.
+- `phase2::Phase`: The second phase of the problem.
+- `bc_b::BorderConditions`: The boundary conditions of the problem.
+- `ic::InterfaceConditions`: The conditions at the interface between the two phases.
+"""
 function DiffusionSteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderConditions, ic::InterfaceConditions)
     println("Création du solveur:")
     println("- Diphasic problem")
@@ -149,7 +188,20 @@ function solve!(s::Solver, phase1::Phase, phase2::Phase; method::Function = gmre
 end
 
 
-# Constructeur de solveur : Diffusion - Unsteady - Monophasic
+# Diffusion - Unsteady - Monophasic
+"""
+    DiffusionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::AbstractBoundary, Δt::Float64, Tₑ::Float64, Tᵢ::Vector{Float64})
+
+Constructs a solver for the unsteady monophasic diffusion problem.
+
+# Arguments
+- `phase::Phase`: The phase object representing the physical properties of the system.
+- `bc_b::BorderConditions`: The border conditions object representing the boundary conditions at the outer border.
+- `bc_i::AbstractBoundary`: The boundary conditions object representing the boundary conditions at the inner border.
+- `Δt::Float64`: The time step size.
+- `Tₑ::Float64`: The final time.
+- `Tᵢ::Vector{Float64}`: The initial temperature distribution.
+"""
 function DiffusionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::AbstractBoundary, Δt::Float64, Tₑ::Float64, Tᵢ::Vector{Float64})
     println("Création du solveur:")
     println("- Monophasic problem")
@@ -222,7 +274,21 @@ function solve!(s::Solver, phase::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderC
 end
 
 
-# Constructeur de solveur : Diffusion - Unsteady - Diphasic
+# Diffusion - Unsteady - Diphasic
+"""
+    DiffusionUnsteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderConditions, ic::InterfaceConditions, Δt::Float64, Tₑ::Float64, Tᵢ::Vector{Float64})
+
+Creates a solver for an unsteady two-phase diffusion problem.
+
+## Arguments
+- `phase1::Phase`: The first phase of the problem.
+- `phase2::Phase`: The second phase of the problem.
+- `bc_b::BorderConditions`: The boundary conditions of the problem.
+- `ic::InterfaceConditions`: The conditions at the interface between the two phases.
+- `Δt::Float64`: The time interval.
+- `Tₑ::Float64`: The equilibrium temperature.
+- `Tᵢ::Vector{Float64}`: The vector of initial temperatures.
+"""
 function DiffusionUnsteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderConditions, ic::InterfaceConditions, Δt::Float64, Tₑ::Float64, Tᵢ::Vector{Float64})
     println("Création du solveur:")
     println("- Diphasic problem")

@@ -30,6 +30,24 @@ mutable struct Capacity{N} <: AbstractCapacity
     mesh :: CartesianMesh{N}
 end
 
+"""
+    VOFI(body::AbstractBody, mesh::CartesianMesh)
+
+Compute the Capacity quantities based on VOFI for a given body and mesh.
+
+# Arguments
+- `body::AbstractBody`: The body for which to compute the VOFI quantities.
+- `mesh::CartesianMesh`: The mesh on which to compute the VOFI quantities.
+
+# Returns
+- `A::Tuple`: The A matrices for each dimension of the mesh.
+- `B::Tuple`: The B matrices for each dimension of the mesh.
+- `V::SparseMatrixCSC`: The V matrix.
+- `W::Tuple`: The W matrices for each dimension of the mesh.
+- `C_ω::Vector`: The C_ω vector : Cell centroid.
+- `C_γ::Vector`: The C_γ vector : Interface centroid.
+
+"""
 function VOFI(body::AbstractBody, mesh::CartesianMesh)
     N = length(mesh.h)
     nc = nC(mesh)
@@ -64,6 +82,18 @@ function VOFI(body::AbstractBody, mesh::CartesianMesh)
     return A, B, V, W, C_ω, C_γ
 end
 
+"""
+    Capacity(body::AbstractBody, mesh::CartesianMesh)
+
+Compute the capacity of a body in a given mesh using the VOFI method.
+
+# Arguments
+- `body::AbstractBody`: The body for which to compute the capacity.
+- `mesh::CartesianMesh`: The mesh in which the body is located.
+
+# Returns
+- `Capacity{N}`: The capacity of the body.
+"""
 function Capacity(body::AbstractBody, mesh::CartesianMesh)
     A, B, V, W, C_ω, C_γ = VOFI(body, mesh)
     

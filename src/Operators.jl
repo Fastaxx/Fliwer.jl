@@ -1,6 +1,23 @@
+"""
+    abstract type AbstractOperators
+
+An abstract type representing a collection of operators.
+"""
 abstract type AbstractOperators end
 
-# Définition de la structure DiffusionOps
+"""
+    struct DiffusionOps{N} <: AbstractOperators where N
+
+Struct representing diffusion operators.
+
+# Fields
+- `G::SparseMatrixCSC{Float64, Int}`: Matrix representing the diffusion operator G.
+- `H::SparseMatrixCSC{Float64, Int}`: Matrix representing the diffusion operator H.
+- `Wꜝ::SparseMatrixCSC{Float64, Int}`: Matrix representing the diffusion operator Wꜝ.
+- `V::SparseMatrixCSC{Float64, Int}`: Matrix representing the diffusion operator V.
+- `size::NTuple{N, Int}`: Tuple representing the size of the diffusion operators.
+
+"""
 struct DiffusionOps{N} <: AbstractOperators where N
     G::SparseMatrixCSC{Float64, Int}
     H::SparseMatrixCSC{Float64, Int}
@@ -9,14 +26,28 @@ struct DiffusionOps{N} <: AbstractOperators where N
     size::NTuple{N, Int}
 end
 
-# Opérateurs élémentaires
+# Elementary operators
 function ẟ_m(n::Int, periodicity::Bool=false) D = spdiagm(0 => ones(n), -1 => -ones(n-1)); D[n, n] = 0.0; if periodicity; D[1, n-1] = -1.0; D[n, 1] = 1.0; end; D end
 function δ_p(n::Int, periodicity::Bool=false) D = spdiagm(0 => -ones(n), 1 => ones(n-1)); D[n, n] = 0.0; if periodicity; D[1, n-1] = -1.0; D[n, 1] = 1.0; end; D end
 function Σ_m(n::Int, periodicity::Bool=false) D = 0.5 * spdiagm(0 => ones(n), -1 => ones(n-1)); D[n, n] = 0.0; if periodicity; D[1, n-1] = 0.5; D[n, 1] = 0.5; end; D end
 function Σ_p(n::Int, periodicity::Bool=false) D = 0.5 * spdiagm(0 => ones(n), 1 => ones(n-1)); D[n, n] = 0.0; if periodicity; D[1, n-1] = 0.5; D[n, 1] = 0.5; end; D end
 function I(n::Int) spdiagm(0 => ones(n)) end
 
-# Fonction pour créer DiffusionOps à partir de A, B, V, W
+"""
+    DiffusionOps(A, B, V, W, size)
+
+Constructs the diffusion operators for a given system.
+
+# Arguments
+- `A`: Array of A matrices for each dimension.
+- `B`: Array of B matrices for each dimension.
+- `V`: V matrix for the system.
+- `W`: W matrix for the system.
+- `size`: Array of sizes for each dimension.
+
+# Returns
+- `DiffusionOps`: Diffusion operators for the system.
+"""
 function DiffusionOps(A, B, V, W, size)
     N = length(size)
     if N == 1
