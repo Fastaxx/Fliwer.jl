@@ -29,7 +29,7 @@ operator_c = DiffusionOps(capacity_c.A, capacity_c.B, capacity_c.V, capacity_c.W
 bc = Dirichlet(0.0)
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc, :top => bc, :bottom => bc))
 
-ic = InterfaceConditions(ScalarJump(1.0, 0.0, 0.0), FluxJump(1.0, 1.0, 0.0))
+ic = InterfaceConditions(ScalarJump(1.0, 1.0, 0.0), FluxJump(1.0, 1.0, 0.0))
 
 # Define the source term
 f1 = (x,y,_)->cos(x)*sin(10*y)
@@ -43,7 +43,7 @@ Fluide_2 = Phase(capacity_c, operator_c, f2, 1.0)
 solver = DiffusionSteadyDiph(Fluide_1, Fluide_2, bc_b, ic)
 
 # Solve the problem
-solve!(solver, Fluide_1, Fluide_2; method=IterativeSolvers.gmres, abstol=1e-15, verbose=true)
+solve!(solver, Fluide_1, Fluide_2; method=IterativeSolvers.gmres, verbose=false)
 
 # Plot the solution usign Makie
 

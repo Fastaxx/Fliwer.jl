@@ -29,30 +29,30 @@ operator_c = DiffusionOps(capacity_c.A, capacity_c.B, capacity_c.V, capacity_c.W
 bc = Dirichlet(0.0)
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc, :top => bc, :bottom => bc))
 
-ic = InterfaceConditions(ScalarJump(1.0, 2.0, 0.0), FluxJump(1.0, 1.0, 0.0))
+ic = InterfaceConditions(ScalarJump(1.0, 0.1, 0.0), FluxJump(1.0, 1.0, 0.0))
 
 # Define the source term
-f1 = (x,y,z,t)->1.0
+f1 = (x,y,z,t)->0.0
 f2 = (x,y,z,t)->0.0
 
 # Define the phases
-Fluide_1 = Phase(capacity, operator, f1, 1.0)
+Fluide_1 = Phase(capacity, operator, f1, 10.0)
 Fluide_2 = Phase(capacity_c, operator_c, f2, 1.0)
 
 # Initial condition
-u0ₒ1 = zeros((nx+1)*(ny+1))
-u0ᵧ1 = ones((nx+1)*(ny+1))
+u0ₒ1 = ones((nx+1)*(ny+1))
+u0ᵧ1 = zeros((nx+1)*(ny+1))
 u0ₒ2 = zeros((nx+1)*(ny+1))
-u0ᵧ2 = ones((nx+1)*(ny+1))
+u0ᵧ2 = zeros((nx+1)*(ny+1))
 u0 = vcat(u0ₒ1, u0ᵧ1, u0ₒ2, u0ᵧ2)
 
 # Define the solver
-Δt = 0.01/2
+Δt = 0.01
 Tend = 1.0
 solver = DiffusionUnsteadyDiph(Fluide_1, Fluide_2, bc_b, ic, Δt, Tend, u0)
 
 # Solve the problem
-solve!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=IterativeSolvers.gmres, abstol=1e-15, verbose=false)
+solve!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=IterativeSolvers.gmres, abstol=1e-15, restart=20, verbose=false)
 
 # Plot the solution using Makie
 using CairoMakie
@@ -64,8 +64,8 @@ u2ₒ = reshape(solver.x[2*length(solver.x) ÷ 4 + 1:3*length(solver.x) ÷ 4], (
 u2ᵧ = reshape(solver.x[3*length(solver.x) ÷ 4 + 1:end], (nx + 1, ny + 1))'
 
 # Créer les coordonnées x et y
-x = range(0, stop=1, length=nx+1)
-y = range(0, stop=1, length=ny+1)
+x = range(x0, stop=lx, length=nx+1)
+y = range(y0, stop=ly, length=ny+1)
 
 # Tracer la solution en 3D
 fig = Figure()
@@ -96,8 +96,8 @@ u2ₒ = reshape(solver.x[2*length(solver.x) ÷ 4 + 1:3*length(solver.x) ÷ 4], (
 u2ᵧ = reshape(solver.x[3*length(solver.x) ÷ 4 + 1:end], (nx + 1, ny + 1))'
 
 # Créer les coordonnées x et y
-x = range(0, stop=1, length=nx+1)
-y = range(0, stop=1, length=ny+1)
+x = range(x0, stop=lx, length=nx+1)
+y = range(y0, stop=ly, length=ny+1)
 
 # Déterminer les limites de la couleur à partir des états
 min_val = minimum([minimum(reshape(state[1:length(state) ÷ 4], (nx + 1, ny + 1))') for state in solver.states])

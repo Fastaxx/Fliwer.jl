@@ -23,12 +23,12 @@ capacity = Capacity(circle, mesh)
 operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1))
 
 # Define the boundary conditions 
-bc = Dirichlet(0.0)
+bc = Dirichlet(1.0)
 
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc, :top => bc, :bottom => bc))
 
 # Define the source term
-f = (x,y,_)->sin(x)*cos(10*y)
+f = (x,y,_)-> 4.0 #sin(x)*cos(10*y)
 
 Fluide = Phase(capacity, operator, f, 1.0)
 
@@ -36,7 +36,20 @@ Fluide = Phase(capacity, operator, f, 1.0)
 solver = DiffusionSteadyMono(Fluide, bc_b, bc)
 
 # Solve the problem
-solve!(solver, Fluide; method=IterativeSolvers.cg, abstol=1e-15, maxiter=1000, verbose=true)
+solve!(solver, Fluide; method=IterativeSolvers.bicgstabl, verbose=false)
+
+using WriteVTK
+# Write Vtk
+vtk_grid("Temperature_poisson", mesh.centers[1], mesh.centers[2]) do vtk
+    vtk["Temperature_b"] = solver.x[1:length(solver.x) ÷ 2]
+    vtk["Temperature_g"] = solver.x[length(solver.x) ÷ 2 + 1:end]
+end
+
+vtk_surface("Temperature_poisson", mesh.centers[1], mesh.centers[2]) do vtk
+    vtk["Temperature_b"]
+end
+
+plot_solution(solver, mesh, circle)
 
 # Plot the solution usign Makie
 using CairoMakie
