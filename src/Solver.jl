@@ -71,7 +71,7 @@ end
 function build_mono_stead_diff_matrix(operator::DiffusionOps, capacity::Capacity, D::Float64, bc_b::BorderConditions, bc::AbstractBoundary)
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
-    Iᵧ = build_I_g(operator)
+    Iᵧ =  build_I_g(operator) #capacity.Γ
     Id = build_I_D(operator, D)
 
     A = vcat(hcat(Id * operator.G' * operator.Wꜝ * operator.G, Id * operator.G' * operator.Wꜝ * operator.H), hcat(Iᵦ * operator.H' * operator.Wꜝ * operator.G, Iᵦ * operator.H' * operator.Wꜝ * operator.H + Iₐ * Iᵧ))
@@ -84,7 +84,7 @@ function build_rhs(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderCo
     N = prod(operator.size)
     b = zeros(2N)
 
-    Iᵧ = build_I_g(operator)
+    Iᵧ = build_I_g(operator) #capacite.Γ 
     fₒ = build_source(operator, f, capacite)
     gᵧ = build_g_g(operator, bc, capacite)
 
@@ -164,7 +164,7 @@ function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, cap
     b = zeros(4N)
 
     jump, flux = ic.scalar, ic.flux
-    Iᵧ1, Iᵧ2 = build_I_g(operator1), build_I_g(operator2)
+    Iᵧ1, Iᵧ2 = build_I_g(operator1), build_I_g(operator2) #capacite1.Γ, capacite2.Γ #
     gᵧ, hᵧ = build_g_g(operator1, jump, capacite1), build_g_g(operator2, flux, capacite2)
 
     fₒ1 = build_source(operator1, f1, capacite1)
@@ -210,16 +210,16 @@ function DiffusionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::Abstr
     
     s = Solver(Unsteady, Monophasic, Diffusion, nothing, nothing, nothing, [])
     
-    s.A = build_mono_unstead_diff_matrix(phase.operator, phase.Diffusion_coeff, bc_b, bc_i, Δt)
+    s.A = build_mono_unstead_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i, Δt)
     s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0)
 
     return s
 end
 
-function build_mono_unstead_diff_matrix(operator::DiffusionOps, D::Float64, bc_b::BorderConditions, bc::AbstractBoundary, Δt::Float64)
+function build_mono_unstead_diff_matrix(operator::DiffusionOps, capacite::Capacity, D::Float64, bc_b::BorderConditions, bc::AbstractBoundary, Δt::Float64)
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
-    Iᵧ = build_I_g(operator)
+    Iᵧ = build_I_g(operator) #capacite.Γ #
     Id = build_I_D(operator, D)
 
     block1 = operator.V + Δt/2 * Id * operator.G' * operator.Wꜝ * operator.G
@@ -237,7 +237,7 @@ function build_rhs(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderCo
     N = prod(operator.size)
     b = zeros(2N)
 
-    Iᵧ = build_I_g(operator)
+    Iᵧ = build_I_g(operator) #capacite.Γ #
     fₒn, fₒn1 = build_source(operator, f, t, capacite), build_source(operator, f, t+Δt, capacite)
     gᵧ = build_g_g(operator, bc, capacite)
 
@@ -334,7 +334,7 @@ function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, cap
     b = zeros(4N)
 
     jump, flux = ic.scalar, ic.flux
-    Iᵧ1, Iᵧ2 = build_I_g(operator1), build_I_g(operator2)
+    Iᵧ1, Iᵧ2 = build_I_g(operator1), build_I_g(operator2) #capacite1.Γ, capacite2.Γ #
     gᵧ, hᵧ = build_g_g(operator1, jump,capacite1), build_g_g(operator2, flux, capacite2)
 
     fₒn1, fₒn2 = build_source(operator1, f1, t, capacite1), build_source(operator2, f2, t, capacite2)

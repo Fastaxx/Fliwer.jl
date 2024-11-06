@@ -1,8 +1,9 @@
 function plot_solution(solver, mesh::CartesianMesh, body::Body) # Déterminer la dimension du maillage 
     dims = length(mesh.centers)
+    
     # Évaluer la fonction distance signée (SDF) sur les nœuds du maillage
     Z_sdf = if dims == 1
-        [body.sdf(xi, 0.0, 0.0) for xi in mesh.nodes[1]]
+        [body.sdf(xi) for xi in mesh.nodes[1]]
     elseif dims == 2
         [body.sdf(xi, yi, 0.0) for yi in mesh.nodes[2], xi in mesh.nodes[1]]
     elseif dims == 3
@@ -14,99 +15,115 @@ function plot_solution(solver, mesh::CartesianMesh, body::Body) # Déterminer la
     end
 
     # Déterminer le type de problème
-    is_steady = isa(solver, DiffusionSteadyMono) || isa(solver, DiffusionSteadyDiph)
-    is_monophasic = isa(solver, DiffusionSteadyMono) || isa(solver, DiffusionUnsteadyMono)
+    is_steady = solver.time_type == Steady # Problème stationnaire
+    is_monophasic = solver.phase_type == Monophasic # Problème monophasique
 
     # Tracer selon la dimension et le type de problème
     if dims == 1
         # Tracé en 1D
         if is_steady
-            if is_monophasic
-                u = solver.x
+            if is_monophasic # Monophasic
+                uₒ = solver.x[1:length(solver.x) ÷ 2]
+                uᵧ = solver.x[length(solver.x) ÷ 2 + 1:end]
                 x = mesh.centers[1]
                 fig = Figure()
                 ax = Axis(fig[1, 1], title="Monophasic Steady Solution", xlabel="x", ylabel="u")
-                lines!(ax, x, u, color=:blue)
-                # Tracer le zéro de SDF
-                zero_indices = findall(u .== 0)
-                scatter!(ax, x[zero_indices], zeros(length(zero_indices)), color=:red, label="SDF=0")
-                legend!(ax)
+                lines!(ax, uₒ, color=:blue, label="Bulk")
+                lines!(ax, uᵧ, color=:green, label="Interface")
+                axislegend(ax)
                 display(fig)
-            elseif isa(solver, DiffusionSteadyDiph)
-                u = solver.x
-                u1 = u[1:length(u) ÷ 2]
-                u2 = u[length(u) ÷ 2 + 1:end]
+            else # Diphasic
+                u1ₒ = solver.x[1:length(solver.x) ÷ 4]
+                u1ᵧ = solver.x[length(solver.x) ÷ 4 + 1:2*length(solver.x) ÷ 4]
+                u2ₒ = solver.x[2*length(solver.x) ÷ 4 + 1:3*length(solver.x) ÷ 4]
+                u2ᵧ = solver.x[3*length(solver.x) ÷ 4:end]
                 x = mesh.centers[1]
                 fig = Figure()
                 ax = Axis(fig[1, 1], title="Diphasic Steady Solutions", xlabel="x", ylabel="u")
-                lines!(ax, x, u1, color=:blue, label="Phase 1")
-                lines!(ax, x, u2, color=:green, label="Phase 2")
-                # Tracer le zéro de SDF
-                zero_indices = findall(u1 .== 0)
-                scatter!(ax, x[zero_indices], zeros(length(zero_indices)), color=:red, label="SDF=0")
-                legend!(ax)
+                lines!(ax, u1ₒ, color=:blue, label="Phase 1 - Bulk")
+                lines!(ax, u1ᵧ, color=:green, label="Phase 1 - Interface")
+                lines!(ax, u2ₒ, color=:green, label="Phase 2 - Bulk")
+                lines!(ax, u2ᵧ, color=:blue, label="Phase 2 - Interface")
+                axislegend(ax)
                 display(fig)
             end
         else
             # Tracé unsteady en 1D
-            if is_monophasic
+            if is_monophasic # Monophasic
                 states = solver.states
                 fig = Figure()
                 ax = Axis(fig[1, 1], title="Monophasic Unsteady Solutions", xlabel="x", ylabel="u")
                 for state in states
-                    lines!(ax, mesh.centers[1], state, color=:blue, alpha=0.3)
+                    lines!(ax, mesh.centers[1], state[1:length(state) ÷ 2], color=:blue, alpha=0.3, label="Bulk")
+                    lines!(ax, mesh.centers[1], state[length(state) ÷ 2 + 1:end], color=:green, alpha=0.3, label="Interface")
                 end
-                # Tracer le zéro de SDF pour la première solution
-                zero_indices = findall(states[1] .== 0)
-                scatter!(ax, mesh.centers[1][zero_indices], zeros(length(zero_indices)), color=:red, label="SDF=0")
-                legend!(ax)
+                axislegend(ax)
                 display(fig)
-            elseif isa(solver, DiffusionUnsteadyDiph)
-                states1 = [state[1] for state in solver.states]  # Phase 1
-                states2 = [state[2] for state in solver.states]  # Phase 2
+            else # Diphasic
+                states1ₒ = [state[1:length(state) ÷ 4] for state in solver.states]  # Phase 1 - Bulk
+                states1ᵧ = [state[length(state) ÷ 4 + 1:2*length(state) ÷ 4] for state in solver.states]  # Phase 1 - Interface
+                states2ₒ = [state[2*length(state) ÷ 4 + 1:3*length(state) ÷ 4] for state in solver.states]  # Phase 2 - Bulk
+                states2ᵧ = [state[3*length(state) ÷ 4:end] for state in solver.states]  # Phase 2 - Interface
                 fig = Figure()
                 ax1 = Axis(fig[1, 1], title="Diphasic Unsteady - Phase 1", xlabel="x", ylabel="u1")
                 ax2 = Axis(fig[1, 2], title="Diphasic Unsteady - Phase 2", xlabel="x", ylabel="u2")
-                for (u1, u2) in zip(states1, states2)
-                    lines!(ax1, mesh.centers[1], u1, color=:blue, alpha=0.3)
-                    lines!(ax2, mesh.centers[1], u2, color=:green, alpha=0.3)
+                for (state1ₒ, state1ᵧ, state2ₒ, state2ᵧ) in zip(states1ₒ, states1ᵧ, states2ₒ, states2ᵧ)
+                    lines!(ax1, mesh.centers[1], state1ₒ, color=:blue, alpha=0.3, label="Bulk")
+                    lines!(ax1, mesh.centers[1], state1ᵧ, color=:green, alpha=0.3, label="Interface")
+                    lines!(ax2, mesh.centers[1], state2ₒ, color=:blue, alpha=0.3, label="Bulk")
+                    lines!(ax2, mesh.centers[1], state2ᵧ, color=:green, alpha=0.3, label="Interface")
                 end
-                # Tracer le zéro de SDF pour la première solution
-                zero_indices = findall(states1[1] .== 0)
-                scatter!(ax1, mesh.centers[1][zero_indices], zeros(length(zero_indices)), color=:red, label="SDF=0")
-                scatter!(ax2, mesh.centers[1][zero_indices], zeros(length(zero_indices)), color=:red, label="SDF=0")
-                legend!(ax1)
-                legend!(ax2)
+                axislegend(ax1)
+                axislegend(ax2)
                 display(fig)
             end
         end
-
     elseif dims == 2
         # Tracé en 2D
         if is_steady
-            fig = Figure(resolution=(800, 600))
-            if is_monophasic
-                u = solver.x
-                reshaped_u = reshape(u, (length(mesh.centers[1]), length(mesh.centers[2])) )'
-                ax = Axis(fig[1, 1], title="Monophasic Steady Diffusion", xlabel="x", ylabel="y")
-                heatmap!(ax, mesh.centers[1], mesh.centers[2], reshaped_u, colormap=:viridis)
-                contour!(ax, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
-                Colorbar(fig[1, 2], ax.plots[1], label="Temperature")
-            elseif isa(solver, DiffusionSteadyDiph)
-                u1 = solver.x1
-                u2 = solver.x2
-                reshaped_u1 = reshape(u1, (length(mesh.centers[1]), length(mesh.centers[2])) )'
-                reshaped_u2 = reshape(u2, (length(mesh.centers[1]), length(mesh.centers[2])) )'
+            fig = Figure(size=(800, 600))
+            if is_monophasic # Monophasic
+                uₒ = solver.x[1:length(solver.x) ÷ 2]
+                uᵧ = solver.x[length(solver.x) ÷ 2 + 1:end]
+                reshaped_uₒ = reshape(uₒ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
+                reshaped_uᵧ = reshape(uᵧ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
+                ax1 = Axis(fig[1, 1], title="Monophasic Steady Solution - Bulk", xlabel="x", ylabel="y", aspect = DataAspect())
+                ax2 = Axis(fig[1, 3], title="Monophasic Steady Solution - Interface", xlabel="x", ylabel="y", aspect = DataAspect())
+                hm1 = heatmap!(ax1, mesh.centers[1], mesh.centers[2], reshaped_uₒ, colormap=:viridis)
+                hm2 = heatmap!(ax2, mesh.centers[1], mesh.centers[2], reshaped_uᵧ, colormap=:viridis)
+                contour!(ax1, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
+                contour!(ax2, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
+                Colorbar(fig[1, 2], hm1, label="Bulk Temperature")
+                Colorbar(fig[1, 4], hm2, label="Interface Temperature")
+            else # Diphasic
+                u1ₒ = solver.x[1:length(solver.x1) ÷ 4]
+                u1ᵧ = solver.x[length(solver.x1) ÷ 4 + 1:2*length(solver.x1) ÷ 4]
+                u2ₒ = solver.x[2*length(solver.x1) ÷ 4 + 1:3*length(solver.x1) ÷ 4]
+                u2ᵧ = solver.x[3*length(solver.x1) ÷ 4:end]
+                reshaped_u1ₒ = reshape(u1ₒ, (length(mesh.centers[1]), length(mesh.centers[2])) )'
+                reshaped_u1ᵧ = reshape(u1ᵧ, (length(mesh.centers[1]), length(mesh.centers[2])) )'
+                reshaped_u2ₒ = reshape(u2ₒ, (length(mesh.centers[1]), length(mesh.centers[2])) )'
+                reshaped_u2ᵧ = reshape(u2ᵧ, (length(mesh.centers[1]), length(mesh.centers[2])) )'
                 
-                ax1 = Axis(fig[1, 1], title="Diphasic Steady - Phase 1", xlabel="x", ylabel="y")
-                heatmap!(ax1, mesh.centers[1], mesh.centers[2], reshaped_u1, colormap=:viridis)
+                ax1 = Axis(fig[1, 1], title="Diphasic Steady - Phase 1 - Bulk", xlabel="x", ylabel="y")
+                hm1 = heatmap!(ax1, mesh.centers[1], mesh.centers[2], reshaped_u1ₒ, colormap=:viridis)
                 contour!(ax1, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:black, linewidth=2, label="SDF=0")
-                Colorbar(fig[1, 2], ax1.plots[1], label="Phase 1 Temperature")
-                
-                ax2 = Axis(fig[1, 3], title="Diphasic Steady - Phase 2", xlabel="x", ylabel="y")
-                heatmap!(ax2, mesh.centers[1], mesh.centers[2], reshaped_u2, colormap=:viridis)
+                Colorbar(fig[1, 2], hm1, label="Phase 1 Temperature")
+
+                ax2 = Axis(fig[1, 2], title="Diphasic Steady - Phase 1 - Interface", xlabel="x", ylabel="y")
+                hm2 = heatmap!(ax2, mesh.centers[1], mesh.centers[2], reshaped_u1ᵧ, colormap=:viridis)
                 contour!(ax2, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:black, linewidth=2, label="SDF=0")
-                Colorbar(fig[1, 4], ax2.plots[1], label="Phase 2 Temperature")
+                Colorbar(fig[1, 3], hm2, label="Phase 1 Temperature")
+
+                ax3 = Axis(fig[1, 3], title="Diphasic Steady - Phase 2 - Bulk", xlabel="x", ylabel="y")
+                hm3 = heatmap!(ax1, mesh.centers[1], mesh.centers[2], reshaped_u2ₒ, colormap=:viridis)
+                contour!(ax1, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:black, linewidth=2, label="SDF=0")
+                Colorbar(fig[1, 4], hm3, label="Phase 2 Temperature")
+
+                ax4 = Axis(fig[1, 4], title="Diphasic Steady - Phase 2 - Interface", xlabel="x", ylabel="y")
+                hm4 = heatmap!(ax2, mesh.centers[1], mesh.centers[2], reshaped_u2ᵧ, colormap=:viridis)
+                contour!(ax2, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:black, linewidth=2, label="SDF=0")
+                Colorbar(fig[1, 5], hm4, label="Phase 2 Temperature")
             end
             display(fig)
         else
@@ -117,7 +134,7 @@ function plot_solution(solver, mesh::CartesianMesh, body::Body) # Déterminer la
                 min_val = minimum([minimum(u) for u in reshaped_states])
                 max_val = maximum([maximum(u) for u in reshaped_states])
                 
-                fig = Figure(resolution=(800, 600))
+                fig = Figure(size=(800, 600))
                 ax = Axis(fig[1, 1], title="Monophasic Unsteady Diffusion", xlabel="x", ylabel="y")
                 hm = heatmap!(ax, mesh.centers[1], mesh.centers[2], reshaped_states[1], colormap=:viridis, colorrange=(min_val, max_val))
                 contour!(ax, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2)
@@ -136,7 +153,7 @@ function plot_solution(solver, mesh::CartesianMesh, body::Body) # Déterminer la
                 min_val = minimum([minimum(u) for u in reshaped_u1])
                 max_val = maximum([maximum(u) for u in reshaped_u1])
                 
-                fig = Figure(resolution=(1600, 600))
+                fig = Figure(size=(1600, 600))
                 ax1 = Axis(fig[1, 1], title="Diphasic Unsteady - Phase 1", xlabel="x", ylabel="y")
                 hm1 = heatmap!(ax1, mesh.centers[1], mesh.centers[2], reshaped_u1[1], colormap=:viridis, colorrange=(min_val, max_val))
                 contour!(ax1, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:black, linewidth=2, label="SDF=0")
@@ -159,7 +176,7 @@ function plot_solution(solver, mesh::CartesianMesh, body::Body) # Déterminer la
     elseif dims == 3
         # Tracé en 3D (exemple avec une tranche centrale en z)
         if is_steady
-            fig = Figure(resolution=(800, 600))
+            fig = Figure(size=(800, 600))
             if is_monophasic
                 u = solver.x
                 nx, ny, nz = length(mesh.centers[1]), length(mesh.centers[2]), length(mesh.centers[3])
@@ -199,7 +216,7 @@ function plot_solution(solver, mesh::CartesianMesh, body::Body) # Déterminer la
                 min_val = minimum([minimum(reshape(state[:, :, z_mid], :) ) for state in reshaped_states])
                 max_val = maximum([maximum(reshape(state[:, :, z_mid], :) ) for state in reshaped_states])
                 
-                fig = Figure(resolution=(800, 600))
+                fig = Figure(size=(800, 600))
                 ax = Axis3(fig[1, 1], title="Monophasic Unsteady Diffusion (Slice)", xlabel="x", ylabel="y", zlabel="z")
                 hm = heatmap!(ax, mesh.centers[1], mesh.centers[2], reshaped_states[1][:, :, z_mid], colormap=:viridis, colorrange=(min_val, max_val))
                 contour!(ax, mesh.nodes[1], mesh.nodes[2], mesh.nodes[3][z_mid], reshaped_states[1][:, :, z_mid], levels=[0.0], color=:red, linewidth=2)
@@ -220,7 +237,7 @@ function plot_solution(solver, mesh::CartesianMesh, body::Body) # Déterminer la
                 min_val = minimum([minimum(reshape(u1[:, :, z_mid], :)) for u1 in reshaped_u1])
                 max_val = maximum([maximum(reshape(u1[:, :, z_mid], :)) for u1 in reshaped_u1])
                 
-                fig = Figure(resolution=(1600, 600))
+                fig = Figure(size=(1600, 600))
                 ax1 = Axis3(fig[1, 1], title="Diphasic Unsteady - Phase 1 (Slice)", xlabel="x", ylabel="y", zlabel="z")
                 hm1 = heatmap!(ax1, mesh.centers[1], mesh.centers[2], reshaped_u1[1][:, :, z_mid], colormap=:viridis, colorrange=(min_val, max_val))
                 contour!(ax1, mesh.nodes[1], mesh.nodes[2], mesh.nodes[3][z_mid], reshaped_u1[1][:, :, z_mid], levels=[0.0], color=:black, linewidth=2)
@@ -242,3 +259,6 @@ function plot_solution(solver, mesh::CartesianMesh, body::Body) # Déterminer la
     else
         error("Dimension non supportée: $dims")
     end
+
+end
+

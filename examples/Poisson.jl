@@ -45,9 +45,6 @@ vtk_grid("Temperature_poisson", mesh.centers[1], mesh.centers[2]) do vtk
     vtk["Temperature_g"] = solver.x[length(solver.x) ÷ 2 + 1:end]
 end
 
-vtk_surface("Temperature_poisson", mesh.centers[1], mesh.centers[2]) do vtk
-    vtk["Temperature_b"]
-end
 
 plot_solution(solver, mesh, circle)
 

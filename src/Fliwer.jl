@@ -13,6 +13,7 @@ using CairoMakie
 using StaticArrays
 using ForwardDiff
 using CartesianGeometry
+using WriteVTK
 
 include("Mesh.jl")
 export CartesianMesh, nC, MeshTag
