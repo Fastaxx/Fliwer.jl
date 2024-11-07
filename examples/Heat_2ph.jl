@@ -226,6 +226,8 @@ function plot_profile(solver, nx, ny, x0, lx, y0, ly, x; ntime=4)
     display(fig)
 end
 
+export plot_solution, plot_and_animate_solution, plot_solution_timestep, plot_profile
+
 # Plot the solution profile along x=2.0 for 4 different times
 plot_profile(solver, nx, ny, x0, lx, y0, ly, 2.0)
 
@@ -235,23 +237,4 @@ plot_profile(solver, nx, ny, x0, lx, y0, ly, 2.0)
 
 #plot_and_animate_solution(solver, nx, ny, x0, lx, y0, ly)
 
-
-
-# Write Vtk Last State
-using WriteVTK
-vtk_grid("Temperature_diffusion", mesh.centers[1], mesh.centers[2]) do vtk
-    vtk["Temperature_1_b"] = solver.x[1:length(solver.x) ÷ 4]
-    vtk["Temperature_1_g"] = solver.x[length(solver.x) ÷ 4 + 1:2*length(solver.x) ÷ 4]
-    vtk["Temperature_2_b"] = solver.x[2*length(solver.x) ÷ 4 + 1:3*length(solver.x) ÷ 4]
-    vtk["Temperature_2_g"] = solver.x[3*length(solver.x) ÷ 4 + 1:end]
-end
-
-# Write Vtk All States
-vtk_grid("Temperature_diffusion_all", mesh.centers[1], mesh.centers[2]) do vtk
-    for (i, state) in enumerate(solver.states)
-        vtk["Temperature_1_b_$i"] = state[1:length(state) ÷ 4]
-        vtk["Temperature_1_g_$i"] = state[length(state) ÷ 4 + 1:2*length(state) ÷ 4]
-        vtk["Temperature_2_b_$i"] = state[2*length(state) ÷ 4 + 1:3*length(state) ÷ 4]
-        vtk["Temperature_2_g_$i"] = state[3*length(state) ÷ 4 + 1:end]
-    end
-end
+write_vtk("solution", mesh, solver)

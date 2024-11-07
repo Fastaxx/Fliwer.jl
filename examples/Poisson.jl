@@ -38,15 +38,11 @@ solver = DiffusionSteadyMono(Fluide, bc_b, bc)
 # Solve the problem
 solve!(solver, Fluide; method=IterativeSolvers.bicgstabl, verbose=false)
 
-using WriteVTK
-# Write Vtk
-vtk_grid("Temperature_poisson", mesh.centers[1], mesh.centers[2]) do vtk
-    vtk["Temperature_b"] = solver.x[1:length(solver.x) ÷ 2]
-    vtk["Temperature_g"] = solver.x[length(solver.x) ÷ 2 + 1:end]
-end
-
-
+# Plot the solution
 plot_solution(solver, mesh, circle)
+
+# Write the solution to a VTK file
+write_vtk("solution.vtk", mesh, solver)
 
 # Plot the solution usign Makie
 using CairoMakie

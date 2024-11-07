@@ -42,4 +42,7 @@ export TimeType, PhaseType, EquationType, Solver, DiffusionSteadyMono, Diffusion
 include("Vizualize.jl")
 export plot_solution
 
+include("Vtk.jl")
+export write_vtk
+
 end
