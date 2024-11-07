@@ -1,12 +1,12 @@
 """
     write_vtk(filename::String, mesh::CartesianMesh, solver::Solver)
 
-Écrit un fichier VTK basé sur les types de temps, de phase et d'équation du solveur.
+Writes a VTK file based on the solver's time, phase, and equation types.
 
 # Arguments
-- `filename::String` : Nom du fichier VTK à créer.
-- `mesh::CartesianMesh` : Maillage utilisé dans la simulation.
-- `solver::Solver` : Résultats de la simulation contenant les données à écrire.
+- `filename::String` : Name of the VTK file to create.
+- `mesh::CartesianMesh` : Mesh used in the simulation.
+- `solver::Solver` : Simulation results containing the data to write.
 """
 function write_vtk(filename::String, mesh::CartesianMesh, solver::Solver)
     vtk_grid(filename, mesh.centers[1], mesh.centers[2]) do vtk

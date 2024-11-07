@@ -44,24 +44,5 @@ plot_solution(solver, mesh, circle)
 # Write the solution to a VTK file
 write_vtk("solution.vtk", mesh, solver)
 
-# Plot the solution usign Makie
-using CairoMakie
-# Reshaper la solution
-reshaped_u = reshape(solver.x[1:length(solver.x) ÷ 2], (nx + 1, ny + 1))'
-
-# Tracer la solution avec heatmap
-fig = Figure()
-ax = Axis(fig[1, 1], title = "Solution Plot", xlabel = "x", ylabel = "y")
-hm = heatmap!(ax, mesh.centers[1], mesh.centers[2], reshaped_u, colormap = :viridis)
-
-# Ajouter le zéro de la fonction distance signée de Body
-contour!(ax, mesh.nodes[1], mesh.nodes[2], [circle.sdf(xi, yi, 0.0) for yi in mesh.nodes[2], xi in mesh.nodes[1]], levels = [0.0], color = :red, linewidth = 2, label = "Contour SDF=0")
-
-# Ajouter une colorbar
-Colorbar(fig[1, 2], hm, label = "Intensity")
-
-# Afficher le graphique
-display(fig)
-
 # Fonction pour trouver la valeur maximale d'un tableau
 println(maximum(solver.x))

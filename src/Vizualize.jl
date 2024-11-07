@@ -96,79 +96,142 @@ function plot_solution(solver, mesh::CartesianMesh, body::Body) # Déterminer la
                 Colorbar(fig[1, 2], hm1, label="Bulk Temperature")
                 Colorbar(fig[1, 4], hm2, label="Interface Temperature")
             else # Diphasic
-                u1ₒ = solver.x[1:length(solver.x1) ÷ 4]
-                u1ᵧ = solver.x[length(solver.x1) ÷ 4 + 1:2*length(solver.x1) ÷ 4]
-                u2ₒ = solver.x[2*length(solver.x1) ÷ 4 + 1:3*length(solver.x1) ÷ 4]
-                u2ᵧ = solver.x[3*length(solver.x1) ÷ 4:end]
-                reshaped_u1ₒ = reshape(u1ₒ, (length(mesh.centers[1]), length(mesh.centers[2])) )'
-                reshaped_u1ᵧ = reshape(u1ᵧ, (length(mesh.centers[1]), length(mesh.centers[2])) )'
-                reshaped_u2ₒ = reshape(u2ₒ, (length(mesh.centers[1]), length(mesh.centers[2])) )'
-                reshaped_u2ᵧ = reshape(u2ᵧ, (length(mesh.centers[1]), length(mesh.centers[2])) )'
+                u1ₒ = solver.x[1:length(solver.x) ÷ 4]
+                u1ᵧ = solver.x[length(solver.x) ÷ 4 + 1:2*length(solver.x) ÷ 4]
+                u2ₒ = solver.x[2*length(solver.x) ÷ 4 + 1:3*length(solver.x) ÷ 4]
+                u2ᵧ = solver.x[3*length(solver.x) ÷ 4+1:end]
+                reshaped_u1ₒ = reshape(u1ₒ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
+                reshaped_u1ᵧ = reshape(u1ᵧ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
+                reshaped_u2ₒ = reshape(u2ₒ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
+                reshaped_u2ᵧ = reshape(u2ᵧ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
                 
-                ax1 = Axis(fig[1, 1], title="Diphasic Steady - Phase 1 - Bulk", xlabel="x", ylabel="y")
+                ax1 = Axis(fig[1, 1], title="Diphasic Steady - Phase 1 - Bulk", xlabel="x", ylabel="y", aspect = DataAspect())
                 hm1 = heatmap!(ax1, mesh.centers[1], mesh.centers[2], reshaped_u1ₒ, colormap=:viridis)
-                contour!(ax1, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:black, linewidth=2, label="SDF=0")
-                Colorbar(fig[1, 2], hm1, label="Phase 1 Temperature")
+                cb1 = Colorbar(fig[1, 2], hm1, label="Phase 1 Bulk Temperature")
+                contour!(ax1, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
 
-                ax2 = Axis(fig[1, 2], title="Diphasic Steady - Phase 1 - Interface", xlabel="x", ylabel="y")
+                ax2 = Axis(fig[1, 3], title="Diphasic Steady - Phase 1 - Interface", xlabel="x", ylabel="y", aspect = DataAspect())
                 hm2 = heatmap!(ax2, mesh.centers[1], mesh.centers[2], reshaped_u1ᵧ, colormap=:viridis)
-                contour!(ax2, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:black, linewidth=2, label="SDF=0")
-                Colorbar(fig[1, 3], hm2, label="Phase 1 Temperature")
+                cb2 = Colorbar(fig[1, 4], hm2, label="Phase 1 Interface Temperature")
+                contour!(ax2, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
 
-                ax3 = Axis(fig[1, 3], title="Diphasic Steady - Phase 2 - Bulk", xlabel="x", ylabel="y")
-                hm3 = heatmap!(ax1, mesh.centers[1], mesh.centers[2], reshaped_u2ₒ, colormap=:viridis)
-                contour!(ax1, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:black, linewidth=2, label="SDF=0")
-                Colorbar(fig[1, 4], hm3, label="Phase 2 Temperature")
+                ax3 = Axis(fig[2, 1], title="Diphasic Steady - Phase 2 - Bulk", xlabel="x", ylabel="y", aspect = DataAspect())
+                hm3 = heatmap!(ax3, mesh.centers[1], mesh.centers[2], reshaped_u2ₒ, colormap=:viridis)
+                cb3 = Colorbar(fig[2, 2], hm3, label="Phase 2 Bulk Temperature")
+                contour!(ax3, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
 
-                ax4 = Axis(fig[1, 4], title="Diphasic Steady - Phase 2 - Interface", xlabel="x", ylabel="y")
-                hm4 = heatmap!(ax2, mesh.centers[1], mesh.centers[2], reshaped_u2ᵧ, colormap=:viridis)
-                contour!(ax2, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:black, linewidth=2, label="SDF=0")
-                Colorbar(fig[1, 5], hm4, label="Phase 2 Temperature")
+                ax4 = Axis(fig[2, 3], title="Diphasic Steady - Phase 2 - Interface", xlabel="x", ylabel="y", aspect = DataAspect())
+                hm4 = heatmap!(ax4, mesh.centers[1], mesh.centers[2], reshaped_u2ᵧ, colormap=:viridis)
+                cb4 = Colorbar(fig[2, 4], hm4, label="Phase 2 Interface Temperature")
+                contour!(ax4, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
+
             end
             display(fig)
         else
             # Tracé unsteady en 2D
             if is_monophasic
-                states = solver.states
-                reshaped_states = [reshape(state, (length(mesh.centers[1]), length(mesh.centers[2])) )' for state in states]
-                min_val = minimum([minimum(u) for u in reshaped_states])
-                max_val = maximum([maximum(u) for u in reshaped_states])
-                
+                uₒ = solver.states[1][1:length(solver.states[1]) ÷ 2]
+                uᵧ = solver.states[1][length(solver.states[1]) ÷ 2 + 1:end]
+
+                reshaped_uₒ = reshape(uₒ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
+                reshaped_uᵧ = reshape(uᵧ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
+
                 fig = Figure(size=(800, 600))
-                ax = Axis(fig[1, 1], title="Monophasic Unsteady Diffusion", xlabel="x", ylabel="y")
-                hm = heatmap!(ax, mesh.centers[1], mesh.centers[2], reshaped_states[1], colormap=:viridis, colorrange=(min_val, max_val))
-                contour!(ax, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2)
-                Colorbar(fig[1, 2], hm, label="Temperature")
-                
+
+                ax1 = Axis(fig[1, 1], title="Monophasic Unsteady Diffusion - Bulk", xlabel="x", ylabel="y", aspect = DataAspect())
+                hm1 = heatmap!(ax1, mesh.centers[1], mesh.centers[2], reshaped_uₒ, colormap=:viridis)
+                contour!(ax1, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
+                Colorbar(fig[1, 2], hm1, label="Bulk Temperature")
+
+                ax2 = Axis(fig[1, 3], title="Monophasic Unsteady Diffusion - Interface", xlabel="x", ylabel="y", aspect = DataAspect())
+                hm2 = heatmap!(ax2, mesh.centers[1], mesh.centers[2], reshaped_uᵧ, colormap=:viridis)
+                contour!(ax2, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
+                Colorbar(fig[1, 4], hm2, label="Interface Temperature")
+
+                display(fig)
+
                 # Animation
-                record(fig, "heat_MonoUnsteady.mp4", 1:length(states); framerate=10) do frame
-                    hm[1] = reshaped_states[frame]
+                fig = Figure(size=(800, 400))
+                ax = Axis(fig[1, 1], title="Diffusion Unsteady Monophasic", xlabel="x", ylabel="y", aspect = DataAspect())
+                xlims!(ax, mesh.x0[1], length(mesh.centers[1]))
+                ylims!(ax, mesh.x0[2], length(mesh.centers[2]))
+
+                min_val = minimum([minimum(reshape(state[1:length(state) ÷ 2], (length(mesh.centers[1])+1, length(mesh.centers[2])+1))') for state in solver.states])
+                max_val = maximum([maximum(reshape(state[1:length(state) ÷ 2], (length(mesh.centers[1])+1, length(mesh.centers[2])+1))') for state in solver.states])
+
+                hm = heatmap!(ax, reshape(solver.states[1][1:length(solver.states[1]) ÷ 2], (length(mesh.centers[1])+1, length(mesh.centers[2])+1))', colormap=:viridis, colorrange=(min_val, max_val))
+                Colorbar(fig[1, 2], hm, label="Temperature")
+
+                update_hm(frame) = reshape(solver.states[frame][1:length(solver.states[frame]) ÷ 2], (length(mesh.centers[1])+1, length(mesh.centers[2])+1))'
+
+                record(fig, "heat_MonoUnsteady.mp4", 1:length(solver.states); framerate=10) do frame
+                    hm[1] = update_hm(frame)
                 end
+
                 display(fig)
                 
-            elseif isa(solver, DiffusionUnsteadyDiph)
-                states = solver.states
-                reshaped_u1 = [reshape(state[1], (length(mesh.centers[1]), length(mesh.centers[2])) )' for state in states]
-                reshaped_u2 = [reshape(state[2], (length(mesh.centers[1]), length(mesh.centers[2])) )' for state in states]
-                min_val = minimum([minimum(u) for u in reshaped_u1])
-                max_val = maximum([maximum(u) for u in reshaped_u1])
-                
-                fig = Figure(size=(1600, 600))
-                ax1 = Axis(fig[1, 1], title="Diphasic Unsteady - Phase 1", xlabel="x", ylabel="y")
-                hm1 = heatmap!(ax1, mesh.centers[1], mesh.centers[2], reshaped_u1[1], colormap=:viridis, colorrange=(min_val, max_val))
-                contour!(ax1, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:black, linewidth=2, label="SDF=0")
-                Colorbar(fig[1, 2], hm1, label="Phase 1 Temperature")
-                
-                ax2 = Axis(fig[1, 3], title="Diphasic Unsteady - Phase 2", xlabel="x", ylabel="y")
-                hm2 = heatmap!(ax2, mesh.centers[1], mesh.centers[2], reshaped_u2[1], colormap=:viridis, colorrange=(min_val, max_val))
-                contour!(ax2, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:black, linewidth=2, label="SDF=0")
-                Colorbar(fig[1, 4], hm2, label="Phase 2 Temperature")
-                
+            else
+                # Plot Last State
+                u1ₒ = solver.states[1][1:length(solver.states[1]) ÷ 4]
+                u1ᵧ = solver.states[1][length(solver.states[1]) ÷ 4 + 1:2*length(solver.states[1]) ÷ 4]
+                u2ₒ = solver.states[1][2*length(solver.states[1]) ÷ 4 + 1:3*length(solver.states[1]) ÷ 4]
+                u2ᵧ = solver.states[1][3*length(solver.states[1]) ÷ 4 + 1:end]
+
+                reshaped_u1ₒ = reshape(u1ₒ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
+                reshaped_u1ᵧ = reshape(u1ᵧ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
+                reshaped_u2ₒ = reshape(u2ₒ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
+                reshaped_u2ᵧ = reshape(u2ᵧ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
+
+                fig = Figure()
+
+                x, y = range(mesh.x0[1], stop=mesh.x0[1]+mesh.h[1][1]*length(mesh.h[1]), length=length(mesh.h[1])+1), range(mesh.x0[2], stop=mesh.x0[2]+mesh.h[2][1]*length(mesh.h[2]), length=length(mesh.h[2])+1)
+
+                ax1 = Axis(fig[1, 1], title="Diphasic Unsteady - Phase 1 - Bulk", xlabel="x", ylabel="y")
+                surface!(ax1, x, y, reshaped_u1ₒ, colormap=:viridis)
+
+                ax2 = Axis(fig[1, 2], title="Diphasic Unsteady - Phase 1 - Interface", xlabel="x", ylabel="y")
+                surface!(ax2, x, y, reshaped_u1ᵧ, colormap=:viridis)
+
+                ax3 = Axis(fig[2, 1], title="Diphasic Unsteady - Phase 2 - Bulk", xlabel="x", ylabel="y")
+                surface!(ax3, x, y, reshaped_u2ₒ, colormap=:viridis)
+
+                ax4 = Axis(fig[2, 2], title="Diphasic Unsteady - Phase 2 - Interface", xlabel="x", ylabel="y")
+                surface!(ax4, x, y, reshaped_u2ᵧ, colormap=:viridis)
+
+                display(fig)
+
                 # Animation
-                record(fig, "heat_DiffUnsteadyDiph.mp4", 1:length(states); framerate=10) do frame
-                    hm1[1] = reshaped_u1[frame]
-                    hm2[1] = reshaped_u2[frame]
+                fig = Figure(size=(800, 400))
+                
+                ax1 = Axis3(fig[1, 1], title="Diphasic Unsteady - Phase 1 - Bulk", xlabel="x", ylabel="y", zlabel="Temperature")
+                s1 = surface!(ax1, reshaped_u1ₒ, colormap=:viridis)
+
+                ax2 = Axis3(fig[1, 2], title="Diphasic Unsteady - Phase 1 - Interface", xlabel="x", ylabel="y", zlabel="Temperature")
+                s2 = surface!(ax2, reshaped_u1ᵧ, colormap=:viridis)
+
+                ax3 = Axis3(fig[2, 1], title="Diphasic Unsteady - Phase 2 - Bulk", xlabel="x", ylabel="y", zlabel="Temperature")
+                s3 = surface!(ax3, reshaped_u2ₒ, colormap=:viridis)
+
+                ax4 = Axis3(fig[2, 2], title="Diphasic Unsteady - Phase 2 - Interface", xlabel="x", ylabel="y", zlabel="Temperature")
+                s4 = surface!(ax4, reshaped_u2ᵧ, colormap=:viridis)
+
+                zlims!(ax1, 0, 1)
+                zlims!(ax2, 0, 1)
+                zlims!(ax3, 0, 1)
+                zlims!(ax4, 0, 1)
+
+                function update_surfaces!(frame)
+                    s1[:z] = reshape(solver.states[frame][1:length(solver.states[frame]) ÷ 4], (length(mesh.centers[1])+1, length(mesh.centers[2])+1))'
+                    #s2[:z] = reshape(solver.states[frame][length(solver.states[frame]) ÷ 4 + 1:2*length(solver.states[frame]) ÷ 4], length(mesh.centers[1])+1, length(mesh.centers[2])+1))'
+                    s3[:z] = reshape(solver.states[frame][2*length(solver.states[frame]) ÷ 4 + 1:3*length(solver.states[frame]) ÷ 4], (length(mesh.centers[1])+1, length(mesh.centers[2])+1))'
+                    #s4[:z] = reshape(solver.states[frame][3*length(solver.states[frame]) ÷ 4 + 1:end], length(mesh.centers[1])+1, length(mesh.centers[2])+1))'
+                    println("Frame $frame")
                 end
+
+                record(fig, "heat_DiphUnsteady.mp4", 1:length(solver.states); framerate=10) do frame
+                    update_surfaces!(frame)
+                end
+
                 display(fig)
             end
         end

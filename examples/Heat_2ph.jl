@@ -54,6 +54,13 @@ solver = DiffusionUnsteadyDiph(Fluide_1, Fluide_2, bc_b, ic, Δt, Tend, u0)
 # Solve the problem
 solve!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=IterativeSolvers.gmres, restart=100, maxiter=1000, verbose=false)
 
+# Write the solution to a VTK file
+write_vtk("solution", mesh, solver)
+
+# Plot the solution
+plot_solution(solver, mesh, circle)
+
+"""
 # Plot the solution using Makie
 using CairoMakie
 
@@ -226,15 +233,4 @@ function plot_profile(solver, nx, ny, x0, lx, y0, ly, x; ntime=4)
     display(fig)
 end
 
-export plot_solution, plot_and_animate_solution, plot_solution_timestep, plot_profile
-
-# Plot the solution profile along x=2.0 for 4 different times
-plot_profile(solver, nx, ny, x0, lx, y0, ly, 2.0)
-
-#plot_solution(solver, nx, ny, x0, lx, y0, ly)
-
-#plot_solution_timestep(solver, nx, ny, x0, lx, y0, ly)
-
-#plot_and_animate_solution(solver, nx, ny, x0, lx, y0, ly)
-
-write_vtk("solution", mesh, solver)
+"""

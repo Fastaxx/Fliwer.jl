@@ -46,37 +46,4 @@ solver = DiffusionSteadyDiph(Fluide_1, Fluide_2, bc_b, ic)
 solve!(solver, Fluide_1, Fluide_2; method=IterativeSolvers.gmres, verbose=false)
 
 # Plot the solution usign Makie
-
-using CairoMakie
-
-# Reshaper la solution
-u1ₒ = reshape(solver.x[1:length(solver.x) ÷ 4], (nx + 1, ny + 1))'
-u1ᵧ = reshape(solver.x[length(solver.x) ÷ 4 + 1:2*length(solver.x) ÷ 4], (nx + 1, ny + 1))'
-u2ₒ = reshape(solver.x[2*length(solver.x) ÷ 4 + 1:3*length(solver.x) ÷ 4], (nx + 1, ny + 1))'
-u2ᵧ = reshape(solver.x[3*length(solver.x) ÷ 4 + 1:end], (nx + 1, ny + 1))'
-
-# Tracer la solution avec heatmap
-fig = Figure()
-
-# Phase 1 - Bulk
-ax1 = Axis(fig[1, 1], title = "Phase 1 - Bulk", xlabel = "x", ylabel = "y")
-hm1 = heatmap!(ax1, u1ₒ, colormap = :viridis)
-cb1 = Colorbar(fig[1, 2], hm1, label = "Intensity")
-
-# Phase 1 - Interface
-ax2 = Axis(fig[1, 3], title = "Phase 1 - Interface", xlabel = "x", ylabel = "y")
-hm2 = heatmap!(ax2, u1ᵧ, colormap = :viridis)
-cb2 = Colorbar(fig[1, 4], hm2, label = "Intensity")
-
-# Phase 2 - Bulk
-ax3 = Axis(fig[2, 1], title = "Phase 2 - Bulk", xlabel = "x", ylabel = "y")
-hm3 = heatmap!(ax3, u2ₒ, colormap = :viridis)
-cb3 = Colorbar(fig[2, 2], hm3, label = "Intensity")
-
-# Phase 2 - Interface
-ax4 = Axis(fig[2, 3], title = "Phase 2 - Interface", xlabel = "x", ylabel = "y")
-hm4 = heatmap!(ax4, u2ᵧ, colormap = :viridis)
-cb4 = Colorbar(fig[2, 4], hm4, label = "Intensity")
-
-# Afficher le graphique
-display(fig)
+plot_solution(solver, mesh, circle)
