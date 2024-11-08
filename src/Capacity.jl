@@ -58,7 +58,7 @@ function VOFI(body::AbstractBody, mesh::CartesianMesh)
     Vs, bary, interface_length = spzeros(nc), zeros(N), spzeros(nc)
     As, Bs, Ws = (spzeros(nc), spzeros(nc), spzeros(nc)), (spzeros(nc), spzeros(nc), spzeros(nc)), (spzeros(nc), spzeros(nc), spzeros(nc))
 
-    Vs, bary, interface_length = integrate(Tuple{0}, body.sdf, mesh.nodes, Float64, zero)
+    Vs, bary = integrate(Tuple{0}, body.sdf, mesh.nodes, Float64, zero)
     As = integrate(Tuple{1}, body.sdf, mesh.nodes, Float64, zero)
     Ws = integrate(Tuple{0}, body.sdf, mesh.nodes, Float64, zero, bary)
     Bs = integrate(Tuple{1}, body.sdf, mesh.nodes, Float64, zero, bary)

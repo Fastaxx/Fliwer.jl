@@ -3,8 +3,8 @@ using IterativeSolvers
 
 ### 2D Test Case : Diphasic Unsteady Diffusion Equation with a Disk
 # Define the mesh
-nx, ny = 30, 30
-lx, ly = 4., 4.
+nx, ny = 80, 80
+lx, ly = 8., 8.
 x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
 mesh = CartesianMesh((nx, ny), (lx, ly), (x0, y0))
@@ -58,7 +58,10 @@ solve!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=IterativeSolv
 write_vtk("solution", mesh, solver)
 
 # Plot the solution
-plot_solution(solver, mesh, circle)
+#plot_solution(solver, mesh, circle)
+
+# Plot the Profile
+plot_profile(solver, mesh; x=lx/2.01)
 
 """
 # Plot the solution using Makie
@@ -197,40 +200,6 @@ function plot_solution_timestep(solver, nx, ny, x0, lx, y0, ly; ntime=6)
     display(fig)
 end
 
-function plot_profile(solver, nx, ny, x0, lx, y0, ly, x; ntime=4)
-    # Récupérer les coordonnées y
-    y = range(y0, stop=ly, length=ny+1)
 
-    # Récupérer les indices x les plus proches
-    x_idx = round(Int, (x - x0) / (lx / nx))
-
-    # Sélectionner 4 instants équidistants
-    total_states = length(solver.states)
-    indices = round.(Int, LinRange(5, total_states, ntime))
-
-    fig = Figure(size = (800, 600))
-
-    # Créer les sous-graphiques pour les deux phases
-    ax1 = Axis(fig[1, 1], title = "Phase 1 - Bulk", xlabel = "y", ylabel = "u1ₒ")
-    ax2 = Axis(fig[2, 1], title = "Phase 2 - Bulk", xlabel = "y", ylabel = "u2ₒ")
-
-    for (i, idx) in enumerate(indices)
-        # Récupérer les valeurs de la solution pour les 4 phases à l'instant idx
-        state = solver.states[idx]
-        u1ₒ = reshape(state[1:length(state) ÷ 4], (nx + 1, ny + 1))[x_idx, :]
-        u2ₒ = reshape(state[2*length(state) ÷ 4 + 1:3*length(state) ÷ 4], (nx + 1, ny + 1))[x_idx, :]
-
-        # Tracer les lignes pour chaque instant
-        lines!(ax1, y, u1ₒ, label = "Instant $idx")
-        lines!(ax2, y, u2ₒ, label = "Instant $idx")
-    end
-
-    # Ajouter des légendes
-    axislegend(ax1, position = :rt)
-    axislegend(ax2, position = :rt)
-
-    # Afficher le graphique
-    display(fig)
-end
 
 """

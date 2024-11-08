@@ -325,3 +325,89 @@ function plot_solution(solver, mesh::CartesianMesh, body::Body) # Déterminer la
 
 end
 
+function plot_profile(solver, nx, ny, x0, lx, y0, ly, x; ntime=4)
+    # Récupérer les coordonnées y
+    y = range(y0, stop=ly, length=ny+1)
+
+    # Récupérer les indices x les plus proches
+    x_idx = round(Int, (x - x0) / (lx / nx))
+
+    # Sélectionner 4 instants équidistants
+    total_states = length(solver.states)
+    indices = round.(Int, LinRange(5, total_states, ntime))
+
+    fig = Figure(size = (800, 600))
+
+    # Créer les sous-graphiques pour les deux phases
+    ax1 = Axis(fig[1, 1], title = "Phase 1 - Bulk", xlabel = "y", ylabel = "u1ₒ")
+    ax2 = Axis(fig[2, 1], title = "Phase 2 - Bulk", xlabel = "y", ylabel = "u2ₒ")
+
+    for (i, idx) in enumerate(indices)
+        # Récupérer les valeurs de la solution pour les 4 phases à l'instant idx
+        state = solver.states[idx]
+        u1ₒ = reshape(state[1:length(state) ÷ 4], (nx + 1, ny + 1))[x_idx, :]
+        u2ₒ = reshape(state[2*length(state) ÷ 4 + 1:3*length(state) ÷ 4], (nx + 1, ny + 1))[x_idx, :]
+
+        # Tracer les lignes pour chaque instant
+        lines!(ax1, y, u1ₒ, label = "Instant $idx")
+        lines!(ax2, y, u2ₒ, label = "Instant $idx")
+    end
+
+    # Ajouter des légendes
+    axislegend(ax1, position = :rt)
+    axislegend(ax2, position = :rt)
+
+    # Afficher le graphique
+    display(fig)
+end
+
+function plot_profile(solver::Solver, mesh::CartesianMesh; x=1.0)
+    # Plot Profile for 2D or 3D
+
+    dims = length(mesh.centers)
+
+    if dims == 2
+        # Récupérer les coordonnées y
+        y = range(mesh.x0[2], stop=mesh.x0[2]+mesh.h[2][1]*length(mesh.h[2]), length=length(mesh.h[2])+1)
+
+        # Récupérer les indices x les plus proches
+        x_idx = round(Int, (x - mesh.x0[1]) / mesh.h[1][1])
+
+        # Sélectionner 4 instants équidistants
+        total_states = length(solver.states)
+        indices = round.(Int, LinRange(5, total_states, 4))
+
+        fig = Figure(size = (800, 600))
+
+        # Créer les sous-graphiques pour les deux phases
+        ax1 = Axis(fig[1, 1], title = "Phase 1 - Bulk", xlabel = "y", ylabel = "u1ₒ")
+        ax2 = Axis(fig[2, 1], title = "Phase 2 - Bulk", xlabel = "y", ylabel = "u2ₒ")
+
+        for (i, idx) in enumerate(indices)
+            # Récupérer les valeurs de la solution pour les 4 phases à l'instant idx
+            state = solver.states[idx]
+            u1ₒ = reshape(state[1:length(state) ÷ 4], (length(mesh.centers[1])+1, length(mesh.centers[2])+1))[x_idx, 1:div(length(mesh.centers[2])+1, 2)]
+            u2ₒ = reshape(state[2*length(state) ÷ 4 + 1:3*length(state) ÷ 4], (length(mesh.centers[1])+1, length(mesh.centers[2])+1))[x_idx, 1:div(length(mesh.centers[2])+1, 2)]
+
+            # Tracer les lignes pour chaque instant
+            lines!(ax1, y[1:div(length(y), 2)], u1ₒ, label = "Instant $idx")
+            lines!(ax2, y[1:div(length(y), 2)], u2ₒ, label = "Instant $idx")
+        end
+
+        # Ajouter des légendes
+        axislegend(ax1, position = :rt)
+        axislegend(ax2, position = :rt)
+
+        # Afficher le graphique
+        display(fig)
+
+    elseif dims == 3
+        println("Plotting Profile for 3D is not supported yet.")
+
+    else
+        error("Dimension non supportée: $dims")
+    end
+end
+
+
+    
