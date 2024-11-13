@@ -68,13 +68,13 @@ function plot_solution(solver, mesh::CartesianMesh, body::Body) # Déterminer la
                 ax1 = Axis(fig[1, 1], title="Diphasic Unsteady - Phase 1", xlabel="x", ylabel="u1")
                 ax2 = Axis(fig[1, 2], title="Diphasic Unsteady - Phase 2", xlabel="x", ylabel="u2")
                 for (state1ₒ, state1ᵧ, state2ₒ, state2ᵧ) in zip(states1ₒ, states1ᵧ, states2ₒ, states2ᵧ)
-                    lines!(ax1, mesh.centers[1], state1ₒ, color=:blue, alpha=0.3, label="Bulk")
-                    lines!(ax1, mesh.centers[1], state1ᵧ, color=:green, alpha=0.3, label="Interface")
-                    lines!(ax2, mesh.centers[1], state2ₒ, color=:blue, alpha=0.3, label="Bulk")
-                    lines!(ax2, mesh.centers[1], state2ᵧ, color=:green, alpha=0.3, label="Interface")
+                    lines!(ax1, state1ₒ, color=:blue, alpha=0.3, label="Bulk")
+                    lines!(ax1, state1ᵧ, color=:green, alpha=0.3, label="Interface")
+                    lines!(ax2, state2ₒ, color=:blue, alpha=0.3, label="Bulk")
+                    lines!(ax2, state2ᵧ, color=:green, alpha=0.3, label="Interface")
                 end
-                axislegend(ax1)
-                axislegend(ax2)
+                #axislegend(ax1)
+                #axislegend(ax2)
                 display(fig)
             end
         end

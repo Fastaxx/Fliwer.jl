@@ -54,7 +54,9 @@ function DiffusionOps(A, B, V, W, size)
         nx = size[1]
         G = ẟ_m(nx) * B[1] # Gérer le periodicity
         H = A[1]*ẟ_m(nx) - ẟ_m(nx)*B[1]
-        Wꜝ = spdiagm(0 => float.([val !=0 ? 1/val : 1 for val in diag(W)]))
+        diagW = diag(blockdiag(W[1]))
+        new_diagW = [val != 0 ? 1.0 / val : 1.0 for val in diagW]
+        Wꜝ = spdiagm(0 => new_diagW)
     elseif N == 2
         nx, ny = size[1], size[2]
         Dx_m = kron(I(ny), ẟ_m(nx))
