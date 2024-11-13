@@ -316,9 +316,9 @@ version = "0.9.3"
 
 [[deps.Documenter]]
 deps = ["ANSIColoredPrinters", "AbstractTrees", "Base64", "CodecZlib", "Dates", "DocStringExtensions", "Downloads", "Git", "IOCapture", "InteractiveUtils", "JSON", "LibGit2", "Logging", "Markdown", "MarkdownAST", "Pkg", "PrecompileTools", "REPL", "RegistryInstances", "SHA", "TOML", "Test", "Unicode"]
-git-tree-sha1 = "5a1ee886566f2fa9318df1273d8b778b9d42712d"
+git-tree-sha1 = "d0ea2c044963ed6f37703cead7e29f70cba13d7e"
 uuid = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-version = "1.7.0"
+version = "1.8.0"
 
 [[deps.Downloads]]
 deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
@@ -435,7 +435,7 @@ version = "0.8.5"
 
 [[deps.Fliwer]]
 deps = ["CairoMakie", "CartesianGeometry", "Documenter", "ForwardDiff", "IterativeSolvers", "LinearAlgebra", "LsqFit", "Makie", "Reexport", "SparseArrays", "SpecialFunctions", "StaticArrays", "Test", "WriteVTK"]
-git-tree-sha1 = "6791c2a18cff26c5adb83866cf19110ca6c1e80e"
+git-tree-sha1 = "e265202cc7be15d575c949073da4216257591d03"
 repo-rev = "main"
 repo-url = "https://github.com/Fastaxx/Fliwer.jl.git"
 uuid = "7dcd8e42-b57a-4688-8f8e-7027ed0a0b06"
@@ -770,9 +770,9 @@ uuid = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 version = "1.4.0"
 
 [[deps.LazilyInitializedFields]]
-git-tree-sha1 = "8f7f3cabab0fd1800699663533b6d5cb3fc0e612"
+git-tree-sha1 = "0f2da712350b020bc3957f269c9caad516383ee0"
 uuid = "0e77f7df-68c5-4e49-93ce-4cd80f5598bf"
-version = "1.2.2"
+version = "1.3.0"
 
 [[deps.LazyArtifacts]]
 deps = ["Artifacts", "Pkg"]
