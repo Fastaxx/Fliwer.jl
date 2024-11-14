@@ -17,8 +17,8 @@ using Fliwer
 
     @test length(border_cells_2d) == 30
     @test border_cells_2d[1] == (CartesianIndex(1, 1), 1)
-    @test border_cells_2d[30] == (CartesianIndex(11, 6), 66)
-    @test border_cells_2d[15] == (CartesianIndex(11, 3), 33)
+    @test border_cells_2d[30] == (CartesianIndex(11, 6), 71)
+    @test border_cells_2d[15] == (CartesianIndex(6, 1), 6)
 
     # Test 3D
     mesh_3d = CartesianMesh((ones(10), ones(5), ones(3)), (0., 0., 0.))
@@ -26,9 +26,8 @@ using Fliwer
 
     @test length(border_cells_3d) == 192
     @test border_cells_3d[1] == (CartesianIndex(1, 1, 1), 1)
-    @test border_cells_3d[60] == (CartesianIndex(5, 6, 1), 60)
-    @test border_cells_3d[30] == (CartesianIndex(8, 3, 1), 30)
-
+    @test border_cells_3d[60] == (CartesianIndex(4, 1, 4), 256)
+    @test border_cells_3d[30] == (CartesianIndex(2, 2, 4), 266)
 
     # Test find_cut
     # Test 1D

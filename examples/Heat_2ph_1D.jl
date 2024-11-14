@@ -26,8 +26,9 @@ operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1,))
 operator_c = DiffusionOps(capacity_c.A, capacity_c.B, capacity_c.V, capacity_c.W, (nx+1,))
 
 # Define the boundary conditions
-bc = Dirichlet(1.0)
-bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc))
+bc1 = Dirichlet(1.0)
+bc0 = Dirichlet(0.0)
+bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:top => bc, :bottom => bc1))
 
 ic = InterfaceConditions(ScalarJump(1.0, 1.0, 0.0), FluxJump(1.0, 1.0, 0.0))
 
@@ -62,4 +63,4 @@ write_vtk("solution", mesh, solver)
 plot_solution(solver, mesh, body)
 
 # Animation
-#animate_solution(solver, mesh, body)
+animate_solution(solver, mesh, body)
