@@ -7,27 +7,27 @@ function find_border(mesh)
         for i in 1:length(centers[1])
             if i == 1 || i == length(centers[1])
                 cartesian_index = CartesianIndex(i)
-                linear_index = LinearIndices((length(centers[1]),))[cartesian_index]
+                linear_index = LinearIndices((length(centers[1])+1,))[cartesian_index]
                 push!(border_cells, (cartesian_index, linear_index))
             end
         end
     elseif dims == 2
-        for j in 1:length(centers[2])
-            for i in 1:length(centers[1])
+        for i in 1:length(centers[1])
+            for j in 1:length(centers[2])
                 if i == 1 || i == length(centers[1]) || j == 1 || j == length(centers[2])
                     cartesian_index = CartesianIndex(i, j)
-                    linear_index = LinearIndices((length(centers[1]), length(centers[2])))[cartesian_index]
+                    linear_index = LinearIndices((length(centers[1])+1, length(centers[2])+1))[cartesian_index]
                     push!(border_cells, (cartesian_index, linear_index))
                 end
             end
         end
     elseif dims == 3
-        for k in 1:length(centers[3])
+        for i in 1:length(centers[1])
             for j in 1:length(centers[2])
-                for i in 1:length(centers[1])
+                for k in 1:length(centers[3])
                     if i == 1 || i == length(centers[1]) || j == 1 || j == length(centers[2]) || k == 1 || k == length(centers[3])
                         cartesian_index = CartesianIndex(i, j, k)
-                        linear_index = LinearIndices((length(centers[1]), length(centers[2]), length(centers[3])))[cartesian_index]
+                        linear_index = LinearIndices((length(centers[1])+1, length(centers[2])+1, length(centers[3])+1))[cartesian_index]
                         push!(border_cells, (cartesian_index, linear_index))
                     end
                 end

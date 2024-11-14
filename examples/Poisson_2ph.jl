@@ -26,14 +26,16 @@ operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, n
 operator_c = DiffusionOps(capacity_c.A, capacity_c.B, capacity_c.V, capacity_c.W, (nx+1, ny+1))
 
 # Define the boundary conditions
-bc = Dirichlet(0.0)
-bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc, :top => bc, :bottom => bc))
+bc = Dirichlet(1.0)
+bc1 = Dirichlet(0.0)
+bc2 = Dirichlet(2.0)
+bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc1, :top => bc, :bottom => bc2))
 
 ic = InterfaceConditions(ScalarJump(1.0, 1.0, 0.0), FluxJump(1.0, 1.0, 0.0))
 
 # Define the source term
-f1 = (x,y,_)->cos(x)*sin(10*y)
-f2 = (x,y,_)->cos(x)*sin(10*y)
+f1 = (x,y,_)->0.0 #cos(x)*sin(10*y)
+f2 = (x,y,_)->0.0 #cos(x)*sin(10*y)
 
 # Define the phases
 Fluide_1 = Phase(capacity, operator, f1, 1.0)

@@ -65,6 +65,8 @@ function DiffusionSteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::Abstrac
     s.A = build_mono_stead_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i)
     s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc_i)
 
+    BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
+
     return s
 end
 
@@ -76,7 +78,6 @@ function build_mono_stead_diff_matrix(operator::DiffusionOps, capacity::Capacity
 
     A = vcat(hcat(Id * operator.G' * operator.Wꜝ * operator.G, Id * operator.G' * operator.Wꜝ * operator.H), hcat(Iᵦ * operator.H' * operator.Wꜝ * operator.G, Iᵦ * operator.H' * operator.Wꜝ * operator.H + Iₐ * Iᵧ))
 
-    #BC_border!(A, bc_b, capacity.mesh.tag)
     return A
 end
 
@@ -90,9 +91,6 @@ function build_rhs(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderCo
 
     # Build the right-hand side
     b = vcat(operator.V*fₒ, Iᵧ * gᵧ)
-
-    #BC_border_b!(b, bc_b)
-    #BC_interface_b!(b, bc)
 
     return b
 end
@@ -129,6 +127,8 @@ function DiffusionSteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderCondition
     s.A = build_diph_stead_diff_matrix(phase1.operator, phase2.operator, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic)
     s.b = build_rhs(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic)
 
+    BC_border_diph!(s.A, s.b, bc_b, phase2.capacity.mesh)
+
     return s
 end
 
@@ -155,7 +155,6 @@ function build_diph_stead_diff_matrix(operator1::DiffusionOps, operator2::Diffus
              hcat(zeros(n, n), zeros(n, n), block3, block4),
              hcat(Iᵦ1*block5, Iᵦ1*block6, Iᵦ2*block7, Iᵦ2*block8))
 
-    #BC_border!(A, bc_b1, bc_b2)
     return A
 end
 
@@ -172,9 +171,6 @@ function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, cap
 
     # Build the right-hand side
     b = vcat(operator1.V*fₒ1, gᵧ, operator2.V*fₒ2, Iᵧ2*hᵧ)
-
-    #BC_border_b!(b, bc_b)
-    #BC_interface_b!(b, ic)
 
     return b
 end
@@ -229,7 +225,6 @@ function build_mono_unstead_diff_matrix(operator::DiffusionOps, capacite::Capaci
 
     A = vcat(hcat(block1, block2), hcat(block3, block4))
 
-    #BC_border!(A, bc_b)
     return A
 end
 
@@ -246,10 +241,7 @@ function build_rhs(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderCo
     # Build the right-hand side
     b = vcat((operator.V - Δt/2 * operator.G' * operator.Wꜝ * operator.G)*Tₒ - Δt/2 * operator.G' * operator.Wꜝ * operator.H * Tᵧ + Δt/2 * operator.V * (fₒn + fₒn1), Iᵧ * gᵧ)
 
-    #BC_border_b!(b, bc_b)
-    #BC_interface_b!(b, bc)
-
-    return b
+   return b
 end
 
 function solve!(s::Solver, phase::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderConditions, bc::AbstractBoundary; method::Function = gmres, kwargs...)
@@ -257,6 +249,7 @@ function solve!(s::Solver, phase::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderC
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
+    BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
     s.x = method(s.A, s.b; kwargs...)
     t=0.0
     while t < Tₑ
@@ -264,6 +257,7 @@ function solve!(s::Solver, phase::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderC
         println("Time: ", t)
         s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc, Tᵢ, Δt, t)
         
+        BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
         s.x = method(s.A, s.b; kwargs...)
         push!(s.states, s.x)
         @show maximum(s.x)
@@ -325,7 +319,6 @@ function build_diph_unstead_diff_matrix(operator1::DiffusionOps, operator2::Diff
              hcat(zeros(n, n), zeros(n, n), block3, block4),
              hcat(Iᵦ1*block5, Iᵦ1*block6, Iᵦ2*block7, Iᵦ2*block8))
 
-    #BC_border!(A, bc_b1, bc_b2)
     return A
 end
 
@@ -346,9 +339,6 @@ function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, cap
     # Build the right-hand side
     b = vcat((operator1.V - Δt/2 * operator1.G' * operator1.Wꜝ * operator1.G)*Tₒ1 - Δt/2 * operator1.G' * operator1.Wꜝ * operator1.H * Tᵧ1 + Δt/2 * operator1.V * (fₒn1 + fₒn1p1), gᵧ, (operator2.V - Δt/2 * operator2.G' * operator2.Wꜝ * operator2.G)*Tₒ2 - Δt/2 * operator2.G' * operator2.Wꜝ * operator2.H * Tᵧ2 + Δt/2 * operator2.V * (fₒn2 + fₒn2p1), Iᵧ2*hᵧ)
 
-    #BC_border_b!(b, bc_b)
-    #BC_interface_b!(b, ic)
-
     return b
 end
 
@@ -357,6 +347,7 @@ function solve!(s::Solver, phase1::Phase, phase2::Phase, Tᵢ, Δt::Float64, T�
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
+    BC_border_diph!(s.A, s.b, bc_b, phase2.capacity.mesh)
     s.x = method(s.A, s.b; kwargs...)
     t=0.0
     while t < Tₑ
@@ -364,6 +355,7 @@ function solve!(s::Solver, phase1::Phase, phase2::Phase, Tᵢ, Δt::Float64, T�
         println("Time: ", t)
         s.b = build_rhs(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, t)
         
+        BC_border_diph!(s.A, s.b, bc_b, phase2.capacity.mesh)
         s.x = method(s.A, s.b; kwargs...)
         push!(s.states, s.x)
         
@@ -378,7 +370,109 @@ end
 
 
 
+function BC_border_mono!(A::SparseMatrixCSC{Float64, Int}, b::Vector{Float64}, bc_b::BorderConditions, mesh::CartesianMesh) 
+    # Identify location border cells based on the dimension : 1D (left, right), 2D (left, right, top, bottom), 3D (left, right, top, bottom, front, back)
+    left_cells = []
+    right_cells = []
+    top_cells = []
+    bottom_cells = []
+    forward_cells = []
+    backward_cells = []
+    for (key, bc) in bc_b.borders
+        if key == :left
+            left_cells = [cell for (i, (cell, linear_index)) in enumerate(mesh.tag.border_cells) if cell[2] == 1]
+        elseif key == :right
+            right_cells = [cell for (i, (cell, linear_index)) in enumerate(mesh.tag.border_cells) if cell[2] == length(mesh.centers[2])]
+        elseif key == :top
+            top_cells = [cell for (i, (cell, linear_index)) in enumerate(mesh.tag.border_cells) if cell[1] == length(mesh.centers[1])]
+        elseif key == :bottom
+            bottom_cells = [cell for (i, (cell, linear_index)) in enumerate(mesh.tag.border_cells) if cell[1] == 1]
+        elseif key == :forward
+            forward_cells = [cell for (i, (cell, linear_index)) in enumerate(mesh.tag.border_cells) if cell[3] == length(mesh.centers[3])]
+        elseif key == :backward
+            backward_cells = [cell for (i, (cell, linear_index)) in enumerate(mesh.tag.border_cells) if cell[3] == 1]
+        end
+    end
+    for (i, (cell, linear_index)) in enumerate(mesh.tag.border_cells)
+        condition = nothing
+        if cell in left_cells
+            condition = bc_b.borders[:left]
+        elseif cell in right_cells
+            condition = bc_b.borders[:right]
+        elseif cell in top_cells
+            condition = bc_b.borders[:top]
+        elseif cell in bottom_cells
+            condition = bc_b.borders[:bottom]
+        elseif cell in forward_cells
+            condition = bc_b.borders[:forward]
+        elseif cell in backward_cells
+            condition = bc_b.borders[:backward]
+        end
 
+        if condition isa Dirichlet
+            A[linear_index, :] .= 0.0
+            A[linear_index, linear_index] = 1.0
+            b[linear_index] = isa(condition.value, Function) ? condition.value(cell...) : condition.value
+        elseif condition isa Neumann
+            # Not implemented yet
+        elseif condition isa Robin
+            # Not implemented yet
+        end
+    end
+end
+
+function BC_border_diph!(A::SparseMatrixCSC{Float64, Int}, b::Vector{Float64}, bc_b::BorderConditions, mesh::CartesianMesh) 
+    # Identify location border cells based on the dimension : 1D (left, right), 2D (left, right, top, bottom), 3D (left, right, top, bottom, front, back)
+    left_cells = []
+    right_cells = []
+    top_cells = []
+    bottom_cells = []
+    forward_cells = []
+    backward_cells = []
+    for (key, bc) in bc_b.borders
+        if key == :left
+            left_cells = [cell for (i, (cell, linear_index)) in enumerate(mesh.tag.border_cells) if cell[2] == 1]
+        elseif key == :right
+            right_cells = [cell for (i, (cell, linear_index)) in enumerate(mesh.tag.border_cells) if cell[2] == length(mesh.centers[2])]
+        elseif key == :top
+            top_cells = [cell for (i, (cell, linear_index)) in enumerate(mesh.tag.border_cells) if cell[1] == length(mesh.centers[1])]
+        elseif key == :bottom
+            bottom_cells = [cell for (i, (cell, linear_index)) in enumerate(mesh.tag.border_cells) if cell[1] == 1]
+        elseif key == :forward
+            forward_cells = [cell for (i, (cell, linear_index)) in enumerate(mesh.tag.border_cells) if cell[3] == length(mesh.centers[3])]
+        elseif key == :backward
+            backward_cells = [cell for (i, (cell, linear_index)) in enumerate(mesh.tag.border_cells) if cell[3] == 1]
+        end
+    end
+    for (i, (cell, linear_index)) in enumerate(mesh.tag.border_cells)
+        condition = nothing
+        if cell in left_cells
+            condition = bc_b.borders[:left]
+        elseif cell in right_cells
+            condition = bc_b.borders[:right]
+        elseif cell in top_cells
+            condition = bc_b.borders[:top]
+        elseif cell in bottom_cells
+            condition = bc_b.borders[:bottom]
+        elseif cell in forward_cells
+            condition = bc_b.borders[:forward]
+        elseif cell in backward_cells
+            condition = bc_b.borders[:backward]
+        end
+
+        linear_index = linear_index + size(A, 1) ÷ 2
+
+        if condition isa Dirichlet
+            A[linear_index, :] .= 0.0
+            A[linear_index, linear_index] = 1.0
+            b[linear_index] = isa(condition.value, Function) ? condition.value(cell...) : condition.value
+        elseif condition isa Neumann
+            # Not implemented yet
+        elseif condition isa Robin
+            # Not implemented yet
+        end
+    end
+end
     
 function build_I_D(operator::DiffusionOps, D::Union{Float64,Function})
     n = prod(operator.size)

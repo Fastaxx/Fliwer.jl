@@ -11,7 +11,7 @@ mesh = CartesianMesh((nx, ny), (lx, ly), (x0, y0))
 
 # Define the body
 radius, center = ly/4, (lx/2, ly/2) .+ (0.01, 0.01)
-circle = Body((x,y,_=0)->sqrt((x-center[1])^2 + (y-center[2])^2) - radius, (x,y,_)->(x,y), domain, false)
+circle = Body((x,y,_=0)->-(sqrt((x-center[1])^2 + (y-center[2])^2) - radius), (x,y,_)->(x,y), domain, false)
 
 # Identify cells
 identify!(mesh, circle)
@@ -24,8 +24,9 @@ operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, n
 
 # Define the boundary conditions 
 bc = Dirichlet(1.0)
+bc1 = Dirichlet(0.0)
 
-bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc, :top => bc, :bottom => bc))
+bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc, :top => bc1, :bottom => bc))
 
 # Define the source term
 f = (x,y,_)-> 4.0 #sin(x)*cos(10*y)
