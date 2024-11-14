@@ -40,7 +40,7 @@ include("Solver.jl")
 export TimeType, PhaseType, EquationType, Solver, DiffusionSteadyMono, DiffusionSteadyDiph, DiffusionUnsteadyMono, DiffusionUnsteadyDiph, solve!
 
 include("Vizualize.jl")
-export plot_solution, plot_profile
+export plot_solution, plot_profile, animate_solution
 
 include("Vtk.jl")
 export write_vtk

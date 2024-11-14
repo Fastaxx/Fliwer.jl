@@ -59,4 +59,7 @@ solve!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=IterativeSolv
 write_vtk("solution", mesh, solver)
 
 # Plot the solution
-plot_solution(solver, mesh, body)
+#plot_solution(solver, mesh, body)
+
+# Animation
+animate_solution(solver, mesh, body)

@@ -1,3 +1,126 @@
+function animate_solution(solver, mesh::CartesianMesh{1}, body::Body)
+    # Déterminer le type de problème
+    is_monophasic = solver.phase_type == Monophasic # Problème monophasique
+
+    # Enregistrer l'animation selon le type de problème
+    if is_monophasic
+        # Récupérer les états
+        states = solver.states
+
+        # Créer une figure
+        fig = Figure()
+
+        # Créer un axe pour la figure
+        ax = Axis(fig[1, 1], title="Monophasic Unsteady Diffusion", xlabel="x", ylabel="u")
+
+        update_ln(frame) = lines!(ax, states[frame][1:length(states[frame]) ÷ 2], color=:blue, alpha=0.3, label="Bulk"); lines!(ax, states[frame][length(states[frame]) ÷ 2 + 1:end], color=:green, alpha=0.3, label="Interface")
+
+        # Enregistrer l'animation
+        record(fig, "heat_MonoUnsteady.mp4", 1:length(states); framerate=10) do frame
+            update_ln(frame)
+        end
+
+        # Afficher la figure
+        display(fig)
+    else
+        # Récupérer les états
+        states = solver.states
+
+        # Créer une figure
+        fig = Figure()
+
+        # Créer un axe pour la figure
+        ax1 = Axis(fig[1, 1], title="Diphasic Unsteady - Phase 1", xlabel="x", ylabel="u1", aspect=DataAspect())
+        ax2 = Axis(fig[1, 2], title="Diphasic Unsteady - Phase 2", xlabel="x", ylabel="u2", aspect=DataAspect())
+
+        # Créer une fonction pour mettre à jour la figure
+        function update_plot(frame)
+            # Récupérer l'état
+            state = states[frame]
+
+            # Tracer l'état
+            lines!(ax1, state[1:length(state) ÷ 4], color=:blue, alpha=0.3, label="Bulk")
+            lines!(ax1, state[length(state) ÷ 4 + 1:2*length(state) ÷ 4], color=:green, alpha=0.3, label="Interface")
+            lines!(ax2, state[2*length(state) ÷ 4 + 1:3*length(state) ÷ 4], color=:blue, alpha=0.3, label="Bulk")
+            lines!(ax2, state[3*length(state) ÷ 4 + 1:end], color=:green, alpha=0.3, label="Interface")
+
+        end
+
+        # Enregistrer l'animation
+        record(fig, "heat_DiphUnsteady.mp4", 1:length(states); framerate=10) do frame
+            update_plot(frame)
+        end
+
+        # Afficher la figure
+        display(fig)
+
+    end
+end
+
+function animate_solution(solver, mesh::CartesianMesh{2}, body::Body)
+    # Déterminer le type de problème
+    is_monophasic = solver.phase_type == Monophasic # Problème monophasique
+
+    # Enregistrer l'animation selon le type de problème
+    if is_monophasic
+        # Récupérer les états
+        states = solver.states
+
+        # Créer une figure
+        fig = Figure()
+
+        # Créer un axe pour la figure
+        ax = Axis(fig[1, 1], title="Monophasic Unsteady Diffusion", xlabel="x", ylabel="y", aspect=DataAspect())
+
+        update_hm(frame) = heatmap!(ax, mesh.centers[1], mesh.centers[2], reshape(states[frame][1:length(states[frame]) ÷ 2], (length(mesh.centers[1])+1, length(mesh.centers[2])+1))', colormap=:viridis)
+        contour!(ax, mesh.nodes[1], mesh.nodes[2], body.sdf.(mesh.nodes[1], mesh.nodes[2], 0.0), levels=[0.0], color=:red, linewidth=2, label="SDF=0")
+
+        # Enregistrer l'animation
+        record(fig, "heat_MonoUnsteady.mp4", 1:length(states); framerate=10) do frame
+            update_hm(frame)
+        end
+
+        # Afficher la figure
+        display(fig)
+    else
+        # Récupérer les états
+        states = solver.states
+
+        # Créer une figure
+        fig = Figure()
+
+        # Créer un axe pour la figure
+        ax1 = Axis(fig[1, 1], title="Diphasic Unsteady - Phase 1", xlabel="x", ylabel="y", aspect=DataAspect())
+        ax2 = Axis(fig[1, 2], title="Diphasic Unsteady - Phase 2", xlabel="x", ylabel="y", aspect=DataAspect())
+
+        # Créer une fonction pour mettre à jour la figure
+        function update_plot(frame)
+            # Récupérer l'état
+            state = states[frame]
+
+            # Tracer l'état
+            heatmap!(ax1, mesh.centers[1], mesh.centers[2], reshape(state[1:length(state) ÷ 4], (length(mesh.centers[1])+1, length(mesh.centers[2])+1))', colormap=:viridis)
+            contour!(ax1, mesh.nodes[1], mesh.nodes[2], body.sdf.(mesh.nodes[1], mesh.nodes[2], 0.0), levels=[0.0], color=:red, linewidth=2, label="SDF=0")
+
+            heatmap!(ax2, mesh.centers[1], mesh.centers[2], reshape(state[2*length(state) ÷ 4 + 1:3*length(state) ÷ 4], (length(mesh.centers[1])+1, length(mesh.centers[2])+1))', colormap=:viridis)
+            contour!(ax2, mesh.nodes[1], mesh.nodes[2], body.sdf.(mesh.nodes[1], mesh.nodes[2], 0.0), levels=[0.0], color=:red, linewidth=2, label="SDF=0")
+
+        end
+
+        # Enregistrer l'animation
+        record(fig, "heat_DiphUnsteady.mp4", 1:length(states); framerate=10) do frame
+            update_plot(frame)
+        end
+
+        # Afficher la figure
+        display(fig)
+
+    end
+end
+
+
+
+
 function plot_solution(solver, mesh::CartesianMesh, body::Body) # Déterminer la dimension du maillage 
     dims = length(mesh.centers)
     

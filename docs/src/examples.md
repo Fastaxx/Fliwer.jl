@@ -1,12 +1,15 @@
 ## Example
 
-### Steady Diffusion Monophasic
+### Poisson Equation
+- 2D Poisson Equation in a disk (Steady Diffusion Monophasic)
+- 2D Poisson Equation Diphasic in a disk (Steady Diffusion Diphasic)
+- 3D Poisson Equation in a sphere (Steady Diffusion Monophasic)
 
-### Steady Diffusion Diphasic
+## Heat Equation
+- 2D Heat Equation in a disk (Unsteady Diffusion Monophasic)
+- 2D Heat Equation Diphasic in a disk - Henry Condition (Unsteady Diffusion Diphasic)
+- 1D Heat Equation Diphasic - Henry Condition (Unsteady Diffusion Diphasic)
 
-### Unsteady Diffusion Monophasic
-
-### Unsteady Diffusion Diphasic
 
 Notes : 
 - Use GMRES with : abstol=1e-15, restart=60
