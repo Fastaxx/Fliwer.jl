@@ -307,6 +307,67 @@ function plot_solution(solver, mesh::CartesianMesh{2}, body::Body; state_i=1)
     end
 end
 
+function plot_solution(solver, mesh::CartesianMesh{3}, body::Body; state_i=1)
+    Z_sdf = [body.sdf(xi, yi, zi) for zi in mesh.nodes[3], yi in mesh.nodes[2], xi in mesh.nodes[1]]
+
+    is_steady = solver.time_type == Steady
+    is_monophasic = solver.phase_type == Monophasic
+
+    # Tracé en 3D
+    if is_steady
+        if is_monophasic
+            fig = Figure()
+            ax = LScene(fig[1, 1], show_axis=false)
+
+            nx, ny, nz = length(mesh.centers[1]), length(mesh.centers[2]), length(mesh.centers[3])
+            x = LinRange(mesh.x0[1], mesh.x0[1]+mesh.h[1][1]*nx, nx+1)
+            y = LinRange(mesh.x0[2], mesh.x0[2]+mesh.h[2][1]*ny, ny+1)
+            z = LinRange(mesh.x0[3], mesh.x0[3]+mesh.h[3][1]*nz, nz+1)
+
+            sgrid = SliderGrid(
+                fig[2, 1],
+                (label = "yz plane - x axis", range = 1:length(x)+1),
+                (label = "xz plane - y axis", range = 1:length(y)+1),
+                (label = "xy plane - z axis", range = 1:length(z)+1),
+            )
+
+            lo = sgrid.layout
+            nc = ncols(lo)
+
+            vol = solver.x[1:length(solver.x) ÷ 2]
+            vol = reshape(vol, nx+1, ny+1, nz+1)
+            plt = volumeslices!(ax, x, y, z, vol)
+
+            # connect sliders to `volumeslices` update methods
+            sl_yz, sl_xz, sl_xy = sgrid.sliders
+
+            on(sl_yz.value) do v; plt[:update_yz][](v) end
+            on(sl_xz.value) do v; plt[:update_xz][](v) end
+            on(sl_xy.value) do v; plt[:update_xy][](v) end
+
+            set_close_to!(sl_yz, .5length(x))
+            set_close_to!(sl_xz, .5length(y))
+            set_close_to!(sl_xy, .5length(z))
+
+            # add toggles to show/hide heatmaps
+            hmaps = [plt[Symbol(:heatmap_, s)][] for s ∈ (:yz, :xz, :xy)]
+            toggles = [Toggle(lo[i, nc + 1], active = true) for i ∈ 1:length(hmaps)]
+
+            map(zip(hmaps, toggles)) do (h, t)
+                connect!(h.visible, t.active)
+            end
+
+            # cam3d!(ax.scene, projectiontype=Makie.Orthographic)
+
+            display(fig)
+        else
+            println("Plotting 3D Diphasic Steady Solution is not supported yet.")
+        end
+    else
+        println("Plotting 3D Unsteady Solution is not supported yet.")
+
+    end
+end
 
 function plot_profile(solver, nx, ny, x0, lx, y0, ly, x; ntime=4)
     # Récupérer les coordonnées y

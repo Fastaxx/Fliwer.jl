@@ -66,8 +66,8 @@ mutable struct CartesianMesh{N} <: AbstractMesh
         x0::NTuple{N, Float64}=ntuple(_ -> 0.0, N)) where N
 
         h_uniform = ntuple(i -> fill(domain_size[i] / n[i], n[i]), N)
-        centers_uniform = ntuple(i -> [x0[i] + j * (domain_size[i] / n[i]) for j in 0:n[i]], N)
-        nodes_uniform  = ntuple(i -> [x0[i] + (j + 0.5) * (domain_size[i] / n[i]) for j in 0:(n[i]-1)], N) 
+        centers_uniform = ntuple(i -> [x0[i] + j * (domain_size[i] / n[i]) for j in 0:n[i]-1], N)
+        nodes_uniform  = ntuple(i -> [x0[i] + (j + 0.5) * (domain_size[i] / n[i]) for j in 0:(n[i])], N) 
         # Calcul des faces
         faces_uniform = ntuple(dim -> ntuple(i -> (dim == i) ? 
             [centers_uniform[i][j] + 0.5 * (domain_size[i] / n[i]) for j in 1:n[i]]

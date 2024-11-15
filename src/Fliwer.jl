@@ -10,6 +10,7 @@ using Makie
 using SpecialFunctions
 using Test
 using CairoMakie
+using GLMakie
 using StaticArrays
 using ForwardDiff
 using CartesianGeometry
