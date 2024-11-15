@@ -128,6 +128,91 @@ function animate_solution(solver, mesh::CartesianMesh{2}, body::Body)
     end
 end
 
+function animate_solution(solver, mesh::CartesianMesh{3}, body::Body)
+    # Déterminer le type de problème
+    is_monophasic = solver.phase_type == Monophasic # Problème monophasique
+
+    if is_monophasic
+        println("Animation Monophasic Unsteady Diffusion in 3D")
+        # Initialisation de la figure et de la scène
+        fig = Figure(size = (800, 600))
+        ax = LScene(fig[1, 1], show_axis=false)
+
+        # Définition des axes en fonction du maillage
+        nx, ny, nz = length(mesh.centers[1]), length(mesh.centers[2]), length(mesh.centers[3])
+        x = LinRange(mesh.x0[1], mesh.x0[1] + mesh.h[1][1]*nx, nx+1)
+        y = LinRange(mesh.x0[2], mesh.x0[2] + mesh.h[2][1]*ny, ny+1)
+        z = LinRange(mesh.x0[3], mesh.x0[3] + mesh.h[3][1]*nz, nz+1)
+
+        # Création des sliders pour les plans de coupe
+        sgrid = SliderGrid(
+            fig[2, 1],
+            (label = "Plan YZ - Axe X", range = 1:length(x)+1),
+            (label = "Plan XZ - Axe Y", range = 1:length(y)+1),
+            (label = "Plan XY - Axe Z", range = 1:length(z)+1),
+        )
+
+        lo = sgrid.layout
+        nc = ncols(lo)
+
+        # Initialisation avec le premier état
+        state_i = 1
+        vol = solver.states[state_i][1:(end ÷ 2)]
+        vol = reshape(vol, nx+1, ny+1, nz+1)
+        plt = volumeslices!(ax, x, y, z, vol, colormap = :viridis)
+
+        # Connexion des sliders aux méthodes de mise à jour des volumeslices
+        sl_yz, sl_xz, sl_xy = sgrid.sliders
+
+        on(sl_yz.value) do v
+            plt[:update_yz][](v)
+        end
+
+        on(sl_xz.value) do v
+            plt[:update_xz][](v)
+        end
+
+        on(sl_xy.value) do v
+            plt[:update_xy][](v)
+        end
+
+        # Positionnement initial des sliders au centre
+        set_close_to!(sl_yz, 0.5 * length(x))
+        set_close_to!(sl_xz, 0.5 * length(y))
+        set_close_to!(sl_xy, 0.5 * length(z))
+
+        # Ajout de toggles pour afficher/masquer les heatmaps
+        hmaps = [plt[Symbol(:heatmap_, s)][] for s ∈ (:yz, :xz, :xy)]
+        toggles = [Toggle(lo[i, nc + 1], active = true) for i ∈ 1:length(hmaps)]
+
+        for (h, t) in zip(hmaps, toggles)
+            connect!(h.visible, t.active)
+        end
+
+        # Optionnel : Configurer la caméra en projection orthographique
+        # cam3d!(ax.scene, projectiontype=Makie.Orthographic)
+        # Enregistrement de l'animation
+        function update_frame(frame)
+            state_i = frame
+            vol = solver.states[state_i][1:(end ÷ 2)]
+            vol = reshape(vol, nx+1, ny+1, nz+1)
+            plt[:update_yz][](sl_yz.value)
+            plt[:update_xz][](sl_xz.value)
+            plt[:update_xy][](sl_xy.value)
+        end
+
+        record(fig, "heat_MonoUnsteady.mp4", 1:length(solver.states); framerate=10) do frame
+            update_frame(frame)
+        end
+
+        display(fig)
+    else 
+        println("Diphasic Unsteady Diffusion in 3D")
+    end
+
+end
+
+
 
 function plot_solution(solver, mesh::CartesianMesh{1}, body::Body; state_i=1)
     # Déterminer le type de problème
@@ -360,14 +445,62 @@ function plot_solution(solver, mesh::CartesianMesh{3}, body::Body; state_i=1)
             # cam3d!(ax.scene, projectiontype=Makie.Orthographic)
 
             display(fig)
-        else
+        else # Diphasic
             println("Plotting 3D Diphasic Steady Solution is not supported yet.")
         end
-    else
-        println("Plotting 3D Unsteady Solution is not supported yet.")
+    else # Unsteady
+        if is_monophasic
+            fig = Figure()
+            ax = LScene(fig[1, 1], show_axis=false)
 
+            nx, ny, nz = length(mesh.centers[1]), length(mesh.centers[2]), length(mesh.centers[3])
+            x = LinRange(mesh.x0[1], mesh.x0[1]+mesh.h[1][1]*nx, nx+1)
+            y = LinRange(mesh.x0[2], mesh.x0[2]+mesh.h[2][1]*ny, ny+1)
+            z = LinRange(mesh.x0[3], mesh.x0[3]+mesh.h[3][1]*nz, nz+1)
+
+            sgrid = SliderGrid(
+                fig[2, 1],
+                (label = "yz plane - x axis", range = 1:length(x)+1),
+                (label = "xz plane - y axis", range = 1:length(y)+1),
+                (label = "xy plane - z axis", range = 1:length(z)+1),
+            )
+
+            lo = sgrid.layout
+            nc = ncols(lo)
+
+            vol = solver.states[state_i][1:length(solver.states[state_i]) ÷ 2]
+            vol = reshape(vol, nx+1, ny+1, nz+1)
+            plt = volumeslices!(ax, x, y, z, vol)
+
+            # connect sliders to `volumeslices` update methods
+            sl_yz, sl_xz, sl_xy = sgrid.sliders
+
+            on(sl_yz.value) do v; plt[:update_yz][](v) end
+            on(sl_xz.value) do v; plt[:update_xz][](v) end
+            on(sl_xy.value) do v; plt[:update_xy][](v) end
+
+            set_close_to!(sl_yz, .5length(x))
+            set_close_to!(sl_xz, .5length(y))
+            set_close_to!(sl_xy, .5length(z))
+
+            # add toggles to show/hide heatmaps
+            hmaps = [plt[Symbol(:heatmap_, s)][] for s ∈ (:yz, :xz, :xy)]
+            toggles = [Toggle(lo[i, nc + 1], active = true) for i ∈ 1:length(hmaps)]
+
+            map(zip(hmaps, toggles)) do (h, t)
+                connect!(h.visible, t.active)
+            end
+
+            # cam3d!(ax.scene, projectiontype=Makie.Orthographic)  
+
+            display(fig)
+
+        else # Diphasic
+            println("Plotting 3D Diphasic Unsteady Solution is not supported yet.")
+        end
     end
 end
+
 
 function plot_profile(solver, nx, ny, x0, lx, y0, ly, x; ntime=4)
     # Récupérer les coordonnées y
