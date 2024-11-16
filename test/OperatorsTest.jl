@@ -61,7 +61,19 @@ using SparseArrays
 
     @test typeof(diffusion_ops_3d) == DiffusionOps{3}
 
+    # Test de la fonction ConvectionOps 1D
+    A = [spdiagm(0 => ones(nx))]
+    B = [spdiagm(0 => ones(nx))]
+    V = spdiagm(0 => ones(nx))
+    W = (spdiagm(0 => ones(nx)))
 
+    uₒ, uᵧ = rand(nx), rand(nx)
 
+    convection_ops_1d = ConvectionOps(A, B, V, W, (nx,), uₒ, uᵧ)
+
+    @test typeof(convection_ops_1d) == ConvectionOps{1}
+
+    # Test de la fonction ConvectionOps 2D
+    # TO DO
    
 end

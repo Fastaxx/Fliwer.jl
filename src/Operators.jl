@@ -81,6 +81,69 @@ function DiffusionOps(A, B, V, W, size)
     return DiffusionOps{N}(G, H, Wꜝ, V, size)
 end
 
-struct ConvectionOps <: AbstractOperators
-    Conv::SparseMatrixCSC{Float64, Int}
+"""
+    struct ConvectionOps{N} <: AbstractOperators where N
+
+Struct representing a collection of convection operators.
+
+# Fields
+- `C`: A tuple of N sparse matrices representing the C operators.
+- `K`: A tuple of N sparse matrices representing the K operators.
+- `size`: A tuple of N integers representing the size of each operator.
+
+"""
+struct ConvectionOps{N} <: AbstractOperators where N
+    C :: NTuple{N, SparseMatrixCSC{Float64, Int}}
+    K :: NTuple{N, SparseMatrixCSC{Float64, Int}}
+    size :: NTuple{N, Int}
+end
+
+"""
+    ConvectionOps(C, K, size)
+
+Constructs the convection operators for a given system.
+# Arguments
+- `A`: Array of A matrices for each dimension.
+- `B`: Array of B matrices for each dimension.
+- `V`: V matrix for the system.
+- `W`: W matrix for the system.
+- `size`: Array of sizes for each dimension.
+- `uₒ`: Array of uₒ values for each dimension.
+- `uᵧ`: Array of uᵧ values for each dimension.
+
+# Returns
+- `ConvectionOps`: Convection operators for the system.
+"""
+function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
+    N = length(size)
+    if N == 1
+        nx = size[1]
+        Cx = spdiagm(ẟ_m(nx) * Σ_p(nx) * A[1] * uₒ) * Σ_p(nx)
+        H = A[1]*ẟ_m(nx) - ẟ_m(nx)*B[1]
+        Kx = Σ_m(nx) * spdiagm(0 => H' * uᵧ)
+        return ConvectionOps{N}((Cx,), (Kx,), size)
+    elseif N == 2
+        nx, ny = size[1], size[2]
+        Dx_m = kron(I(ny), ẟ_m(nx))
+        Dy_m = kron(ẟ_m(ny), I(nx))
+        Cx = spdiagm(0 => Dx_m * Σ_p(nx) * A[1] * uₒ[1]) * Σ_p(nx) + spdiagm(0 => Dy_m * Σ_p(nx) * A[2] * uₒ[2]) * Σ_p(ny)
+        Cy = spdiagm(0 => Dx_m * Σ_p(ny) * A[1] * uₒ[1]) * Σ_p(nx) + spdiagm(0 => Dy_m * Σ_p(ny) * A[2] * uₒ[2]) * Σ_p(ny)
+        H = [A[1]*Dx_m - Dx_m*B[1]; A[2]*Dy_m - Dy_m*B[2]]
+        Kx = Σ_m(nx) * spdiagm(0 => H' * uᵧ)
+        Ky = Σ_m(ny) * spdiagm(0 => H' * uᵧ)
+        return ConvectionOps{N}((Cx, Cy), (Kx, Ky), size)
+    elseif N == 3
+        nx, ny, nz = size[1], size[2], size[3]
+        Dx_m = kron(I(nz), kron(I(ny), ẟ_m(nx)))
+        Dy_m = kron(I(nz), kron(ẟ_m(ny), I(nx)))
+        Dz_m = kron(ẟ_m(nz), kron(I(ny), I(nx)))
+        Cx = spdiagm(0 => Dx_m * Σ_p(nx) * A[1] * uₒ[1]) * Σ_p(nx) + spdiagm(0 => Dy_m * Σ_p(nx) * A[2] * uₒ[2]) * Σ_p(ny) + spdiagm(0 => Dz_m * Σ_p(nx) * A[3] * uₒ[3]) * Σ_p(nz)
+        Cy = spdiagm(0 => Dx_m * Σ_p(ny) * A[1] * uₒ[1]) * Σ_p(nx) + spdiagm(0 => Dy_m * Σ_p(ny) * A[2] * uₒ[2]) * Σ_p(ny) + spdiagm(0 => Dz_m * Σ_p(ny) * A[3] * uₒ[3]) * Σ_p(nz)
+        Cz = spdiagm(0 => Dx_m * Σ_p(nz) * A[1] * uₒ[1]) * Σ_p(nx) + spdiagm(0 => Dy_m * Σ_p(nz) * A[2] * uₒ[2]) * Σ_p(ny) + spdiagm(0 => Dz_m * Σ_p(nz) * A[3] * uₒ[3]) * Σ_p(nz)
+        H = [A[1]*Dx_m - Dx_m*B[1]; A[2]*Dy_m - Dy_m*B[2]; A[3]*Dz_m - Dz_m*B[3]]
+        Kx = Σ_m(nx) * spdiagm(0 => H' * uᵧ)
+        Ky = Σ_m(ny) * spdiagm(0 => H' * uᵧ)
+        Kz = Σ_m(nz) * spdiagm(0 => H' * uᵧ)
+        return ConvectionOps{N}((Cx, Cy, Cz), (Kx, Ky, Kz), size)
+    end
 end
