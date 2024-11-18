@@ -143,13 +143,14 @@ function animate_solution(solver, mesh::CartesianMesh{3}, body::Body)
         x = LinRange(mesh.x0[1], mesh.x0[1] + mesh.h[1][1]*nx, nx+1)
         y = LinRange(mesh.x0[2], mesh.x0[2] + mesh.h[2][1]*ny, ny+1)
         z = LinRange(mesh.x0[3], mesh.x0[3] + mesh.h[3][1]*nz, nz+1)
-
+        z_index = Observable{Any}(1)
         # Création des sliders pour les plans de coupe
         sgrid = SliderGrid(
             fig[2, 1],
-            (label = "Plan YZ - Axe X", range = 1:length(x)+1),
-            (label = "Plan XZ - Axe Y", range = 1:length(y)+1),
-            (label = "Plan XY - Axe Z", range = 1:length(z)+1),
+            (label = "Plan YZ - Axe X", range = 1:length(x)),
+            (label = "Plan XZ - Axe Y", range = 1:length(y)),
+            (label = "Plan XY - Axe Z", range = 1:length(z)),
+            (label = "Frame", range = 1:length(solver.states)),
         )
 
         lo = sgrid.layout
@@ -162,7 +163,7 @@ function animate_solution(solver, mesh::CartesianMesh{3}, body::Body)
         plt = volumeslices!(ax, x, y, z, vol, colormap = :viridis)
 
         # Connexion des sliders aux méthodes de mise à jour des volumeslices
-        sl_yz, sl_xz, sl_xy = sgrid.sliders
+        sl_yz, sl_xz, sl_xy, sl_t = sgrid.sliders
 
         on(sl_yz.value) do v
             plt[:update_yz][](v)
@@ -176,10 +177,22 @@ function animate_solution(solver, mesh::CartesianMesh{3}, body::Body)
             plt[:update_xy][](v)
         end
 
+        on(sl_t.value) do v
+            state_i = v
+            vol = solver.states[state_i][1:(end ÷ 2)]
+            vol = reshape(vol, nx+1, ny+1, nz+1)
+            plt[:update_xy][](vol)
+            plt[:update_xz][](vol)
+            plt[:update_yz][](vol) 
+        end
+
+        connect!(z_index, sl_t.value)
+
         # Positionnement initial des sliders au centre
         set_close_to!(sl_yz, 0.5 * length(x))
         set_close_to!(sl_xz, 0.5 * length(y))
         set_close_to!(sl_xy, 0.5 * length(z))
+        set_close_to!(sl_t, 1.0)
 
         # Ajout de toggles pour afficher/masquer les heatmaps
         hmaps = [plt[Symbol(:heatmap_, s)][] for s ∈ (:yz, :xz, :xy)]
@@ -188,23 +201,7 @@ function animate_solution(solver, mesh::CartesianMesh{3}, body::Body)
         for (h, t) in zip(hmaps, toggles)
             connect!(h.visible, t.active)
         end
-
-        # Optionnel : Configurer la caméra en projection orthographique
-        # cam3d!(ax.scene, projectiontype=Makie.Orthographic)
-        # Enregistrement de l'animation
-        function update_frame(frame)
-            state_i = frame
-            vol = solver.states[state_i][1:(end ÷ 2)]
-            vol = reshape(vol, nx+1, ny+1, nz+1)
-            plt[:update_yz][](sl_yz.value)
-            plt[:update_xz][](sl_xz.value)
-            plt[:update_xy][](sl_xy.value)
-        end
-
-        record(fig, "heat_MonoUnsteady.mp4", 1:length(solver.states); framerate=10) do frame
-            update_frame(frame)
-        end
-
+        
         display(fig)
     else 
         println("Diphasic Unsteady Diffusion in 3D")
@@ -409,9 +406,9 @@ function plot_solution(solver, mesh::CartesianMesh{3}, body::Body; state_i=1)
 
             sgrid = SliderGrid(
                 fig[2, 1],
-                (label = "yz plane - x axis", range = 1:length(x)+1),
-                (label = "xz plane - y axis", range = 1:length(y)+1),
-                (label = "xy plane - z axis", range = 1:length(z)+1),
+                (label = "yz plane - x axis", range = 1:length(x)),
+                (label = "xz plane - y axis", range = 1:length(y)),
+                (label = "xy plane - z axis", range = 1:length(z)),
             )
 
             lo = sgrid.layout
@@ -444,7 +441,64 @@ function plot_solution(solver, mesh::CartesianMesh{3}, body::Body; state_i=1)
 
             display(fig)
         else # Diphasic
-            println("Plotting 3D Diphasic Steady Solution is not supported yet.")
+            fig = Figure()
+            ax1 = LScene(fig[1, 1], show_axis=false)
+            ax2 = LScene(fig[1, 2], show_axis=false)
+
+            nx, ny, nz = length(mesh.centers[1]), length(mesh.centers[2]), length(mesh.centers[3])
+            x = LinRange(mesh.x0[1], mesh.x0[1]+mesh.h[1][1]*nx, nx+1)
+            y = LinRange(mesh.x0[2], mesh.x0[2]+mesh.h[2][1]*ny, ny+1)
+            z = LinRange(mesh.x0[3], mesh.x0[3]+mesh.h[3][1]*nz, nz+1)
+
+            sgrid = SliderGrid(
+                fig[2, 1],
+                (label = "yz plane - x axis", range = 1:length(x)),
+                (label = "xz plane - y axis", range = 1:length(y)),
+                (label = "xy plane - z axis", range = 1:length(z)),
+            )
+
+            lo = sgrid.layout
+            nc = ncols(lo)
+
+            vol1 = solver.x[1:length(solver.x) ÷ 4]
+            vol1 = reshape(vol1, nx+1, ny+1, nz+1)
+            plt1 = volumeslices!(ax1, x, y, z, vol1)
+
+            vol2 = solver.x[2*length(solver.x) ÷ 4 + 1:3*length(solver.x) ÷ 4]
+            vol2 = reshape(vol2, nx+1, ny+1, nz+1)
+            plt2 = volumeslices!(ax2, x, y, z, vol2)
+
+            # connect sliders to `volumeslices` update methods
+            sl_yz, sl_xz, sl_xy = sgrid.sliders
+
+            on(sl_yz.value) do v
+                plt1[:update_yz][](v) 
+                plt2[:update_yz][](v)
+            end
+            on(sl_xz.value) do v
+                plt1[:update_xz][](v)
+                plt2[:update_xz][](v)
+            end
+            on(sl_xy.value) do v
+                plt1[:update_xy][](v)
+                plt2[:update_xy][](v)
+            end
+
+            set_close_to!(sl_yz, .5length(x))
+            set_close_to!(sl_xz, .5length(y))
+            set_close_to!(sl_xy, .5length(z))
+
+            # add toggles to show/hide heatmaps
+            hmaps = [plt1[Symbol(:heatmap_, s)][] for s ∈ (:yz, :xz, :xy)]
+            toggles = [Toggle(lo[i, nc + 1], active = true) for i ∈ 1:length(hmaps)]
+
+            map(zip(hmaps, toggles)) do (h, t)
+                connect!(h.visible, t.active)
+            end
+
+            # cam3d!(ax1.scene, projectiontype=Makie.Orthographic)
+            # cam3d!(ax2.scene, projectiontype=Makie.Orthographic)
+            display(fig)
         end
     else # Unsteady
         if is_monophasic
@@ -458,9 +512,9 @@ function plot_solution(solver, mesh::CartesianMesh{3}, body::Body; state_i=1)
 
             sgrid = SliderGrid(
                 fig[2, 1],
-                (label = "yz plane - x axis", range = 1:length(x)+1),
-                (label = "xz plane - y axis", range = 1:length(y)+1),
-                (label = "xy plane - z axis", range = 1:length(z)+1),
+                (label = "yz plane - x axis", range = 1:length(x)),
+                (label = "xz plane - y axis", range = 1:length(y)),
+                (label = "xy plane - z axis", range = 1:length(z)),
             )
 
             lo = sgrid.layout
@@ -494,7 +548,64 @@ function plot_solution(solver, mesh::CartesianMesh{3}, body::Body; state_i=1)
             display(fig)
 
         else # Diphasic
-            println("Plotting 3D Diphasic Unsteady Solution is not supported yet.")
+            fig = Figure()
+            ax1 = LScene(fig[1, 1], show_axis=false)
+            ax2 = LScene(fig[1, 2], show_axis=false)
+
+            nx, ny, nz = length(mesh.centers[1]), length(mesh.centers[2]), length(mesh.centers[3])
+            x = LinRange(mesh.x0[1], mesh.x0[1]+mesh.h[1][1]*nx, nx+1)
+            y = LinRange(mesh.x0[2], mesh.x0[2]+mesh.h[2][1]*ny, ny+1)
+            z = LinRange(mesh.x0[3], mesh.x0[3]+mesh.h[3][1]*nz, nz+1)
+
+            sgrid = SliderGrid(
+                fig[2, 1],
+                (label = "yz plane - x axis", range = 1:length(x)),
+                (label = "xz plane - y axis", range = 1:length(y)),
+                (label = "xy plane - z axis", range = 1:length(z)),
+            )
+
+            lo = sgrid.layout
+            nc = ncols(lo)
+
+            vol1 = solver.states[state_i][1:length(solver.states[state_i]) ÷ 4]
+            vol1 = reshape(vol1, nx+1, ny+1, nz+1)
+            plt1 = volumeslices!(ax1, x, y, z, vol1)
+
+            vol2 = solver.states[state_i][2*length(solver.states[state_i]) ÷ 4 + 1:3*length(solver.states[state_i]) ÷ 4]
+            vol2 = reshape(vol2, nx+1, ny+1, nz+1)
+            plt2 = volumeslices!(ax2, x, y, z, vol2)
+
+            # connect sliders to `volumeslices` update methods
+            sl_yz, sl_xz, sl_xy = sgrid.sliders
+
+            on(sl_yz.value) do v
+                plt1[:update_yz][](v) 
+                plt2[:update_yz][](v)
+            end
+            on(sl_xz.value) do v
+                plt1[:update_xz][](v)
+                plt2[:update_xz][](v)
+            end
+            on(sl_xy.value) do v
+                plt1[:update_xy][](v)
+                plt2[:update_xy][](v)
+            end
+
+            set_close_to!(sl_yz, .5length(x))
+            set_close_to!(sl_xz, .5length(y))
+            set_close_to!(sl_xy, .5length(z))
+
+            # add toggles to show/hide heatmaps
+            hmaps = [plt1[Symbol(:heatmap_, s)][] for s ∈ (:yz, :xz, :xy)]
+            toggles = [Toggle(lo[i, nc + 1], active = true) for i ∈ 1:length(hmaps)]
+
+            map(zip(hmaps, toggles)) do (h, t)
+                connect!(h.visible, t.active)
+            end
+
+            # cam3d!(ax1.scene, projectiontype=Makie.Orthographic)
+            # cam3d!(ax2.scene, projectiontype=Makie.Orthographic)
+            display(fig)
         end
     end
 end
