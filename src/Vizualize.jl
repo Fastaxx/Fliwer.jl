@@ -417,6 +417,7 @@ function plot_solution(solver, mesh::CartesianMesh{3}, body::Body; state_i=1)
             vol = solver.x[1:length(solver.x) ÷ 2]
             vol = reshape(vol, nx+1, ny+1, nz+1)
             plt = volumeslices!(ax, x, y, z, vol)
+            Colorbar(fig[1, 2], plt)
 
             # connect sliders to `volumeslices` update methods
             sl_yz, sl_xz, sl_xy = sgrid.sliders
@@ -443,7 +444,7 @@ function plot_solution(solver, mesh::CartesianMesh{3}, body::Body; state_i=1)
         else # Diphasic
             fig = Figure()
             ax1 = LScene(fig[1, 1], show_axis=false)
-            ax2 = LScene(fig[1, 2], show_axis=false)
+            ax2 = LScene(fig[1, 3], show_axis=false)
 
             nx, ny, nz = length(mesh.centers[1]), length(mesh.centers[2]), length(mesh.centers[3])
             x = LinRange(mesh.x0[1], mesh.x0[1]+mesh.h[1][1]*nx, nx+1)
@@ -463,10 +464,12 @@ function plot_solution(solver, mesh::CartesianMesh{3}, body::Body; state_i=1)
             vol1 = solver.x[1:length(solver.x) ÷ 4]
             vol1 = reshape(vol1, nx+1, ny+1, nz+1)
             plt1 = volumeslices!(ax1, x, y, z, vol1)
+            Colorbar(fig[1, 2], plt1)
 
             vol2 = solver.x[2*length(solver.x) ÷ 4 + 1:3*length(solver.x) ÷ 4]
             vol2 = reshape(vol2, nx+1, ny+1, nz+1)
             plt2 = volumeslices!(ax2, x, y, z, vol2)
+            Colorbar(fig[1, 4], plt2)
 
             # connect sliders to `volumeslices` update methods
             sl_yz, sl_xz, sl_xy = sgrid.sliders
@@ -523,6 +526,7 @@ function plot_solution(solver, mesh::CartesianMesh{3}, body::Body; state_i=1)
             vol = solver.states[state_i][1:length(solver.states[state_i]) ÷ 2]
             vol = reshape(vol, nx+1, ny+1, nz+1)
             plt = volumeslices!(ax, x, y, z, vol)
+            Colorbar(fig[1, 2], plt)
 
             # connect sliders to `volumeslices` update methods
             sl_yz, sl_xz, sl_xy = sgrid.sliders
@@ -550,7 +554,7 @@ function plot_solution(solver, mesh::CartesianMesh{3}, body::Body; state_i=1)
         else # Diphasic
             fig = Figure()
             ax1 = LScene(fig[1, 1], show_axis=false)
-            ax2 = LScene(fig[1, 2], show_axis=false)
+            ax2 = LScene(fig[1, 3], show_axis=false)
 
             nx, ny, nz = length(mesh.centers[1]), length(mesh.centers[2]), length(mesh.centers[3])
             x = LinRange(mesh.x0[1], mesh.x0[1]+mesh.h[1][1]*nx, nx+1)
@@ -570,10 +574,12 @@ function plot_solution(solver, mesh::CartesianMesh{3}, body::Body; state_i=1)
             vol1 = solver.states[state_i][1:length(solver.states[state_i]) ÷ 4]
             vol1 = reshape(vol1, nx+1, ny+1, nz+1)
             plt1 = volumeslices!(ax1, x, y, z, vol1)
+            Colorbar(fig[1, 2], plt1)
 
             vol2 = solver.states[state_i][2*length(solver.states[state_i]) ÷ 4 + 1:3*length(solver.states[state_i]) ÷ 4]
             vol2 = reshape(vol2, nx+1, ny+1, nz+1)
             plt2 = volumeslices!(ax2, x, y, z, vol2)
+            Colorbar(fig[1, 4], plt2)
 
             # connect sliders to `volumeslices` update methods
             sl_yz, sl_xz, sl_xy = sgrid.sliders
