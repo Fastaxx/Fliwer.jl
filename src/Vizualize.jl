@@ -30,8 +30,8 @@ function animate_solution(solver, mesh::CartesianMesh{1}, body::Body)
         fig = Figure()
 
         # Créer un axe pour la figure
-        ax1 = Axis(fig[1, 1], title="Diphasic Unsteady - Phase 1", xlabel="x", ylabel="u1", aspect=DataAspect())
-        ax2 = Axis(fig[1, 2], title="Diphasic Unsteady - Phase 2", xlabel="x", ylabel="u2", aspect=DataAspect())
+        ax1 = Axis(fig[1, 1], title="Diphasic Unsteady - Phase 1", xlabel="x", ylabel="u1")
+        ax2 = Axis(fig[2, 1], title="Diphasic Unsteady - Phase 2", xlabel="x", ylabel="u2")
 
         # Créer une fonction pour mettre à jour la figure
         function update_plot(frame)
@@ -227,22 +227,22 @@ function plot_solution(solver, mesh::CartesianMesh{1}, body::Body; state_i=1)
             x = mesh.centers[1]
             fig = Figure()
             ax = Axis(fig[1, 1], title="Monophasic Steady Solution", xlabel="x", ylabel="u")
-            lines!(ax, uₒ, color=:blue, label="Bulk")
-            lines!(ax, uᵧ, color=:green, label="Interface")
+            scatter!(ax, uₒ, color=:blue, label="Bulk")
+            scatter!(ax, uᵧ, color=:green, label="Interface")
             axislegend(ax)
             display(fig)
         else # Diphasic
             u1ₒ = solver.x[1:length(solver.x) ÷ 4]
             u1ᵧ = solver.x[length(solver.x) ÷ 4 + 1:2*length(solver.x) ÷ 4]
             u2ₒ = solver.x[2*length(solver.x) ÷ 4 + 1:3*length(solver.x) ÷ 4]
-            u2ᵧ = solver.x[3*length(solver.x) ÷ 4:end]
+            u2ᵧ = solver.x[3*length(solver.x) ÷ 4 + 1:end]
             x = mesh.centers[1]
             fig = Figure()
             ax = Axis(fig[1, 1], title="Diphasic Steady Solutions", xlabel="x", ylabel="u")
-            lines!(ax, u1ₒ, color=:blue, label="Phase 1 - Bulk")
-            lines!(ax, u1ᵧ, color=:green, label="Phase 1 - Interface")
-            lines!(ax, u2ₒ, color=:green, label="Phase 2 - Bulk")
-            lines!(ax, u2ᵧ, color=:blue, label="Phase 2 - Interface")
+            scatter!(ax, u1ₒ, color=:blue, label="Phase 1 - Bulk")
+            scatter!(ax, u1ᵧ, color=:green, label="Phase 1 - Interface")
+            scatter!(ax, u2ₒ, color=:red, label="Phase 2 - Bulk")
+            scatter!(ax, u2ᵧ, color=:purple, label="Phase 2 - Interface")
             axislegend(ax)
             display(fig)
         end
@@ -253,25 +253,23 @@ function plot_solution(solver, mesh::CartesianMesh{1}, body::Body; state_i=1)
             fig = Figure()
             ax = Axis(fig[1, 1], title="Monophasic Unsteady Solutions", xlabel="x", ylabel="u")
             for state in states
-                lines!(ax, mesh.centers[1], state[1:length(state) ÷ 2], color=:blue, alpha=0.3, label="Bulk")
-                lines!(ax, mesh.centers[1], state[length(state) ÷ 2 + 1:end], color=:green, alpha=0.3, label="Interface")
+                scatter!(ax, mesh.centers[1], state[1:length(state) ÷ 2], color=:blue, alpha=0.3, label="Bulk")
+                scatter!(ax, mesh.centers[1], state[length(state) ÷ 2 + 1:end], color=:green, alpha=0.3, label="Interface")
             end
             axislegend(ax)
             display(fig)
         else # Diphasic
-            states1ₒ = [state[1:length(state) ÷ 4] for state in solver.states]  # Phase 1 - Bulk
-            states1ᵧ = [state[length(state) ÷ 4 + 1:2*length(state) ÷ 4] for state in solver.states]  # Phase 1 - Interface
-            states2ₒ = [state[2*length(state) ÷ 4 + 1:3*length(state) ÷ 4] for state in solver.states]  # Phase 2 - Bulk
-            states2ᵧ = [state[3*length(state) ÷ 4:end] for state in solver.states]  # Phase 2 - Interface
-            fig = Figure()
+            states1ₒ = solver.states[state_i][1:length(solver.states[state_i]) ÷ 4]  # Phase 1 - Bulk
+            states1ᵧ = solver.states[state_i][length(solver.states[state_i]) ÷ 4 + 1:2*length(solver.states[state_i]) ÷ 4]  # Phase 1 - Interface
+            states2ₒ = solver.states[state_i][2*length(solver.states[state_i]) ÷ 4 + 1:3*length(solver.states[state_i]) ÷ 4]  # Phase 2 - Bulk
+            states2ᵧ = solver.states[state_i][3*length(solver.states[state_i]) ÷ 4 + 1:end]  # Phase 2 - Interface
+            fig = Figure(size=(800, 600))
             ax1 = Axis(fig[1, 1], title="Diphasic Unsteady - Phase 1", xlabel="x", ylabel="u1")
-            ax2 = Axis(fig[1, 2], title="Diphasic Unsteady - Phase 2", xlabel="x", ylabel="u2")
-            for (state1ₒ, state1ᵧ, state2ₒ, state2ᵧ) in zip(states1ₒ, states1ᵧ, states2ₒ, states2ᵧ)
-                lines!(ax1, state1ₒ, color=:blue, alpha=0.3, label="Bulk")
-                lines!(ax1, state1ᵧ, color=:green, alpha=0.3, label="Interface")
-                lines!(ax2, state2ₒ, color=:blue, alpha=0.3, label="Bulk")
-                lines!(ax2, state2ᵧ, color=:green, alpha=0.3, label="Interface")
-            end
+            ax2 = Axis(fig[2, 1], title="Diphasic Unsteady - Phase 2", xlabel="x", ylabel="u2")
+            scatter!(ax1, states1ₒ, color=:blue, label="Bulk")
+            scatter!(ax1, states1ᵧ, color=:green, label="Interface")
+            scatter!(ax2, states2ₒ, color=:blue, label="Bulk")
+            scatter!(ax2, states2ᵧ, color=:green, label="Interface")
             #axislegend(ax1)
             #axislegend(ax2)
             display(fig)

@@ -28,9 +28,9 @@ operator_c = DiffusionOps(capacity_c.A, capacity_c.B, capacity_c.V, capacity_c.W
 # Define the boundary conditions
 bc1 = Dirichlet(1.0)
 bc0 = Dirichlet(0.0)
-bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:top => bc, :bottom => bc1))
+bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:top => bc0, :bottom => bc1))
 
-ic = InterfaceConditions(ScalarJump(1.0, 1.0, 0.0), FluxJump(1.0, 1.0, 0.0))
+ic = InterfaceConditions(ScalarJump(1.0, 0.5, 0.0), FluxJump(1.0, 1.0, 0.0))
 
 # Define the source term
 f1 = (x,y,z,t)->0.0
@@ -50,14 +50,14 @@ u0 = vcat(u0ₒ1, u0ᵧ1, u0ₒ2, u0ᵧ2)
 
 # Define the solver
 Δt = 0.01
-Tend = 2.0
+Tend = 1.0
 solver = DiffusionUnsteadyDiph(Fluide_1, Fluide_2, bc_b, ic, Δt, Tend, u0)
 
 # Solve the problem
 solve!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=IterativeSolvers.gmres, restart=10, maxiter=1000, verbose=false)
 
 # Write the solution to a VTK file
-write_vtk("solution", mesh, solver)
+#write_vtk("solution", mesh, solver)
 
 # Plot the solution
 plot_solution(solver, mesh, body)
