@@ -35,6 +35,8 @@ x: cell center
 - `x0::NTuple{N, Float64}`: Origin for each dimension.
 - `nodes::NTuple{N, Vector{Float64}}`: Nodes (cell boundaries) for each dimension.
 - `centers::NTuple{N, Vector{Float64}}`: Centers of the cells for each dimension.
+- `faces::NTuple{N, NTuple{N, Vector{Float64}}}`: Faces for each dimension.
+- `tag::MeshTag`: Tagging information for cells.
 """
 mutable struct CartesianMesh{N} <: AbstractMesh
     h::NTuple{N, Vector{Float64}}        # Cell sizes for each dimension
