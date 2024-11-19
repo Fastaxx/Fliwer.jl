@@ -124,26 +124,33 @@ function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
         return ConvectionOps{N}((Cx,), (Kx,), size)
     elseif N == 2
         nx, ny = size[1], size[2]
-        Dx_m = kron(I(ny), ẟ_m(nx))
-        Dy_m = kron(ẟ_m(ny), I(nx))
-        Cx = spdiagm(0 => Dx_m * Σ_p(nx) * A[1] * uₒ[1]) * Σ_p(nx) + spdiagm(0 => Dy_m * Σ_p(nx) * A[2] * uₒ[2]) * Σ_p(ny)
-        Cy = spdiagm(0 => Dx_m * Σ_p(ny) * A[1] * uₒ[1]) * Σ_p(nx) + spdiagm(0 => Dy_m * Σ_p(ny) * A[2] * uₒ[2]) * Σ_p(ny)
+        Dx_m, Dy_m = kron(I(ny), ẟ_m(nx)), kron(ẟ_m(ny), I(nx))
+        Sx_p, Sy_p = kron(I(ny), Σ_p(nx)), kron(Σ_p(ny), I(nx))
+        Sx_m, Sy_m = kron(I(ny), Σ_m(nx)), kron(Σ_m(ny), I(nx))
+        @show Base.size(Sx_p)
+        @show Base.size(spdiagm(vec(Dx_m * Sx_p * A[1] * uₒ[1])))
+        Cx1 = spdiagm(vec(Dx_m * Sx_p * A[1] * uₒ[1])) * Sx_p
+        Cx2 = spdiagm(Dy_m * Sx_p * A[2] * uₒ[2]) * Sy_p
+        Cx = Cx1 + Cx2
+        Cy1 = spdiagm(Dx_m * Sy_p * A[1] * uₒ[1]) * Sx_p
+        Cy2 = spdiagm(Dy_m * Sy_p * A[2] * uₒ[2]) * Sy_p
+        Cy = Cy1 + Cy2
         H = [A[1]*Dx_m - Dx_m*B[1]; A[2]*Dy_m - Dy_m*B[2]]
-        Kx = Σ_m(nx) * spdiagm(0 => H' * uᵧ)
-        Ky = Σ_m(ny) * spdiagm(0 => H' * uᵧ)
+        Kx = Sx_m * spdiagm(0 => H' * uᵧ)
+        Ky = Sy_m * spdiagm(0 => H' * uᵧ)
         return ConvectionOps{N}((Cx, Cy), (Kx, Ky), size)
     elseif N == 3
         nx, ny, nz = size[1], size[2], size[3]
-        Dx_m = kron(I(nz), kron(I(ny), ẟ_m(nx)))
-        Dy_m = kron(I(nz), kron(ẟ_m(ny), I(nx)))
-        Dz_m = kron(ẟ_m(nz), kron(I(ny), I(nx)))
-        Cx = spdiagm(0 => Dx_m * Σ_p(nx) * A[1] * uₒ[1]) * Σ_p(nx) + spdiagm(0 => Dy_m * Σ_p(nx) * A[2] * uₒ[2]) * Σ_p(ny) + spdiagm(0 => Dz_m * Σ_p(nx) * A[3] * uₒ[3]) * Σ_p(nz)
-        Cy = spdiagm(0 => Dx_m * Σ_p(ny) * A[1] * uₒ[1]) * Σ_p(nx) + spdiagm(0 => Dy_m * Σ_p(ny) * A[2] * uₒ[2]) * Σ_p(ny) + spdiagm(0 => Dz_m * Σ_p(ny) * A[3] * uₒ[3]) * Σ_p(nz)
-        Cz = spdiagm(0 => Dx_m * Σ_p(nz) * A[1] * uₒ[1]) * Σ_p(nx) + spdiagm(0 => Dy_m * Σ_p(nz) * A[2] * uₒ[2]) * Σ_p(ny) + spdiagm(0 => Dz_m * Σ_p(nz) * A[3] * uₒ[3]) * Σ_p(nz)
+        Dx_m, Dy_m, Dz_m = kron(I(nz), kron(I(ny), ẟ_m(nx))), kron(I(nz), kron(ẟ_m(ny), I(nx))), kron(ẟ_m(nz), kron(I(ny), I(nx)))
+        Sx_m, Sy_m, Sz_m = kron(I(nz), kron(I(ny), Σ_m(nx))), kron(I(nz), kron(Σ_m(ny), I(nx))), kron(Σ_m(nz), kron(I(ny), I(nx)))
+        Sx_p, Sy_p, Sz_p = kron(I(nz), kron(I(ny), Σ_p(nx))), kron(I(nz), kron(Σ_p(ny), I(nx))), kron(Σ_p(nz), kron(I(ny), I(nx)))
+        Cx = spdiagm(0 => Dx_m * Sx_p * A[1] * uₒ[1]) * Sx_p + spdiagm(0 => Dy_m * Sx_p * A[2] * uₒ[2]) * Sy_p + spdiagm(0 => Dz_m * Sx_p * A[3] * uₒ[3]) * Sz_p
+        Cy = spdiagm(0 => Dx_m * Sy_p * A[1] * uₒ[1]) * Sx_p + spdiagm(0 => Dy_m * Sy_p * A[2] * uₒ[2]) * Sy_p + spdiagm(0 => Dz_m * Sy_p * A[3] * uₒ[3]) * Sz_p
+        Cz = spdiagm(0 => Dx_m * Sz_p * A[1] * uₒ[1]) * Sx_p + spdiagm(0 => Dy_m * Sz_p * A[2] * uₒ[2]) * Sy_p + spdiagm(0 => Dz_m * Sz_p * A[3] * uₒ[3]) * Sz_p
         H = [A[1]*Dx_m - Dx_m*B[1]; A[2]*Dy_m - Dy_m*B[2]; A[3]*Dz_m - Dz_m*B[3]]
-        Kx = Σ_m(nx) * spdiagm(0 => H' * uᵧ)
-        Ky = Σ_m(ny) * spdiagm(0 => H' * uᵧ)
-        Kz = Σ_m(nz) * spdiagm(0 => H' * uᵧ)
+        Kx = Sx_m * spdiagm(0 => H' * uᵧ)
+        Ky = Sy_m * spdiagm(0 => H' * uᵧ)
+        Kz = Sz_m * spdiagm(0 => H' * uᵧ)
         return ConvectionOps{N}((Cx, Cy, Cz), (Kx, Ky, Kz), size)
     end
 end

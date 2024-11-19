@@ -108,6 +108,11 @@ function Capacity(body::AbstractBody, mesh::CartesianMesh)
     return Capacity{N}(A, B, V, W, C_ω, C_γ, Γ, mesh)
 end
 
+""" 
+    measure!(capacity::AbstractCapacity, body::AbstractBody; t=0)
+
+Queries the capacity of a body in a given mesh using the VOFI method at a given time `t`.
+"""
 function measure!(capacity::AbstractCapacity, body::AbstractBody; t=0)
     A, B, V, W, C_ω, C_γ, Γ = VOFI(body, capacity.mesh)
     capacity.A, capacity.B, capacity.V, capacity.W, capacity.C_ω, capacity.C_γ, capacity.Γ = A, B, V, W, C_ω, C_γ, Γ

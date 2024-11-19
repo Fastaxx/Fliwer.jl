@@ -43,18 +43,21 @@ Base.:+(a::Body, b::Body) = Body((x,t)->min(a.sdf(x,t), b.sdf(x,t)), (x,t)->ifel
 ⊖(a::Body, b::Body) = Body((x,t)->max(a.sdf(x,t), -b.sdf(x,t)), a.map, a.domain, a.compose)
 c(a::Body) = Body((x,t)->-a.sdf(x,t), a.map, a.domain, false)
 
+measure(body::Body, x, t) = measure(body.sdf, body.map, x, t)
 
-# TO ADAPT
+"""
+    d, n, v = measure(sdf, map, x, t)
+
+Determine the signed distance, normal vector, and velocity of a body at a given point.
+"""
 function measure(sdf, map, x, t)
-    # Define a function that depends only on x, by setting t
-    f(x_vec) = sdf(x_vec, t)
-    
-    # Calculate the signed distance
-    d = f(x)
-    
-    # Calculate the gradient of the signed distance with respect to x
-    ∇d = ForwardDiff.gradient(f, x)
-    
+    # Eval the sdf
+    d = sdf(x...)
+
+    # Eval the gradient of the sdf
+    f = x -> sdf(x...)
+    ∇d = ForwardDiff.gradient(f, [x...])
+
     # Check if the gradient is zero to avoid division by zero
     if norm(∇d) == 0
         n = zeros(Float64, length(x))
@@ -62,15 +65,14 @@ function measure(sdf, map, x, t)
         # Calculate the normal vector
         n = ∇d ./ norm(∇d)
     end
-    
-    # Calculate the Jacobian matrix of the map function with respect to x
-    J = ForwardDiff.jacobian(x_vec -> map(x_vec, t), x)
-    
-    # Calculate the time derivative of the map function
-    dot = ForwardDiff.derivative(t_val -> map(x, t_val), t)
-    
+
+    # Calculate the Jacobian matrix of the map function with respect to x 
+    # Dm/Dt=0 → ṁ + (dm/dx)ẋ = 0 ∴  ẋ =-(dm/dx)\ṁ
+    J = ForwardDiff.jacobian(u -> [map(u..., t)[i] for i in 1:length(x)], x)
+    dt = ForwardDiff.derivative(u -> sum([map(x..., u)...]), t) # A VERIFIER
+
     # Calculate velocity
-    v = -J \ dot
-    
+    v = dt ./ J
+
     return d, n, v
 end

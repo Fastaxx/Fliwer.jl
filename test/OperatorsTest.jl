@@ -23,7 +23,7 @@ using SparseArrays
     A = [spdiagm(0 => ones(nx))]
     B = [spdiagm(0 => ones(nx))]
     V = spdiagm(0 => ones(nx))
-    W = (spdiagm(0 => ones(nx)))
+    W = (spdiagm(0 => ones(nx)),)
 
     diffusion_ops_1d = DiffusionOps(A, B, V, W, (nx,))
     @test typeof(diffusion_ops_1d) == DiffusionOps{1}
@@ -74,6 +74,18 @@ using SparseArrays
     @test typeof(convection_ops_1d) == ConvectionOps{1}
 
     # Test de la fonction ConvectionOps 2D
-    # TO DO
+    nx, ny = 3, 4
+    n = nx * ny
+    A = (sprand(n, n, 0.5), sprand(n, n, 0.5))
+    B = (sprand(n, n, 0.5), sprand(n, n, 0.5))
+    V = sprand(n, n, 0.5)
+    W = (sprand(n, n, 0.5), sprand(n, n, 0.5))
+    
+    uₒ, uᵧ = rand(n), rand(n)
+
+    convection_ops_2d = ConvectionOps(A, B, V, W, (nx, ny), uₒ, uᵧ)
+
+    @test typeof(convection_ops_2d) == ConvectionOps{2}
+
    
 end

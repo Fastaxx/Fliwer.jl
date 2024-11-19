@@ -1,7 +1,7 @@
 using Fliwer
 using IterativeSolvers
 
-### 2D Test Case : Monophasic Steady Diffusion Equation inside a moving Disk
+### 2D Test Case : Monophasic Unsteady Diffusion Equation inside a moving Disk
 # Define the mesh
 nx, ny = 80, 80
 lx, ly = 4., 4.
@@ -11,8 +11,8 @@ mesh = CartesianMesh((nx, ny), (lx, ly), (x0, y0))
 
 # Define the body
 radius, center = ly/4, (lx/2, ly/2) .+ (0.01, 0.01)
-mapping = (t, x, y) -> (x + 0.1 * t, y)
-circle = Body((x,y,t)->-(sqrt((x-center[1])^2 + (y-center[2])^2) - radius), mapping, domain, true)
+mapping = (x, y, t) -> (x + 0.1 * t, y)
+circle = Body((x,y,_=0)->-(sqrt((x-center[1])^2 + (y-center[2])^2) - radius), mapping, domain, true)
 
 # Identify cells
 identify!(mesh, circle)
@@ -24,22 +24,28 @@ capacity = Capacity(circle, mesh)
 operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1))
 
 # Define the boundary conditions
-bc = Dirichlet(1.0)
+bc = Dirichlet(0.0)
 bc1 = Dirichlet(0.0)
 
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc, :top => bc1, :bottom => bc))
 
 # Define the source term
-f = (x,y,t)-> 4.0 #sin(x)*cos(10*y)
+f = (x,y,z,t)-> 4.0 #sin(x)*cos(10*y)
 
 Fluide = Phase(capacity, operator, f, 1.0)
 
+# Initial condition
+u0ₒ = zeros((nx+1)*(ny+1))
+u0ᵧ = zeros((nx+1)*(ny+1))
+u0 = vcat(u0ₒ, u0ᵧ)
+
 # Define the solver
-solver = DiffusionSteadyMono(Fluide, bc_b, bc)
+Δt = 0.01
+Tend = 1.0
+solver = DiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0)
 
 # Solve the problem
-solve!(solver, Fluide; method=IterativeSolvers.bicgstabl, verbose=false)
+solve!(solver, Fluide, u0, Δt, Tend, bc_b, bc; method=IterativeSolvers.bicgstabl, abstol=1e-15, verbose=false)
 
 # Plot the solution
-plot_solution(solver, mesh, circle)
-
+plot_solution(solver, mesh, circle; state_i=10)
