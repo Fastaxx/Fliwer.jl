@@ -43,7 +43,7 @@ solve!(solver, Fluide; method=IterativeSolvers.bicgstabl, verbose=false)
 plot_solution(solver, mesh, circle)
 
 # Write the solution to a VTK file
-write_vtk("solution", mesh, solver)
+write_vtk("poisson_2d", mesh, solver)
 
 # Fonction pour trouver la valeur maximale d'un tableau
 println(maximum(solver.x))

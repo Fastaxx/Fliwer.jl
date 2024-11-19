@@ -49,3 +49,6 @@ solve!(solver, Fluide_1, Fluide_2; method=IterativeSolvers.gmres, verbose=false)
 
 # Plot the solution usign Makie
 plot_solution(solver, mesh, circle)
+
+# Write the solution to a VTK file
+write_vtk("poisson_2d", mesh, solver)
