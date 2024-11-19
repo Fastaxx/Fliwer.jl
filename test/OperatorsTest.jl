@@ -81,11 +81,30 @@ using SparseArrays
     V = sprand(n, n, 0.5)
     W = (sprand(n, n, 0.5), sprand(n, n, 0.5))
     
-    uₒ, uᵧ = rand(n), rand(n)
+    uₒx, uₒy = rand(n), rand(n)
+    uᵧx, uᵧy = rand(n), rand(n)
+
+    uₒ, uᵧ = vcat(uₒx, uₒy), vcat(uᵧx, uᵧy)
 
     convection_ops_2d = ConvectionOps(A, B, V, W, (nx, ny), uₒ, uᵧ)
 
     @test typeof(convection_ops_2d) == ConvectionOps{2}
 
+    # Test de la fonction ConvectionOps 3D
+    nx, ny, nz = 2, 3, 4
+    n = nx * ny * nz
+    A = (sprand(n, n, 0.5), sprand(n, n, 0.5), sprand(n, n, 0.5))
+    B = (sprand(n, n, 0.5), sprand(n, n, 0.5), sprand(n, n, 0.5))
+    V = sprand(n, n, 0.5)
+    W = (sprand(n, n, 0.5), sprand(n, n, 0.5), sprand(n, n, 0.5))
+
+    uₒx, uₒy, uₒz = rand(n), rand(n), rand(n)
+    uᵧx, uᵧy, uᵧz = rand(n), rand(n), rand(n)
+
+    uₒ, uᵧ = vcat(uₒx, uₒy, uₒz), vcat(uᵧx, uᵧy, uᵧz)
+
+    convection_ops_3d = ConvectionOps(A, B, V, W, (nx, ny, nz), uₒ, uᵧ)
+
+    @test typeof(convection_ops_3d) == ConvectionOps{3}
    
 end
