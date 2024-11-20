@@ -366,6 +366,71 @@ function solve!(s::Solver, phase1::Phase, phase2::Phase, Tᵢ, Δt::Float64, T�
 end
 
 
+# Advection - Steady - Monophasic
+"""
+    AdvectionSteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::AbstractBoundary)
+
+Creates a solver for a steady-state monophasic advection problem.
+
+# Arguments
+- `phase::Phase`: The phase object representing the physical properties of the system.
+- `bc_b::BorderConditions`: The border conditions object representing the boundary conditions at the outer border.
+- `bc_i::AbstractBoundary`: The boundary conditions object representing the boundary conditions at the inner border.
+"""
+function AdvectionSteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::AbstractBoundary)
+    println("Création du solveur:")
+    println("- Monophasic problem")
+    println("- Steady problem")
+    println("- Advection problem")
+    
+    s = Solver(Steady, Monophasic, Advection, nothing, nothing, nothing, [])
+    
+    s.A = build_mono_stead_adv_matrix(phase.operator, phase.capacity, bc_b, bc_i)
+    s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc_i)
+
+    BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
+
+    return s
+end
+
+function build_mono_stead_adv_matrix(operator::ConvectionOps, capacite::Capacity,  bc_b::BorderConditions, bc::AbstractBoundary)
+    n = prod(operator.size)
+    Iₐ, Iᵦ = build_I_bc(operator, bc)
+    Iᵧ = build_I_g(operator) #capacite.Γ #
+
+    C = operator.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
+    K = operator.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
+
+    A11 = sum(C) - 0.5 * sum(K)
+    A12 = -0.5 * sum(K)
+    A21 = Iᵦ * operator.H' * operator.Wꜝ * operator.G
+    A22 = Iᵦ * operator.H' * operator.Wꜝ * operator.H + Iₐ * Iᵧ
+
+    A = vcat(hcat(A11, A12), hcat(A21, A22))
+    return A
+end
+
+function build_rhs(operator::ConvectionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary)
+    N = prod(operator.size)
+    b = zeros(2N)
+
+    Iᵧ = build_I_g(operator) #capacite.Γ #
+    fₒ = build_source(operator, f, capacite)
+    gᵧ = build_g_g(operator, bc, capacite)
+
+    # Build the right-hand side
+    b = vcat(operator.V*fₒ, Iᵧ * gᵧ)
+
+    return b
+end
+
+function solve!(s::Solver, phase::Phase; method::Function = gmres, kwargs...)
+    if s.A === nothing
+        error("Solver is not initialized. Call a solver constructor first.")
+    end
+
+    s.x = method(s.A, s.b; kwargs...)
+end
 
 
 
@@ -516,7 +581,7 @@ function build_I_g(operator::AbstractOperators)
     return Iᵧ
 end
 
-function build_g_g(operator::DiffusionOps, bc::Union{AbstractBoundary, AbstractInterfaceBC}, capacite::Capacity)
+function build_g_g(operator::AbstractOperators, bc::Union{AbstractBoundary, AbstractInterfaceBC}, capacite::Capacity)
     n = prod(operator.size)
     gᵧ = ones(n)
 
@@ -531,7 +596,7 @@ function build_g_g(operator::DiffusionOps, bc::Union{AbstractBoundary, AbstractI
     return gᵧ
 end
 
-function build_source(operator::DiffusionOps, f, capacite::Capacity)
+function build_source(operator::AbstractOperators, f, capacite::Capacity)
     N = prod(operator.size)
     fₒ = zeros(N)
 
@@ -544,7 +609,7 @@ function build_source(operator::DiffusionOps, f, capacite::Capacity)
     return fₒ
 end
 
-function build_source(operator::DiffusionOps, f, t, capacite::Capacity)
+function build_source(operator::AbstractOperators, f, t, capacite::Capacity)
     N = prod(operator.size)
     fₒ = zeros(N)
 

@@ -95,6 +95,10 @@ Struct representing a collection of convection operators.
 struct ConvectionOps{N} <: AbstractOperators where N
     C :: NTuple{N, SparseMatrixCSC{Float64, Int}}
     K :: NTuple{N, SparseMatrixCSC{Float64, Int}}
+    G::SparseMatrixCSC{Float64, Int}
+    H::SparseMatrixCSC{Float64, Int}
+    Wꜝ::SparseMatrixCSC{Float64, Int}
+    V::SparseMatrixCSC{Float64, Int}
     size :: NTuple{N, Int}
 end
 
@@ -119,14 +123,19 @@ function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
     if N == 1
         nx = size[1]
         Cx = spdiagm(ẟ_m(nx) * Σ_p(nx) * A[1] * uₒ) * Σ_p(nx)
+        G = ẟ_m(nx) * B[1] # Gérer le periodicity
         H = A[1]*ẟ_m(nx) - ẟ_m(nx)*B[1]
         Kx = Σ_m(nx) * spdiagm(0 => H' * uᵧ)
-        return ConvectionOps{N}((Cx,), (Kx,), size)
+        diagW = diag(blockdiag(W[1]))
+        new_diagW = [val != 0 ? 1.0 / val : 1.0 for val in diagW]
+        Wꜝ = spdiagm(0 => new_diagW)
+        return ConvectionOps{N}((Cx,), (Kx,), G, H, Wꜝ, V, size)
     elseif N == 2
         nx, ny = size[1], size[2]
         Dx_m, Dy_m = kron(I(ny), ẟ_m(nx)), kron(ẟ_m(ny), I(nx))
         Sx_p, Sy_p = kron(I(ny), Σ_p(nx)), kron(Σ_p(ny), I(nx))
         Sx_m, Sy_m = kron(I(ny), Σ_m(nx)), kron(Σ_m(ny), I(nx))
+        G = [Dx_m * B[1]; Dy_m * B[2]]
         Cx1 = spdiagm(0 => diag(Dx_m * Sx_p * A[1] * uₒ[1])) * Sx_p
         Cx2 = spdiagm(0 => diag(Dy_m * Sx_p * A[2] * uₒ[2])) * Sy_p
         Cx = Cx1 + Cx2
@@ -136,12 +145,16 @@ function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
         H = [A[1]*Dx_m - Dx_m*B[1]; A[2]*Dy_m - Dy_m*B[2]]
         Kx = Sx_m * spdiagm(0 => H' * uᵧ)
         Ky = Sy_m * spdiagm(0 => H' * uᵧ)
-        return ConvectionOps{N}((Cx, Cy), (Kx, Ky), size)
+        diagW = diag(blockdiag(W[1], W[2]))
+        new_diagW = [val != 0 ? 1.0 / val : 1.0 for val in diagW]
+        Wꜝ = spdiagm(0 => new_diagW)
+        return ConvectionOps{N}((Cx, Cy), (Kx, Ky), G, H, Wꜝ, V, size)
     elseif N == 3
         nx, ny, nz = size[1], size[2], size[3]
         Dx_m, Dy_m, Dz_m = kron(I(nz), kron(I(ny), ẟ_m(nx))), kron(I(nz), kron(ẟ_m(ny), I(nx))), kron(ẟ_m(nz), kron(I(ny), I(nx)))
         Sx_m, Sy_m, Sz_m = kron(I(nz), kron(I(ny), Σ_m(nx))), kron(I(nz), kron(Σ_m(ny), I(nx))), kron(Σ_m(nz), kron(I(ny), I(nx)))
         Sx_p, Sy_p, Sz_p = kron(I(nz), kron(I(ny), Σ_p(nx))), kron(I(nz), kron(Σ_p(ny), I(nx))), kron(Σ_p(nz), kron(I(ny), I(nx)))
+        G = [Dx_m * B[1]; Dy_m * B[2]; Dz_m * B[3]]
         Cx = spdiagm(0 => diag(Dx_m * Sx_p * A[1] * uₒ[1])) * Sx_p + spdiagm(0 => diag(Dy_m * Sx_p * A[2] * uₒ[2])) * Sy_p + spdiagm(0 => diag(Dz_m * Sx_p * A[3] * uₒ[3])) * Sz_p
         Cy = spdiagm(0 => diag(Dx_m * Sy_p * A[1] * uₒ[1])) * Sx_p + spdiagm(0 => diag(Dy_m * Sy_p * A[2] * uₒ[2])) * Sy_p + spdiagm(0 => diag(Dz_m * Sy_p * A[3] * uₒ[3])) * Sz_p
         Cz = spdiagm(0 => diag(Dx_m * Sz_p * A[1] * uₒ[1])) * Sx_p + spdiagm(0 => diag(Dy_m * Sz_p * A[2] * uₒ[2])) * Sy_p + spdiagm(0 => diag(Dz_m * Sz_p * A[3] * uₒ[3])) * Sz_p
@@ -149,6 +162,9 @@ function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
         Kx = Sx_m * spdiagm(0 => H' * uᵧ)
         Ky = Sy_m * spdiagm(0 => H' * uᵧ)
         Kz = Sz_m * spdiagm(0 => H' * uᵧ)
-        return ConvectionOps{N}((Cx, Cy, Cz), (Kx, Ky, Kz), size)
+        diagW = diag(blockdiag(W[1], W[2], W[3]))
+        new_diagW = [val != 0 ? 1.0 / val : 1.0 for val in diagW]
+        Wꜝ = spdiagm(0 => new_diagW)
+        return ConvectionOps{N}((Cx, Cy, Cz), (Kx, Ky, Kz), G, H, Wꜝ, V, size)
     end
 end
