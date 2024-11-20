@@ -3,7 +3,7 @@ using IterativeSolvers
 
 ### 2D Test Case : Monophasic Steady Diffusion Equation inside a Disk
 # Define the mesh
-nx, ny = 80, 80
+nx, ny = 40, 40
 lx, ly = 4., 4.
 x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
@@ -40,7 +40,7 @@ solver = DiffusionSteadyMono(Fluide, bc_b, bc)
 solve!(solver, Fluide; method=IterativeSolvers.bicgstabl, verbose=false)
 
 # Plot the solution
-plot_solution(solver, mesh, circle)
+plot_solution(solver, mesh, circle, capacity)
 
 # Write the solution to a VTK file
 write_vtk("poisson_2d", mesh, solver)

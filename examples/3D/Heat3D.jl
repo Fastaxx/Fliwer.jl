@@ -51,7 +51,7 @@ solve!(solver, Fluide, u0, Δt, Tend, bc_b, bc; method=IterativeSolvers.bicgstab
 write_vtk("heat_3d", mesh, solver)
 
 # Plot the solution
-#plot_solution(solver, mesh, sphere; state_i=5)
+#plot_solution(solver, mesh, sphere, capacity; state_i=5)
 
 # Animation
 animate_solution(solver, mesh, sphere)

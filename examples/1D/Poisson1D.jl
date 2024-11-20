@@ -40,4 +40,4 @@ solver = DiffusionSteadyMono(Fluide, bc_b, bc)
 solve!(solver, Fluide; method=IterativeSolvers.bicgstabl, verbose=false)
 
 # Plot the solution
-plot_solution(solver, mesh, body)
+plot_solution(solver, mesh, body, capacity)

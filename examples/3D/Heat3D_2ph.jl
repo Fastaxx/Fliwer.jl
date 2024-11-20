@@ -59,4 +59,4 @@ solve!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=IterativeSolv
 write_vtk("heat_3d", mesh, solver)
 
 # Plot the solution
-plot_solution(solver, mesh, sphere; state_i=10)
+plot_solution(solver, mesh, sphere, capacity; state_i=10)

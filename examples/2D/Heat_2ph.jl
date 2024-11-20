@@ -58,7 +58,7 @@ solve!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=IterativeSolv
 write_vtk("solution", mesh, solver)
 
 # Plot the solution
-plot_solution(solver, mesh, circle)
+plot_solution(solver, mesh, circle, capacity)
 
 # Plot the Profile
 plot_profile(solver, mesh; x=lx/2.01)

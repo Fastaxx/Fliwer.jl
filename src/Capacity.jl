@@ -18,6 +18,7 @@ The `Capacity` struct represents the capacity of a system in `N` dimensions.
 - `C_ω`: Cell centroid represented by a vector of `N`-dimensional static vectors.
 - `C_γ`: Interface centroid represented by a vector of `N`-dimensional static vectors.
 - `Γ`: Interface norm represented by a sparse matrix.
+- `cell_types`: Cell types.
 - `mesh`: Cartesian mesh of `N` dimensions.
 
 """
@@ -29,6 +30,7 @@ mutable struct Capacity{N} <: AbstractCapacity
     C_ω :: Vector{SVector{N,Float64}}               # Cell Centroid
     C_γ :: Vector{SVector{N,Float64}}               # Interface Centroid
     Γ :: SparseMatrixCSC{Float64, Int}              # Interface Norm
+    cell_types :: Vector{Float64}                   # Cell Types
     mesh :: CartesianMesh{N}
 end
 
@@ -55,15 +57,16 @@ function VOFI(body::AbstractBody, mesh::CartesianMesh)
     N = length(mesh.h)
     nc = nC(mesh)
 
-    Vs, bary, interface_length = spzeros(nc), zeros(N), spzeros(nc)
+    Vs, bary, interface_length, cell_types = spzeros(nc), zeros(N), spzeros(nc), spzeros(nc)
     As, Bs, Ws = (spzeros(nc), spzeros(nc), spzeros(nc)), (spzeros(nc), spzeros(nc), spzeros(nc)), (spzeros(nc), spzeros(nc), spzeros(nc))
 
-    Vs, bary = integrate(Tuple{0}, body.sdf, mesh.nodes, Float64, zero)
+    Vs, bary, interface_length, cell_types = integrate(Tuple{0}, body.sdf, mesh.nodes, Float64, zero)
     As = integrate(Tuple{1}, body.sdf, mesh.nodes, Float64, zero)
     Ws = integrate(Tuple{0}, body.sdf, mesh.nodes, Float64, zero, bary)
     Bs = integrate(Tuple{1}, body.sdf, mesh.nodes, Float64, zero, bary)
 
     C_ω = bary
+    C_γ = compute_c_γ(mesh.nodes, body.sdf)
     if N == 1
         V = spdiagm(0 => Vs)
         A = (spdiagm(0 => As[1]),)
@@ -84,8 +87,7 @@ function VOFI(body::AbstractBody, mesh::CartesianMesh)
         Γ = spdiagm(0 => interface_length)
     end
 
-    C_γ = compute_c_γ(mesh.nodes, body.sdf)
-    return A, B, V, W, C_ω, C_γ, Γ
+    return A, B, V, W, C_ω, C_γ, Γ, cell_types
 end
 
 """
@@ -101,11 +103,11 @@ Compute the capacity of a body in a given mesh using the VOFI method.
 - `Capacity{N}`: The capacity of the body.
 """
 function Capacity(body::AbstractBody, mesh::CartesianMesh)
-    A, B, V, W, C_ω, C_γ, Γ = VOFI(body, mesh)
+    A, B, V, W, C_ω, C_γ, Γ, cell_types = VOFI(body, mesh)
     
     N = length(A)
     
-    return Capacity{N}(A, B, V, W, C_ω, C_γ, Γ, mesh)
+    return Capacity{N}(A, B, V, W, C_ω, C_γ, Γ, cell_types, mesh)
 end
 
 """ 
@@ -114,8 +116,8 @@ end
 Queries the capacity of a body in a given mesh using the VOFI method at a given time `t`.
 """
 function measure!(capacity::AbstractCapacity, body::AbstractBody; t=0)
-    A, B, V, W, C_ω, C_γ, Γ = VOFI(body, capacity.mesh)
-    capacity.A, capacity.B, capacity.V, capacity.W, capacity.C_ω, capacity.C_γ, capacity.Γ = A, B, V, W, C_ω, C_γ, Γ
+    A, B, V, W, C_ω, C_γ, Γ, cell_types = VOFI(body, capacity.mesh)
+    capacity.A, capacity.B, capacity.V, capacity.W, capacity.C_ω, capacity.C_γ, capacity.Γ, capacity.cell_types = A, B, V, W, C_ω, C_γ, Γ, cell_types
 end
 
 

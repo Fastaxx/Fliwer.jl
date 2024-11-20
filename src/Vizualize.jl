@@ -211,7 +211,7 @@ end
 
 
 
-function plot_solution(solver, mesh::CartesianMesh{1}, body::Body; state_i=1)
+function plot_solution(solver, mesh::CartesianMesh{1}, body::Body, capacity::Capacity; state_i=1)
     # Déterminer le type de problème
     is_steady = solver.time_type == Steady # Problème stationnaire
     is_monophasic = solver.phase_type == Monophasic # Problème monophasique
@@ -274,7 +274,7 @@ function plot_solution(solver, mesh::CartesianMesh{1}, body::Body; state_i=1)
     end
 end
 
-function plot_solution(solver, mesh::CartesianMesh{2}, body::Body; state_i=1)
+function plot_solution(solver, mesh::CartesianMesh{2}, body::Body, capacity::Capacity; state_i=1)
     Z_sdf = [body.sdf(xi, yi, 0.0) for yi in mesh.nodes[2], xi in mesh.nodes[1]]
 
     is_steady = solver.time_type == Steady
@@ -284,23 +284,44 @@ function plot_solution(solver, mesh::CartesianMesh{2}, body::Body; state_i=1)
     if is_steady
         fig = Figure(size=(800, 600))
         if is_monophasic # Monophasic
+            cell_types = capacity.cell_types
             uₒ = solver.x[1:length(solver.x) ÷ 2]
             uᵧ = solver.x[length(solver.x) ÷ 2 + 1:end]
+
+            # Désactiver les cellules désactivées
+            uₒ[cell_types .== 0] .= NaN
+            uᵧ[cell_types .== 0] .= NaN
+            uᵧ[cell_types .== 1] .= NaN
+
             reshaped_uₒ = reshape(uₒ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
             reshaped_uᵧ = reshape(uᵧ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
+
             ax1 = Axis(fig[1, 1], title="Monophasic Steady Solution - Bulk", xlabel="x", ylabel="y", aspect = DataAspect())
             ax2 = Axis(fig[1, 3], title="Monophasic Steady Solution - Interface", xlabel="x", ylabel="y", aspect = DataAspect())
+
             hm1 = heatmap!(ax1, mesh.centers[1], mesh.centers[2], reshaped_uₒ, colormap=:viridis)
             hm2 = heatmap!(ax2, mesh.centers[1], mesh.centers[2], reshaped_uᵧ, colormap=:viridis)
-            contour!(ax1, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
-            contour!(ax2, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
+
+            #contour!(ax1, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
+            #contour!(ax2, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
+
             Colorbar(fig[1, 2], hm1, label="Bulk Temperature")
             Colorbar(fig[1, 4], hm2, label="Interface Temperature")
         else # Diphasic
+            cell_types = capacity.cell_types
             u1ₒ = solver.x[1:length(solver.x) ÷ 4]
             u1ᵧ = solver.x[length(solver.x) ÷ 4 + 1:2*length(solver.x) ÷ 4]
             u2ₒ = solver.x[2*length(solver.x) ÷ 4 + 1:3*length(solver.x) ÷ 4]
             u2ᵧ = solver.x[3*length(solver.x) ÷ 4+1:end]
+
+            # Désactiver les cellules désactivées
+            u1ₒ[cell_types .== 0] .= NaN
+            u1ᵧ[cell_types .== 0] .= NaN
+            u1ᵧ[cell_types .== 1] .= NaN
+            u2ₒ[cell_types .== 1] .= NaN
+            u2ᵧ[cell_types .== 1] .= NaN
+            u2ᵧ[cell_types .== 0] .= NaN
+
             reshaped_u1ₒ = reshape(u1ₒ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
             reshaped_u1ᵧ = reshape(u1ᵧ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
             reshaped_u2ₒ = reshape(u2ₒ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
@@ -331,8 +352,14 @@ function plot_solution(solver, mesh::CartesianMesh{2}, body::Body; state_i=1)
     else
         # Tracé unsteady en 2D
         if is_monophasic
+            cell_types = capacity.cell_types
             uₒ = solver.states[state_i][1:length(solver.states[1]) ÷ 2]
             uᵧ = solver.states[state_i][length(solver.states[1]) ÷ 2 + 1:end]
+
+            # Désactiver les cellules désactivées
+            uₒ[cell_types .== 0] .= NaN
+            uᵧ[cell_types .== 0] .= NaN
+            uᵧ[cell_types .== 1] .= NaN
 
             reshaped_uₒ = reshape(uₒ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
             reshaped_uᵧ = reshape(uᵧ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
@@ -352,10 +379,19 @@ function plot_solution(solver, mesh::CartesianMesh{2}, body::Body; state_i=1)
             display(fig)  
         else
             # Plot Last State
+            cell_types = capacity.cell_types
             u1ₒ = solver.states[state_i][1:length(solver.states[1]) ÷ 4]
             u1ᵧ = solver.states[state_i][length(solver.states[1]) ÷ 4 + 1:2*length(solver.states[1]) ÷ 4]
             u2ₒ = solver.states[state_i][2*length(solver.states[1]) ÷ 4 + 1:3*length(solver.states[1]) ÷ 4]
             u2ᵧ = solver.states[state_i][3*length(solver.states[1]) ÷ 4 + 1:end]
+
+            # Désactiver les cellules désactivées
+            u1ₒ[cell_types .== 0] .= NaN
+            u1ᵧ[cell_types .== 0] .= NaN
+            u1ᵧ[cell_types .== 1] .= NaN
+            u2ₒ[cell_types .== 1] .= NaN
+            u2ᵧ[cell_types .== 1] .= NaN
+            u2ᵧ[cell_types .== 0] .= NaN
 
             reshaped_u1ₒ = reshape(u1ₒ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
             reshaped_u1ᵧ = reshape(u1ᵧ, (length(mesh.centers[1])+1, length(mesh.centers[2])+1) )'
@@ -387,7 +423,7 @@ function plot_solution(solver, mesh::CartesianMesh{2}, body::Body; state_i=1)
     end
 end
 
-function plot_solution(solver, mesh::CartesianMesh{3}, body::Body; state_i=1)
+function plot_solution(solver, mesh::CartesianMesh{3}, body::Body, capacity::Capacity; state_i=1)
     Z_sdf = [body.sdf(xi, yi, zi) for zi in mesh.nodes[3], yi in mesh.nodes[2], xi in mesh.nodes[1]]
 
     is_steady = solver.time_type == Steady

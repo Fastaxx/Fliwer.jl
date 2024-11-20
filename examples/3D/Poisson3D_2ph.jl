@@ -48,4 +48,4 @@ solver = DiffusionSteadyDiph(Fluide_1, Fluide_2, bc_b, ic)
 solve!(solver, Fluide_1, Fluide_2; method=IterativeSolvers.gmres, verbose=false)
 
 # Plot the solution usign Makie
-plot_solution(solver, mesh, sphere)
+plot_solution(solver, mesh, sphere, capacity)
