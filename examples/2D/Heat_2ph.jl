@@ -1,9 +1,10 @@
 using Fliwer
 using IterativeSolvers
+using WriteVTK
 
 ### 2D Test Case : Diphasic Unsteady Diffusion Equation with a Disk
 # Define the mesh
-nx, ny = 80, 80
+nx, ny = 120, 120
 lx, ly = 8., 8.
 x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
@@ -41,7 +42,7 @@ Fluide_2 = Phase(capacity_c, operator_c, f2, 1.0)
 
 # Initial condition
 u0ₒ1 = ones((nx+1)*(ny+1))
-u0ᵧ1 = zeros((nx+1)*(ny+1))
+u0ᵧ1 = ones((nx+1)*(ny+1))
 u0ₒ2 = zeros((nx+1)*(ny+1))
 u0ᵧ2 = zeros((nx+1)*(ny+1))
 u0 = vcat(u0ₒ1, u0ᵧ1, u0ₒ2, u0ᵧ2)
@@ -58,10 +59,10 @@ solve!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=IterativeSolv
 write_vtk("solution", mesh, solver)
 
 # Plot the solution
-plot_solution(solver, mesh, circle, capacity)
+#plot_solution(solver, mesh, circle, capacity)
 
 # Plot the Profile
 plot_profile(solver, mesh; x=lx/2.01)
 
 # Animation
-animate_solution(solver, mesh, circle)
+#animate_solution(solver, mesh, circle)

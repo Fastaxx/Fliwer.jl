@@ -3,7 +3,7 @@ using IterativeSolvers
 
 ### 2D Test Case : Monophasic Steady Advection Equation inside a Disk
 # Define the mesh
-nx, ny = 40, 40
+nx, ny = 80, 80
 lx, ly = 4., 4.
 x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
@@ -20,8 +20,8 @@ identify!(mesh, circle)
 capacity = Capacity(circle, mesh)
 
 # Initialize the velocity field by setting the velocity to zero
-uₒx, uₒy = zeros((nx+1)*(ny+1)), zeros((nx+1)*(ny+1))
-uγx, uγy = zeros((nx+1)*(ny+1)), zeros((nx+1)*(ny+1))
+uₒx, uₒy = ones((nx+1)*(ny+1)), ones((nx+1)*(ny+1))
+uγx, uγy = ones((nx+1)*(ny+1)), ones((nx+1)*(ny+1))
 
 uₒ, uᵧ = vcat(uₒx, uₒy), vcat(uγx, uγy)
 
@@ -29,18 +29,21 @@ uₒ, uᵧ = vcat(uₒx, uₒy), vcat(uγx, uγy)
 operator = ConvectionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1), uₒ, uᵧ)
 
 # Define the boundary conditions
+ic = Dirichlet(0.0)
 bc = Dirichlet(1.0)
-bc1 = Dirichlet(0.0)
 
-bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc, :top => bc1, :bottom => bc))
+bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc, :top => bc, :bottom => bc))
 
 # Define the source term
-f = (x,y,_)-> 4.0 #sin(x)*cos(10*y)
+f = (x,y,_)-> 0.0 #sin(x)*cos(10*y)
 
 Fluide = Phase(capacity, operator, f, 1.0)
 
 # Define the solver
-solver = AdvectionSteadyMono(Fluide, bc_b, bc)
+solver = AdvectionSteadyMono(Fluide, bc_b, ic)
 
 # Solve the problem
-solve!(solver, Fluide; method=IterativeSolvers.bicgstabl, verbose=false)
+solve!(solver, Fluide; method=IterativeSolvers.gmres, verbose=false)
+
+# Plot the solution
+plot_solution(solver, mesh, circle, capacity)

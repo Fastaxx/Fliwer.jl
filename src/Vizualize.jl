@@ -720,6 +720,9 @@ function plot_profile(solver::Solver, mesh::CartesianMesh; x=1.0)
             # Tracer les lignes pour chaque instant
             lines!(ax1, y[1:div(length(y), 2)], u1ₒ, label = "Instant $idx")
             lines!(ax2, y[1:div(length(y), 2)], u2ₒ, label = "Instant $idx")
+            # Ajouter des points pour u10 et u20 (10% des points)
+            scatter!(ax1, y[1:5:div(length(y), 2)], u1ₒ[1:5:div(length(y), 2)], color=:red, marker=:circle, label="u10 Instant $idx")
+            scatter!(ax2, y[1:5:div(length(y), 2)], u2ₒ[1:5:div(length(y), 2)], color=:blue, marker=:circle, label="u20 Instant $idx")
         end
 
         # Ajouter des légendes

@@ -366,29 +366,27 @@ function solve!(s::Solver, phase1::Phase, phase2::Phase, Tᵢ, Δt::Float64, T�
 end
 
 
-# Advection - Steady - Monophasic
+# Advection - Unsteady - Monophasic
 """
-    AdvectionSteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::AbstractBoundary)
+    AdvectionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::AbstractBoundary)
 
-Creates a solver for a steady-state monophasic advection problem.
+Creates a solver for a unsteady monophasic advection problem.
 
 # Arguments
 - `phase::Phase`: The phase object representing the physical properties of the system.
 - `bc_b::BorderConditions`: The border conditions object representing the boundary conditions at the outer border.
 - `bc_i::AbstractBoundary`: The boundary conditions object representing the boundary conditions at the inner border.
 """
-function AdvectionSteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::AbstractBoundary)
+function AdvectionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::AbstractBoundary, Δt::Float64, Tₑ::Float64, Tᵢ::Vector{Float64})
     println("Création du solveur:")
     println("- Monophasic problem")
-    println("- Steady problem")
+    println("- Unsteady problem")
     println("- Advection problem")
     
     s = Solver(Steady, Monophasic, Advection, nothing, nothing, nothing, [])
     
-    s.A = build_mono_stead_adv_matrix(phase.operator, phase.capacity, bc_b, bc_i)
-    s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc_i)
-
-    BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
+    s.A = build_mono_unstead_adv_matrix(phase.operator, phase.capacity, bc_b, bc_i, Δt)
+    s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0)
 
     return s
 end
@@ -401,8 +399,8 @@ function build_mono_stead_adv_matrix(operator::ConvectionOps, capacite::Capacity
     C = operator.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
     K = operator.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
 
-    A11 = sum(C) - 0.5 * sum(K)
-    A12 = -0.5 * sum(K)
+    A11 = operator.V + Δt/2 * (sum(C) - 0.5 * sum(K))
+    A12 = -Δt/2 * 0.5 * sum(K)
     A21 = Iᵦ * operator.H' * operator.Wꜝ * operator.G
     A22 = Iᵦ * operator.H' * operator.Wꜝ * operator.H + Iₐ * Iᵧ
 
@@ -422,14 +420,6 @@ function build_rhs(operator::ConvectionOps, f, capacite::Capacity, bc_b::BorderC
     b = vcat(operator.V*fₒ, Iᵧ * gᵧ)
 
     return b
-end
-
-function solve!(s::Solver, phase::Phase; method::Function = gmres, kwargs...)
-    if s.A === nothing
-        error("Solver is not initialized. Call a solver constructor first.")
-    end
-
-    s.x = method(s.A, s.b; kwargs...)
 end
 
 
