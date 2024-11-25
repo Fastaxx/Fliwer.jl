@@ -26,7 +26,7 @@ operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, n
 bc = Dirichlet(1.0)
 bc1 = Dirichlet(0.0)
 
-bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc, :top => bc1, :bottom => bc))
+bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc1, :right => bc1, :top => bc1, :bottom => bc1))
 
 # Define the source term
 f = (x,y,_)-> 4.0 #sin(x)*cos(10*y)

@@ -20,7 +20,7 @@ identify!(mesh, circle)
 capacity = Capacity(circle, mesh)
 
 # Initialize the velocity field by setting the velocity to zero
-uₒx, uₒy = ones((nx+1)*(ny+1)), ones((nx+1)*(ny+1))
+uₒx, uₒy = 3*ones((nx+1)*(ny+1)), ones((nx+1)*(ny+1))
 uγx, uγy = ones((nx+1)*(ny+1)), ones((nx+1)*(ny+1))
 
 uₒ, uᵧ = vcat(uₒx, uₒy), vcat(uγx, uγy)
@@ -29,7 +29,7 @@ uₒ, uᵧ = vcat(uₒx, uₒy), vcat(uγx, uγy)
 operator = ConvectionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1), uₒ, uᵧ)
 
 # Define the boundary conditions
-ic = Dirichlet(0.0)
+ic = Dirichlet(1.0)
 bc = Dirichlet(1.0)
 
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc, :top => bc, :bottom => bc))
@@ -39,11 +39,21 @@ f = (x,y,_)-> 0.0 #sin(x)*cos(10*y)
 
 Fluide = Phase(capacity, operator, f, 1.0)
 
+# Initial condition
+u0ₒ = zeros((nx+1)*(ny+1))
+u0ᵧ = ones((nx+1)*(ny+1))
+u0 = vcat(u0ₒ, u0ᵧ)
+
 # Define the solver
-solver = AdvectionSteadyMono(Fluide, bc_b, ic)
+Δt = 0.01
+Tend = 1.0
+solver = AdvectionUnsteadyMono(Fluide, bc_b, ic, Δt, Tend, u0)
 
 # Solve the problem
-solve!(solver, Fluide; method=IterativeSolvers.gmres, verbose=false)
+solve!(solver, Fluide, u0, Δt, Tend, bc_b, ic; method=IterativeSolvers.bicgstabl, abstol=1e-15, verbose=false)
 
 # Plot the solution
 plot_solution(solver, mesh, circle, capacity)
+
+# Write the solution to a VTK file
+write_vtk("advection", mesh, solver)

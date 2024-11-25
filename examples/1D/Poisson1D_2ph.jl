@@ -4,13 +4,13 @@ using IterativeSolvers
 ### 1D Test Case : Diphasic Steady Diffusion Equation
 # Define the mesh
 nx = 20
-lx = 4.
+lx = 4.0
 x0 = 0.
 domain = ((x0, lx),)
 mesh = CartesianMesh((nx,), (lx,), (x0,))
 
 # Define the body
-pos = 2. + 0.1
+pos = 2.0+0.01
 body = Body((x,_=0)->(x - pos), (x,)->(x,), domain, false)
 body_c = Body((x,_=0)->-(x - pos), (x,)->(x,), domain, false)
 
@@ -31,11 +31,11 @@ bc1 = Dirichlet(0.0)
 
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:top => bc, :bottom => bc1))
 
-ic = InterfaceConditions(ScalarJump(1.0, 1.0, 0.0), FluxJump(1.0, 1.0, 0.0))
+ic = InterfaceConditions(ScalarJump(1.0, 1.0, 1.0), FluxJump(1.0, 1.0, 0.0))
 
 # Define the source term
-f1 = (x, y, _=0) -> 1.0
-f2 = (x, y, _=0) -> 1.0
+f1 = (x, y, _=0) -> 0.0
+f2 = (x, y, _=0) -> 0.0
 
 # Define the phases
 Fluide_1 = Phase(capacity, operator, f1, 1.0)

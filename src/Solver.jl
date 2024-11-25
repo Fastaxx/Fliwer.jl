@@ -280,7 +280,7 @@ Creates a solver for an unsteady two-phase diffusion problem.
 - `bc_b::BorderConditions`: The boundary conditions of the problem.
 - `ic::InterfaceConditions`: The conditions at the interface between the two phases.
 - `Δt::Float64`: The time interval.
-- `Tₑ::Float64`: The equilibrium temperature.
+- `Tₑ::Float64`: The final time.
 - `Tᵢ::Vector{Float64}`: The vector of initial temperatures.
 """
 function DiffusionUnsteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderConditions, ic::InterfaceConditions, Δt::Float64, Tₑ::Float64, Tᵢ::Vector{Float64})
@@ -391,7 +391,7 @@ function AdvectionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::Abstr
     return s
 end
 
-function build_mono_stead_adv_matrix(operator::ConvectionOps, capacite::Capacity,  bc_b::BorderConditions, bc::AbstractBoundary)
+function build_mono_unstead_adv_matrix(operator::ConvectionOps, capacite::Capacity,  bc_b::BorderConditions, bc::AbstractBoundary, Δt::Float64)
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
     Iᵧ = build_I_g(operator) #capacite.Γ #
@@ -401,14 +401,14 @@ function build_mono_stead_adv_matrix(operator::ConvectionOps, capacite::Capacity
 
     A11 = operator.V + Δt/2 * (sum(C) - 0.5 * sum(K))
     A12 = -Δt/2 * 0.5 * sum(K)
-    A21 = Iᵦ * operator.H' * operator.Wꜝ * operator.G
-    A22 = Iᵦ * operator.H' * operator.Wꜝ * operator.H + Iₐ * Iᵧ
+    A21 = 0*Iᵦ # Iᵦ * operator.H' * operator.Wꜝ * operator.G
+    A22 = 0*Iᵦ # Iᵦ * operator.H' * operator.Wꜝ * operator.H + Iₐ * Iᵧ
 
     A = vcat(hcat(A11, A12), hcat(A21, A22))
     return A
 end
 
-function build_rhs(operator::ConvectionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary)
+function build_rhs(operator::ConvectionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary, Tᵢ, Δt::Float64, t::Float64)
     N = prod(operator.size)
     b = zeros(2N)
 

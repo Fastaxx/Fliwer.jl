@@ -49,7 +49,7 @@ u0 = vcat(u0ₒ1, u0ᵧ1, u0ₒ2, u0ᵧ2)
 
 # Define the solver
 Δt = 0.01
-Tend = 0.3
+Tend = 1.0
 solver = DiffusionUnsteadyDiph(Fluide_1, Fluide_2, bc_b, ic, Δt, Tend, u0)
 
 # Solve the problem
