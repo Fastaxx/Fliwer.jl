@@ -37,7 +37,7 @@ Fluide = Phase(capacity, operator, f, 1.0)
 solver = DiffusionSteadyMono(Fluide, bc_b, bc)
 
 # Solve the problem
-solve!(solver, Fluide; method=IterativeSolvers.bicgstabl, verbose=false)
+Fliwer.solve!(solver, Fluide; method=IterativeSolvers.bicgstabl, verbose=false, reltol=1e-20)
 
 # Plot the solution
 plot_solution(solver, mesh, circle, capacity)

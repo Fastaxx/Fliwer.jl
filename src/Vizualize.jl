@@ -222,6 +222,13 @@ function plot_solution(solver, mesh::CartesianMesh{1}, body::Body, capacity::Cap
             uₒ = solver.x[1:length(solver.x) ÷ 2]
             uᵧ = solver.x[length(solver.x) ÷ 2 + 1:end]
             x = mesh.centers[1]
+
+            # Désactiver les cellules désactivées
+            cell_types = capacity.cell_types
+            uₒ[cell_types .== 0] .= NaN
+            #uᵧ[cell_types .== 0] .= NaN
+            uᵧ[cell_types .== 1] .= NaN
+            
             fig = Figure()
             ax = Axis(fig[1, 1], title="Monophasic Steady Solution", xlabel="x", ylabel="u")
             scatter!(ax, uₒ, color=:blue, label="Bulk")
@@ -233,6 +240,16 @@ function plot_solution(solver, mesh::CartesianMesh{1}, body::Body, capacity::Cap
             u1ᵧ = solver.x[length(solver.x) ÷ 4 + 1:2*length(solver.x) ÷ 4]
             u2ₒ = solver.x[2*length(solver.x) ÷ 4 + 1:3*length(solver.x) ÷ 4]
             u2ᵧ = solver.x[3*length(solver.x) ÷ 4 + 1:end]
+
+            # Désactiver les cellules désactivées
+            cell_types = capacity.cell_types
+            u1ₒ[cell_types .== 0] .= NaN
+            u1ᵧ[cell_types .== 0] .= NaN
+            u1ᵧ[cell_types .== 1] .= NaN
+            u2ₒ[cell_types .== 1] .= NaN
+            u2ᵧ[cell_types .== 1] .= NaN
+            u2ᵧ[cell_types .== 0] .= NaN
+
             x = mesh.centers[1]
             fig = Figure()
             ax = Axis(fig[1, 1], title="Diphasic Steady Solutions", xlabel="x", ylabel="u")
@@ -330,22 +347,22 @@ function plot_solution(solver, mesh::CartesianMesh{2}, body::Body, capacity::Cap
             ax1 = Axis(fig[1, 1], title="Diphasic Steady - Phase 1 - Bulk", xlabel="x", ylabel="y", aspect = DataAspect())
             hm1 = heatmap!(ax1, mesh.centers[1], mesh.centers[2], reshaped_u1ₒ, colormap=:viridis)
             cb1 = Colorbar(fig[1, 2], hm1, label="Phase 1 Bulk Temperature")
-            contour!(ax1, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
+            #contour!(ax1, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
 
             ax2 = Axis(fig[1, 3], title="Diphasic Steady - Phase 1 - Interface", xlabel="x", ylabel="y", aspect = DataAspect())
             hm2 = heatmap!(ax2, mesh.centers[1], mesh.centers[2], reshaped_u1ᵧ, colormap=:viridis)
             cb2 = Colorbar(fig[1, 4], hm2, label="Phase 1 Interface Temperature")
-            contour!(ax2, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
+            #contour!(ax2, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
 
             ax3 = Axis(fig[2, 1], title="Diphasic Steady - Phase 2 - Bulk", xlabel="x", ylabel="y", aspect = DataAspect())
             hm3 = heatmap!(ax3, mesh.centers[1], mesh.centers[2], reshaped_u2ₒ, colormap=:viridis)
             cb3 = Colorbar(fig[2, 2], hm3, label="Phase 2 Bulk Temperature")
-            contour!(ax3, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
+            #contour!(ax3, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
 
             ax4 = Axis(fig[2, 3], title="Diphasic Steady - Phase 2 - Interface", xlabel="x", ylabel="y", aspect = DataAspect())
             hm4 = heatmap!(ax4, mesh.centers[1], mesh.centers[2], reshaped_u2ᵧ, colormap=:viridis)
             cb4 = Colorbar(fig[2, 4], hm4, label="Phase 2 Interface Temperature")
-            contour!(ax4, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
+            #contour!(ax4, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
 
         end
         display(fig)
@@ -368,12 +385,12 @@ function plot_solution(solver, mesh::CartesianMesh{2}, body::Body, capacity::Cap
 
             ax1 = Axis(fig[1, 1], title="Monophasic Unsteady Diffusion - Bulk", xlabel="x", ylabel="y", aspect = DataAspect())
             hm1 = heatmap!(ax1, mesh.centers[1], mesh.centers[2], reshaped_uₒ, colormap=:viridis)
-            contour!(ax1, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
+            #contour!(ax1, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
             Colorbar(fig[1, 2], hm1, label="Bulk Temperature")
 
             ax2 = Axis(fig[1, 3], title="Monophasic Unsteady Diffusion - Interface", xlabel="x", ylabel="y", aspect = DataAspect())
             hm2 = heatmap!(ax2, mesh.centers[1], mesh.centers[2], reshaped_uᵧ, colormap=:viridis)
-            contour!(ax2, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
+            #contour!(ax2, mesh.nodes[1], mesh.nodes[2], Z_sdf, levels=[0.0], color=:red, linewidth=2, label="SDF=0")
             Colorbar(fig[1, 4], hm2, label="Interface Temperature")
 
             display(fig)  

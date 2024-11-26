@@ -3,7 +3,7 @@ using IterativeSolvers
 
 ### 2D Test Case : Monophasic Unsteady Diffusion Equation inside a Disk
 # Define the mesh
-nx, ny = 40, 40
+nx, ny = 160, 160
 lx, ly = 4., 4.
 x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
@@ -44,7 +44,7 @@ Tend = 1.0
 solver = DiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0)
 
 # Solve the problem
-solve!(solver, Fluide, u0, Δt, Tend, bc_b, bc; method=IterativeSolvers.bicgstabl, abstol=1e-15, verbose=false)
+solve!(solver, Fluide, u0, Δt, Tend, bc_b, bc; method=IterativeSolvers.bicgstabl, reltol=1e-40, verbose=false)
 
 # Write the solution to a VTK file
 write_vtk("heat", mesh, solver)

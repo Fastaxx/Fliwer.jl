@@ -125,7 +125,7 @@ function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
         Cx = spdiagm(ẟ_m(nx) * Σ_p(nx) * A[1] * uₒ) * Σ_p(nx)
         G = ẟ_m(nx) * B[1] # Gérer le periodicity
         H = A[1]*ẟ_m(nx) - ẟ_m(nx)*B[1]
-        Kx = Σ_m(nx) * spdiagm(0 => H' * uᵧ)
+        Kx = spdiagm(0 => Σ_m(nx) * H' * uᵧ)
         diagW = diag(blockdiag(W[1]))
         new_diagW = [val != 0 ? 1.0 / val : 1.0 for val in diagW]
         Wꜝ = spdiagm(0 => new_diagW)
@@ -143,8 +143,8 @@ function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
         Cy2 = spdiagm(0 => diag(Dy_m * Sy_p * A[2] * uₒ[2])) * Sy_p
         Cy = Cy1 + Cy2
         H = [A[1]*Dx_m - Dx_m*B[1]; A[2]*Dy_m - Dy_m*B[2]]
-        Kx = Sx_m * spdiagm(0 => H' * uᵧ)
-        Ky = Sy_m * spdiagm(0 => H' * uᵧ)
+        Kx = spdiagm(0 => Sx_p * H' * uᵧ)
+        Ky = spdiagm(0 => Sy_p * H' * uᵧ)
         diagW = diag(blockdiag(W[1], W[2]))
         new_diagW = [val != 0 ? 1.0 / val : 1.0 for val in diagW]
         Wꜝ = spdiagm(0 => new_diagW)
@@ -159,9 +159,9 @@ function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
         Cy = spdiagm(0 => diag(Dx_m * Sy_p * A[1] * uₒ[1])) * Sx_p + spdiagm(0 => diag(Dy_m * Sy_p * A[2] * uₒ[2])) * Sy_p + spdiagm(0 => diag(Dz_m * Sy_p * A[3] * uₒ[3])) * Sz_p
         Cz = spdiagm(0 => diag(Dx_m * Sz_p * A[1] * uₒ[1])) * Sx_p + spdiagm(0 => diag(Dy_m * Sz_p * A[2] * uₒ[2])) * Sy_p + spdiagm(0 => diag(Dz_m * Sz_p * A[3] * uₒ[3])) * Sz_p
         H = [A[1]*Dx_m - Dx_m*B[1]; A[2]*Dy_m - Dy_m*B[2]; A[3]*Dz_m - Dz_m*B[3]]
-        Kx = Sx_m * spdiagm(0 => H' * uᵧ)
-        Ky = Sy_m * spdiagm(0 => H' * uᵧ)
-        Kz = Sz_m * spdiagm(0 => H' * uᵧ)
+        Kx = spdiagm(0 => Sx_p * H' * uᵧ)
+        Ky = spdiagm(0 => Sy_p * H' * uᵧ)
+        Kz = spdiagm(0 => Sz_p * H' * uᵧ)
         diagW = diag(blockdiag(W[1], W[2], W[3]))
         new_diagW = [val != 0 ? 1.0 / val : 1.0 for val in diagW]
         Wꜝ = spdiagm(0 => new_diagW)

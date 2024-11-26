@@ -3,7 +3,7 @@ using IterativeSolvers
 
 ### 1D Test Case : Diphasic Unsteady Diffusion Equation 
 # Define the mesh
-nx = 40
+nx = 80
 lx = 4.0
 x0 = 0.0
 domain=((x0,lx),)
@@ -11,7 +11,7 @@ mesh = CartesianMesh((nx,), (lx,), (x0,))
 
 # Define the body
 xint = 2.0 + 0.1
-body = Body((x, _=0) -> x - xint,(x,_=0)->(x),domain,false)
+body = Body((x, _=0) -> (x - xint),(x,_=0)->(x),domain,false)
 body_c = Body((x, _=0) -> -(x - xint),(x,_=0)->(x),domain,false)
 
 # Identify cells
@@ -28,7 +28,7 @@ operator_c = DiffusionOps(capacity_c.A, capacity_c.B, capacity_c.V, capacity_c.W
 # Define the boundary conditions
 bc1 = Dirichlet(1.0)
 bc0 = Dirichlet(0.0)
-bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:top => bc0, :bottom => bc1))
+bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:top => bc1, :bottom => bc1))
 
 ic = InterfaceConditions(ScalarJump(1.0, 0.5, 0.0), FluxJump(1.0, 1.0, 0.0))
 

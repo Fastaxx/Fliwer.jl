@@ -38,7 +38,13 @@ include("Utils.jl")
 export identify!, find_border, find_cut, eval_sdf
 
 include("Solver.jl")
-export TimeType, PhaseType, EquationType, Solver, DiffusionSteadyMono, DiffusionSteadyDiph, DiffusionUnsteadyMono, DiffusionUnsteadyDiph, AdvectionUnsteadyMono, solve!
+export TimeType, PhaseType, EquationType, Solver
+export DiffusionSteadyMono, DiffusionSteadyDiph, DiffusionUnsteadyMono, DiffusionUnsteadyDiph
+export AdvectionUnsteadyMono
+export AdvectionDiffusionSteadyMono, AdvectionDiffusionSteadyDiph
+
+include("Solve.jl")
+export solve!
 
 include("Vizualize.jl")
 export plot_solution, plot_profile, animate_solution

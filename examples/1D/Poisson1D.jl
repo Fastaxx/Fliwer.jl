@@ -11,7 +11,7 @@ mesh = CartesianMesh((nx,), (lx,), (x0,))
 
 # Define the body
 pos = 2. + 0.1
-body = Body((x,_=0)->-(x - pos), (x,)->(x,), domain, false)
+body = Body((x,_=0)->(x - pos), (x,)->(x,), domain, false)
 
 # Identify cells
 identify!(mesh, body)
@@ -26,10 +26,10 @@ operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1,))
 bc = Dirichlet(1.0)
 bc1 = Dirichlet(0.0)
 
-bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:top => bc, :bottom => bc1))
+bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:top => bc1, :bottom => bc1))
 
 # Define the source term
-f = (x, y, _=0) -> 1.0
+f = (x, y, _=0) -> 0.0
 
 Fluide = Phase(capacity, operator, f, 1.0)
 
