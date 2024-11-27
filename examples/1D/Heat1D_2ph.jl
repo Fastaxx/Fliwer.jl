@@ -3,14 +3,14 @@ using IterativeSolvers
 
 ### 1D Test Case : Diphasic Unsteady Diffusion Equation 
 # Define the mesh
-nx = 80
-lx = 4.0
+nx = 160
+lx = 8.0
 x0 = 0.0
 domain=((x0,lx),)
 mesh = CartesianMesh((nx,), (lx,), (x0,))
 
 # Define the body
-xint = 2.0 + 0.1
+xint = 4.0 + 0.1
 body = Body((x, _=0) -> (x - xint),(x,_=0)->(x),domain,false)
 body_c = Body((x, _=0) -> -(x - xint),(x,_=0)->(x),domain,false)
 
@@ -26,9 +26,9 @@ operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1,))
 operator_c = DiffusionOps(capacity_c.A, capacity_c.B, capacity_c.V, capacity_c.W, (nx+1,))
 
 # Define the boundary conditions
-bc1 = Dirichlet(1.0)
-bc0 = Dirichlet(0.0)
-bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:top => bc1, :bottom => bc1))
+bc1 = Dirichlet(0.0)
+bc0 = Dirichlet(1.0)
+bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:top => bc0, :bottom => bc1))
 
 ic = InterfaceConditions(ScalarJump(1.0, 0.5, 0.0), FluxJump(1.0, 1.0, 0.0))
 
@@ -41,10 +41,10 @@ Fluide_1 = Phase(capacity, operator, f1, 1.0)
 Fluide_2 = Phase(capacity_c, operator_c, f2, 1.0)
 
 # Initial condition
-u0ₒ1 = ones(nx+1)
-u0ᵧ1 = ones(nx+1)
-u0ₒ2 = zeros(nx+1)
-u0ᵧ2 = zeros(nx+1)
+u0ₒ1 = zeros(nx+1)
+u0ᵧ1 = zeros(nx+1)
+u0ₒ2 = ones(nx+1)
+u0ᵧ2 = ones(nx+1)
 
 u0 = vcat(u0ₒ1, u0ᵧ1, u0ₒ2, u0ᵧ2)
 

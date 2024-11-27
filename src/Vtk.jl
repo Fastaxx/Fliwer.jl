@@ -10,45 +10,52 @@ Writes a VTK file based on the solver's time, phase, and equation types.
 """
 function write_vtk(filename::String, mesh::CartesianMesh, solver::Solver)
     if length(mesh.centers) == 1
-        vtk_grid(filename, mesh.centers[1], ones(length(mesh.centers[1]))) do vtk
-            if solver.time_type == Steady && solver.phase_type == Monophasic
-                # Cas Steady, Monophasic, Diffusion
+        if solver.time_type == Steady && solver.phase_type == Monophasic
+            # Steady, Monophasic, Diffusion
+            vtk_grid(filename, 0:1:length(mesh.centers[1])) do vtk
                 vtk["Temperature_b"] = solver.x[1:length(solver.x) ÷ 2]
                 vtk["Temperature_g"] = solver.x[length(solver.x) ÷ 2 + 1:end]
-                println("Fichier VTK steady monophasic écrit : $filename.vtr")
-
-            elseif solver.time_type == Steady && solver.phase_type == Diphasic
-                # Cas Steady, Diphasic, Diffusion
-                part = div(length(solver.x), 4)
+                println("VTK file written : $filename.vti")
+            end
+        elseif solver.time_type == Steady && solver.phase_type == Diphasic
+            # Steady, Diphasic, Diffusion
+            part = div(length(solver.x), 4)
+            vtk_grid(filename, 0:1:length(mesh.centers[1])) do vtk
                 vtk["Temperature_1_b"] = solver.x[1:part]
                 vtk["Temperature_1_g"] = solver.x[part + 1:2 * part]
                 vtk["Temperature_2_b"] = solver.x[2 * part + 1:3 * part]
                 vtk["Temperature_2_g"] = solver.x[3 * part + 1:end]
-                println("Fichier VTK steady diphasic écrit : $filename.vtr")
-
-            elseif solver.time_type == Unsteady && solver.phase_type == Monophasic 
-                # Cas Unsteady, Monophasic, Diffusion
-                for (i, state) in enumerate(solver.states)
-                    vtk["Temperature_b_$i"] = state[1:div(length(state), 2)]
-                    vtk["Temperature_g_$i"] = state[div(length(state), 2) + 1:end]
-                end
-                println("Fichier VTK unsteady monophasic écrit : $filename.vtr")
-
-            elseif solver.time_type == Unsteady && solver.phase_type == Diphasic 
-                # Cas Unsteady, Diphasic, Diffusion
-                part = div(length(solver.x), 4)
-                for (i, state) in enumerate(solver.states)
-                    vtk["Temperature_1_b_$i"] = state[1:part]
-                    vtk["Temperature_1_g_$i"] = state[part + 1:2 * part]
-                    vtk["Temperature_2_b_$i"] = state[2 * part + 1:3 * part]
-                    vtk["Temperature_2_g_$i"] = state[3 * part + 1:end]
-                end
-                println("Fichier VTK unsteady diphasic écrit : $filename.vtr")
-
-            # Ajoutez d'autres combinaisons si nécessaire
-            else
-                error("La combinaison de TimeType, PhaseType et EquationType n'est pas supportée.")
+                println("VTK file written : $filename.vti")
             end
+        elseif solver.time_type == Unsteady && solver.phase_type == Monophasic
+            # Unsteady, Monophasic, Diffusion
+            pvd = paraview_collection(filename)
+            for (i, state) in enumerate(solver.states)
+                vtk_grid(filename * "_$i", 0:1:length(mesh.centers[1])) do vtk
+                    vtk["Temperature_b"] = state[1:length(state) ÷ 2]
+                    vtk["Temperature_g"] = state[length(state) ÷ 2 + 1:end]
+                    pvd[i] = vtk
+                end
+            end
+            vtk_save(pvd)
+            println("VTK file written : $filename.pvd")
+        elseif solver.time_type == Unsteady && solver.phase_type == Diphasic
+            # Unsteady, Diphasic, Diffusion
+            pvd = paraview_collection(filename)
+            part = div(length(solver.x), 4)
+            for (i, state) in enumerate(solver.states)
+                vtk_grid(filename * "_$i", 0:1:length(mesh.centers[1])) do vtk
+                    vtk["Temperature_1_b"] = state[1:part]
+                    vtk["Temperature_1_g"] = state[part + 1:2 * part]
+                    vtk["Temperature_2_b"] = state[2 * part + 1:3 * part]
+                    vtk["Temperature_2_g"] = state[3 * part + 1:end]
+                    pvd[i] = vtk
+                end
+            end
+            vtk_save(pvd)
+            println("VTK file written : $filename.pvd")
+        else
+            error("Combination of TimeType, PhaseType, and EquationType not supported.")
         end
     elseif length(mesh.centers) == 2
         if solver.time_type == Steady && solver.phase_type == Monophasic 
