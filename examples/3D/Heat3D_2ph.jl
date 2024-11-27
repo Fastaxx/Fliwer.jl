@@ -30,7 +30,7 @@ bc = Dirichlet(0.0)
 bc1 = Dirichlet(1.0)
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc, :top => bc, :bottom => bc, :front => bc, :back => bc))
 
-ic = InterfaceConditions(ScalarJump(1.0, 1.0, 0.0), FluxJump(1.0, 1.0, 0.0))
+ic = InterfaceConditions(ScalarJump(1.0, 2.0, 0.0), FluxJump(1.0, 1.0, 0.0))
 
 # Define the source term
 f1 = (x,y,z,t)->0.0
@@ -41,10 +41,10 @@ Fluide_1 = Phase(capacity, operator, f1, 1.0)
 Fluide_2 = Phase(capacity_c, operator_c, f2, 1.0)
 
 # Initial condition
-u0ₒ1 = zeros((nx+1)*(ny+1)*(nz+1))
+u0ₒ1 = ones((nx+1)*(ny+1)*(nz+1))
 u0ᵧ1 = ones((nx+1)*(ny+1)*(nz+1))
 u0ₒ2 = zeros((nx+1)*(ny+1)*(nz+1))
-u0ᵧ2 = ones((nx+1)*(ny+1)*(nz+1))
+u0ᵧ2 = zeros((nx+1)*(ny+1)*(nz+1))
 u0 = vcat(u0ₒ1, u0ᵧ1, u0ₒ2, u0ᵧ2)
 
 # Define the solver
@@ -53,7 +53,7 @@ Tend = 0.2
 solver = DiffusionUnsteadyDiph(Fluide_1, Fluide_2, bc_b, ic, Δt, Tend, u0)
 
 # Solve the problem
-solve!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=IterativeSolvers.gmres, restart=10, maxiter=1000, verbose=false)
+solve!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=IterativeSolvers.gmres, maxiter=10000, verbose=false)
 
 # Write the solution to a VTK file
 write_vtk("heat_3d", mesh, solver)

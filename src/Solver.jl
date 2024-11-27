@@ -499,6 +499,72 @@ function build_rhs(operator1::ConvectionOps, operator2::ConvectionOps, f1, f2, c
 end
 
 
+# AdvectionDiffusion - Unsteady - Monophasic
+"""
+    AdvectionDiffusionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::AbstractBoundary, Δt::Float64, Tₑ::Float64, Tᵢ::Vector{Float64})
+
+Creates a solver for an unsteady monophasic advection-diffusion problem.
+
+# Arguments
+- `phase::Phase`: The phase object representing the physical properties of the system.
+- `bc_b::BorderConditions`: The border conditions object representing the boundary conditions at the outer border.
+- `bc_i::AbstractBoundary`: The boundary conditions object representing the boundary conditions at the inner border.
+- `Δt::Float64`: The time step size.
+- `Tₑ::Float64`: The final time.
+- `Tᵢ::Vector{Float64}`: The initial temperature distribution.
+"""
+function AdvectionDiffusionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::AbstractBoundary, Δt::Float64, Tₑ::Float64, Tᵢ::Vector{Float64})
+    println("Création du solveur:")
+    println("- Monophasic problem")
+    println("- Unsteady problem")
+    println("- Advection-Diffusion problem")
+    
+    s = Solver(Unsteady, Monophasic, DiffusionAdvection, nothing, nothing, nothing, ConvergenceHistory(), [])
+    
+    s.A = build_mono_unstead_adv_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i, Δt)
+    s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0)
+
+    return s
+end
+
+function build_mono_unstead_adv_diff_matrix(operator::ConvectionOps, capacite::Capacity, D::Float64, bc_b::BorderConditions, bc::AbstractBoundary, Δt::Float64)
+    n = prod(operator.size)
+    Iₐ, Iᵦ = build_I_bc(operator, bc)
+    Iᵧ = build_I_g(operator) #capacite.Γ #
+    Id = build_I_D(operator, D)
+
+    C = operator.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
+    K = operator.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
+
+    A11 = operator.V + Δt/2 * (sum(C) - 0.5 * sum(K)) + Δt/2 * Id * operator.G' * operator.Wꜝ * operator.G
+    A12 = -Δt/2 * 0.5 * sum(K) + Δt/2 * Id * operator.G' * operator.Wꜝ * operator.H
+    A21 = Iᵦ * operator.H' * operator.Wꜝ * operator.G
+    A22 = Iᵦ * operator.H' * operator.Wꜝ * operator.H + Iₐ * Iᵧ
+
+    A = vcat(hcat(A11, A12), hcat(A21, A22))
+    return A
+end
+
+function build_rhs(operator::ConvectionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary, Tᵢ, Δt::Float64, t::Float64)
+    N = prod(operator.size)
+    b = zeros(2N)
+
+    C = operator.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
+    K = operator.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
+
+    Iᵧ = build_I_g(operator) #capacite.Γ #
+    fₒn, fₒn1 = build_source(operator, f, t, capacite), build_source(operator, f, t+Δt, capacite)
+    gᵧ = build_g_g(operator, bc, capacite)
+
+    Tₒ, Tᵧ = Tᵢ[1:N], Tᵢ[N+1:end]
+
+    # Build the right-hand side
+    # convn = - Δt/2 * (sum(C) - 0.5 * sum(K))*Tₒ + Δt/2 * 0.5 * sum(K)*Tᵧ
+    b = vcat((operator.V  - Δt/2 * operator.G' * operator.Wꜝ * operator.G)*Tₒ - Δt/2 * operator.G' * operator.Wꜝ * operator.H * Tᵧ + Δt/2 * operator.V * (fₒn + fₒn1), Iᵧ * gᵧ)
+
+
+    return b
+end
 
 
 

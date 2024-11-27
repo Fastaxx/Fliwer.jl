@@ -41,7 +41,7 @@ include("Solver.jl")
 export TimeType, PhaseType, EquationType, Solver
 export DiffusionSteadyMono, DiffusionSteadyDiph, DiffusionUnsteadyMono, DiffusionUnsteadyDiph
 export AdvectionUnsteadyMono
-export AdvectionDiffusionSteadyMono, AdvectionDiffusionSteadyDiph
+export AdvectionDiffusionSteadyMono, AdvectionDiffusionSteadyDiph, AdvectionDiffusionUnsteadyMono
 
 include("Solve.jl")
 export solve!
