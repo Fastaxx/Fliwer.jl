@@ -1,0 +1,91 @@
+`@time mesh = CartesianMesh((nx, ny), (lx, ly), (x0, y0))`
+0.000009 seconds (27 allocations: 3.547 KiB)
+
+`@time circle = Body((x,y,_=0)->-(sqrt((x-center[1])^2 + (y-center[2])^2) - radius), (x,y,_)->(x,y), domain, false)`
+0.000072 seconds (55 allocations: 4.203 KiB)
+
+`@time identify!(mesh, circle)`
+0.010421 seconds (57.34 k allocations: 1.053 MiB, 85.97% compilation time)
+
+`@time capacity = Capacity(circle, mesh)`
+0.198640 seconds (1.11 M allocations: 29.897 MiB, 7.80% gc time, 70.94% compilation time)
+
+`@time operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1))`
+0.000516 seconds (340 allocations: 1.608 MiB)
+
+`@time bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc1, :right => bc1, :top => bc1, :bottom => bc1))`
+0.000014 seconds (13 allocations: 656 bytes)
+
+`@time Fluide = Phase(capacity, operator, f, 1.0)`
+0.004750 seconds (551 allocations: 26.930 KiB, 99.13% compilation time)
+
+`@time solver = DiffusionSteadyMono(Fluide, bc_b, bc)`
+0.012353 seconds (12.65 k allocations: 3.494 MiB, 88.53% compilation time)
+
+`@time Fliwer.solve!(solver, Fluide; method=IterativeSolvers.bicgstabl, verbose=false, reltol=1e-20)`
+0.044340 seconds (6.16 k allocations: 73.081 MiB, 49.13% gc time)
+
+`@time write_vtk("poisson_2d", mesh, solver)`
+0.002174 seconds (3.20 k allocations: 317.977 KiB)
+
+------
+            Allocations 
+Mesh        27
+Geometry    55
+Capacity    1.11M       -> Major Issue
+Operator    340
+Bc          13
+Fluide      551
+Solver      12.65k      -> To Check
+Solve       6.16k       -> To check : in place iterative methods
+
+-----
+            Allocations
+VOFI        1.11M
+
+-----
+Capacity.jl
+                                            Allocations v0              Allocations v1
+l60 Vs, bary, interface_length, cell_types      8
+l61 As, Bs, Ws                                  18
+l63 Vs, bary, interface_length, cell_types      445.74k
+l64 As                                          162.31k
+l65 Ws                                          318.50k
+l66 Bs                                          99.61k
+l69 C_γ                                         82.23k (3.641 Mib)      33.09k (1.010 Mib)
+le reste                                        peanuts (33, 61, ...)
+
+-----
+CartesianGeometry.jl
+                                            Avec Nan                Avec zero
+Vs, bary, interface_length, cell_types :    66.06k (1.103 MiB)      126k
+Ws :                                        61.56k (992.781 KiB)    212k
+
+- Mettre des zero/plus couteux que des nan au premier appel. Après pas de différence
+- vofi.get_cell_type est le problème : 25 allocations par iterations
+- Pour Ws ce sont les boucles sur chaque face
+
+
+--- 
+Poisson 2d 
+            Allocations First Call      Allocations Second Call
+mesh        27 (3.547 KiB)              27 (3.547 KiB)
+body        661 (33.594 KiB)            55 (4.203 KiB)
+capacity    4.16M (184.353 MiB)         1.06M (27.264 MiB)
+operator    1.22M (63.977 MiB)          340 (1.608 MiB)
+Fluide      553 (27.070 KiB)            551 (26.930 KiB)  
+solver      3.45M (177.998 MiB)         12.65k (3.494 MiB)
+solve!      10.47M (598.032 Mib)        5.96k (69.996 Mib)   
+
+----
+`@time s.A = build_mono_stead_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i)`
+0.307274 seconds (116.45 k allocations: 8.034 MiB, 99.84% compilation time)
+0.000472 seconds (395 allocations: 2.615 MiB)
+
+`    @time s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc_i)`
+0.054934 seconds (43.38 k allocations: 2.524 MiB, 99.80% compilation time)
+0.010066 seconds (10.36 k allocations: 831.547 KiB, 99.39% compilation time)
+
+`    @time BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)`
+0.335243 seconds (378.07 k allocations: 18.951 MiB, 4.99% gc time, 99.73% compilation time)
+0.000709 seconds (1.87 k allocations: 67.875 KiB)
