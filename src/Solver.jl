@@ -64,7 +64,7 @@ function DiffusionSteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::Abstrac
     s = Solver(Steady, Monophasic, Diffusion, nothing, nothing, nothing, ConvergenceHistory(), [])
     
     s.A = build_mono_stead_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i)
-    s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc_i)
+    s.b = build_rhs_mono_stead_diff(phase.operator, phase.source, phase.capacity, bc_b, bc_i)
 
     BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
 
@@ -82,7 +82,7 @@ function build_mono_stead_diff_matrix(operator::DiffusionOps, capacity::Capacity
     return A
 end
 
-function build_rhs(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary)
+function build_rhs_mono_stead_diff(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary)
     N = prod(operator.size)
     b = zeros(2N)
 
@@ -94,6 +94,21 @@ function build_rhs(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderCo
     b = vcat(operator.V*fₒ, Iᵧ * gᵧ)
 
     return b
+end
+
+function solve_DiffusionSteadyMono!(s::Solver, phase::Phase; method::Function = gmres, kwargs...)
+    if s.A === nothing
+        error("Solver is not initialized. Call a solver constructor first.")
+    end
+
+    kwargs_nt = (; kwargs...)
+    log = get(kwargs_nt, :log, false)
+
+    if log
+        s.x, s.ch = method(s.A, s.b; kwargs...)
+    else
+        s.x = method(s.A, s.b; kwargs...)
+    end
 end
 
 
@@ -119,7 +134,7 @@ function DiffusionSteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderCondition
     s = Solver(Steady, Diphasic, Diffusion, nothing, nothing, nothing, ConvergenceHistory(), [])
     
     s.A = build_diph_stead_diff_matrix(phase1.operator, phase2.operator, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic)
-    s.b = build_rhs(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic)
+    s.b = build_rhs_diph_stead_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic)
 
     BC_border_diph!(s.A, s.b, bc_b, phase2.capacity.mesh)
 
@@ -152,7 +167,7 @@ function build_diph_stead_diff_matrix(operator1::DiffusionOps, operator2::Diffus
     return A
 end
 
-function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, capacite1::Capacity, capacite2::Capacity, bc_b::BorderConditions, ic::InterfaceConditions)
+function build_rhs_diph_stead_diff(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, capacite1::Capacity, capacite2::Capacity, bc_b::BorderConditions, ic::InterfaceConditions)
     N = prod(operator1.size)
     b = zeros(4N)
 
@@ -167,6 +182,21 @@ function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, cap
     b = vcat(operator1.V*fₒ1, gᵧ, operator2.V*fₒ2, Iᵧ2*hᵧ)
 
     return b
+end
+
+function solve_DiffusionSteadyDiph!(s::Solver, phase1::Phase, phase2::Phase; method::Function = gmres, kwargs...)
+    if s.A === nothing
+        error("Solver is not initialized. Call a solver constructor first.")
+    end
+
+    kwargs_nt = (; kwargs...)
+    log = get(kwargs_nt, :log, false)
+
+    if log
+        s.x, s.ch = method(s.A, s.b; kwargs...)
+    else
+        s.x = method(s.A, s.b; kwargs...)
+    end
 end
 
 
@@ -193,7 +223,7 @@ function DiffusionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::Abstr
     s = Solver(Unsteady, Monophasic, Diffusion, nothing, nothing, nothing, ConvergenceHistory(), [])
     
     s.A = build_mono_unstead_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i, Δt)
-    s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0)
+    s.b = build_rhs_mono_unstead_diff(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0)
 
     return s
 end
@@ -214,7 +244,7 @@ function build_mono_unstead_diff_matrix(operator::DiffusionOps, capacite::Capaci
     return A
 end
 
-function build_rhs(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary, Tᵢ, Δt::Float64, t::Float64)
+function build_rhs_mono_unstead_diff(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary, Tᵢ, Δt::Float64, t::Float64)
     N = prod(operator.size)
     b = zeros(2N)
 
@@ -230,6 +260,36 @@ function build_rhs(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderCo
    return b
 end
 
+function solve_DiffusionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderConditions, bc::AbstractBoundary; method::Function = gmres, kwargs...)
+    if s.A === nothing
+        error("Solver is not initialized. Call a solver constructor first.")
+    end
+
+    kwargs_nt = (; kwargs...)
+    log = get(kwargs_nt, :log, false)
+
+    BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
+    if log
+        s.x, s.ch = method(s.A, s.b; kwargs...)
+    else
+        s.x = method(s.A, s.b; kwargs...)
+    end
+    t = 0.0
+    while t < Tₑ
+        t += Δt
+        println("Time: ", t)
+        s.b = build_rhs_mono_unstead_diff(phase.operator, phase.source, phase.capacity, bc_b, bc, Tᵢ, Δt, t)
+        BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
+        if log
+            s.x, s.ch = method(s.A, s.b; kwargs...)
+        else
+            s.x = method(s.A, s.b; kwargs...)
+        end
+        push!(s.states, s.x)
+        @show maximum(s.x)
+        Tᵢ = s.x
+    end
+end
 
 
 # Diffusion - Unsteady - Diphasic
@@ -256,7 +316,7 @@ function DiffusionUnsteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderConditi
     s = Solver(Unsteady, Diphasic, Diffusion, nothing, nothing, nothing, ConvergenceHistory(), [])
     
     s.A = build_diph_unstead_diff_matrix(phase1.operator, phase2.operator, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic, Δt)
-    s.b = build_rhs(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, 0.0)
+    s.b = build_rhs_diph_unstead_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, 0.0)
 
     return s
 end
@@ -286,7 +346,7 @@ function build_diph_unstead_diff_matrix(operator1::DiffusionOps, operator2::Diff
     return A
 end
 
-function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, capacite1::Capacity, capacite2::Capacity, bc_b::BorderConditions, ic::InterfaceConditions, Tᵢ, Δt::Float64, t::Float64)
+function build_rhs_diph_unstead_diff(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, capacite1::Capacity, capacite2::Capacity, bc_b::BorderConditions, ic::InterfaceConditions, Tᵢ, Δt::Float64, t::Float64)
     N = prod(operator1.size)
     b = zeros(4N)
 
@@ -305,6 +365,43 @@ function build_rhs(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, cap
 
     return b
 end
+
+function solve_DiffusionUnsteadyDiph!(s::Solver, phase1::Phase, phase2::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderConditions, ic::InterfaceConditions; method::Function = gmres, kwargs...)
+    if s.A === nothing
+        error("Solver is not initialized. Call a solver constructor first.")
+    end
+
+    kwargs_nt = (; kwargs...)
+    log = get(kwargs_nt, :log, false)
+
+    BC_border_diph!(s.A, s.b, bc_b, phase2.capacity.mesh)
+    if log
+        s.x, s.ch = method(s.A, s.b; kwargs...)
+    else
+        s.x = method(s.A, s.b; kwargs...)
+    end
+    t = 0.0
+    while t < Tₑ
+        t += Δt
+        println("Time: ", t)
+        s.b = build_rhs_diph_unstead_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, t)
+        BC_border_diph!(s.A, s.b, bc_b, phase2.capacity.mesh)
+        if log
+            s.x, s.ch = method(s.A, s.b; kwargs...)
+        else
+            s.x = method(s.A, s.b; kwargs...)
+        end
+        push!(s.states, s.x)
+        Tᵢ = s.x
+    end
+end
+
+
+
+
+
+
+
 
 
 # Advection - Unsteady - Monophasic
@@ -327,7 +424,7 @@ function AdvectionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::Abstr
     s = Solver(Steady, Monophasic, Advection, nothing, nothing, nothing, ConvergenceHistory(), [])
     
     s.A = build_mono_unstead_adv_matrix(phase.operator, phase.capacity, bc_b, bc_i, Δt)
-    s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0)
+    s.b = build_rhs_mono_unstead_adv(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0)
 
     return s
 end
@@ -349,19 +446,62 @@ function build_mono_unstead_adv_matrix(operator::ConvectionOps, capacite::Capaci
     return A
 end
 
-function build_rhs(operator::ConvectionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary, Tᵢ, Δt::Float64, t::Float64)
+function build_rhs_mono_unstead_adv(operator::ConvectionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary, Tᵢ, Δt::Float64, t::Float64)
     N = prod(operator.size)
     b = zeros(2N)
 
+    C = operator.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
+    K = operator.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
+
     Iᵧ = build_I_g(operator) #capacite.Γ #
-    fₒ = build_source(operator, f, capacite)
+    fₒn, fₒn1 = build_source(operator, f, t, capacite), build_source(operator, f, t+Δt, capacite)
     gᵧ = build_g_g(operator, bc, capacite)
 
-    # Build the right-hand side
-    b = vcat(operator.V*fₒ, Iᵧ * gᵧ)
+    Tₒ, Tᵧ = Tᵢ[1:N], Tᵢ[N+1:end]
 
+    # Build the right-hand side
+    b1 = (operator.V - Δt/2 * sum(C) + Δt/2 * 0.5 * sum(K))*Tₒ + Δt/2 * 0.5 * sum(K) * Tᵧ + Δt/2 * operator.V * (fₒn + fₒn1)
+    b2 = 0*Iᵧ * gᵧ
+    b = vcat(b1, b2)
     return b
 end
+
+function solve_AdvectionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderConditions, bc::AbstractBoundary; method::Function = gmres, kwargs...)
+    if s.A === nothing
+        error("Solver is not initialized. Call a solver constructor first.")
+    end
+
+    kwargs_nt = (; kwargs...)
+    log = get(kwargs_nt, :log, false)
+
+    BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
+    if log
+        s.x, s.ch = method(s.A, s.b; kwargs...)
+    else
+        s.x = method(s.A, s.b; kwargs...)
+    end
+    t = 0.0
+    while t < Tₑ
+        t += Δt
+        println("Time: ", t)
+        s.b = build_rhs_mono_unstead_adv(phase.operator, phase.source, phase.capacity, bc_b, bc, Tᵢ, Δt, t)
+        BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
+        if log
+            s.x, s.ch = method(s.A, s.b; kwargs...)
+        else
+            s.x = method(s.A, s.b; kwargs...)
+        end
+        push!(s.states, s.x)
+        @show maximum(s.x)
+        Tᵢ = s.x
+    end
+end
+
+
+
+
+
+
 
 
 # AdvectionDiffusion - Steady - Monophasic
@@ -384,7 +524,7 @@ function AdvectionDiffusionSteadyMono(phase::Phase, bc_b::BorderConditions, bc_i
     s = Solver(Steady, Monophasic, DiffusionAdvection, nothing, nothing, nothing, ConvergenceHistory(), [])
     
     s.A = build_mono_stead_adv_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i)
-    s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc_i)
+    s.b = build_rhs_mono_stead_adv_diff(phase.operator, phase.source, phase.capacity, bc_b, bc_i)
 
     BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
 
@@ -409,7 +549,7 @@ function build_mono_stead_adv_diff_matrix(operator::ConvectionOps, capacite::Cap
     return A
 end
 
-function build_rhs(operator::ConvectionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary)
+function build_rhs_mono_stead_adv_diff(operator::ConvectionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary)
     N = prod(operator.size)
     b = zeros(2N)
 
@@ -421,6 +561,21 @@ function build_rhs(operator::ConvectionOps, f, capacite::Capacity, bc_b::BorderC
     b = vcat(operator.V*fₒ, Iᵧ * gᵧ)
 
     return b
+end
+
+function solve_AdvectionDiffusionSteadyMono!(s::Solver, phase::Phase; method::Function = gmres, kwargs...)
+    if s.A === nothing
+        error("Solver is not initialized. Call a solver constructor first.")
+    end
+
+    kwargs_nt = (; kwargs...)
+    log = get(kwargs_nt, :log, false)
+
+    if log
+        s.x, s.ch = method(s.A, s.b; kwargs...)
+    else
+        s.x = method(s.A, s.b; kwargs...)
+    end
 end
 
 
@@ -445,7 +600,7 @@ function AdvectionDiffusionSteadyDiph(phase1::Phase, phase2::Phase, bc_b::Border
     s = Solver(Steady, Diphasic, DiffusionAdvection, nothing, nothing, nothing, ConvergenceHistory(), [])
     
     s.A = build_diph_stead_adv_diff_matrix(phase1.operator, phase2.operator, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic)
-    s.b = build_rhs(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic)
+    s.b = build_rhs_diph_stead_adv_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic)
 
     BC_border_diph!(s.A, s.b, bc_b, phase2.capacity.mesh)
 
@@ -481,7 +636,7 @@ function build_diph_stead_adv_diff_matrix(operator1::ConvectionOps, operator2::C
     return A
 end
 
-function build_rhs(operator1::ConvectionOps, operator2::ConvectionOps, f1, f2, capacite1::Capacity, capacite2::Capacity, bc_b::BorderConditions, ic::InterfaceConditions)
+function build_rhs_diph_stead_adv_diff(operator1::ConvectionOps, operator2::ConvectionOps, f1, f2, capacite1::Capacity, capacite2::Capacity, bc_b::BorderConditions, ic::InterfaceConditions)
     N = prod(operator1.size)
     b = zeros(4N)
 
@@ -496,6 +651,21 @@ function build_rhs(operator1::ConvectionOps, operator2::ConvectionOps, f1, f2, c
     b = vcat(operator1.V*fₒ1, gᵧ, operator2.V*fₒ2, Iᵧ2*hᵧ)
 
     return b
+end
+
+function solve_AdvectionDiffusionSteadyDiph!(s::Solver, phase1::Phase, phase2::Phase; method::Function = gmres, kwargs...)
+    if s.A === nothing
+        error("Solver is not initialized. Call a solver constructor first.")
+    end
+
+    kwargs_nt = (; kwargs...)
+    log = get(kwargs_nt, :log, false)
+
+    if log
+        s.x, s.ch = method(s.A, s.b; kwargs...)
+    else
+        s.x = method(s.A, s.b; kwargs...)
+    end
 end
 
 
@@ -522,7 +692,7 @@ function AdvectionDiffusionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc
     s = Solver(Unsteady, Monophasic, DiffusionAdvection, nothing, nothing, nothing, ConvergenceHistory(), [])
     
     s.A = build_mono_unstead_adv_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i, Δt)
-    s.b = build_rhs(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0)
+    s.b = build_rhs_mono_unstead_adv_diff(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0)
 
     return s
 end
@@ -545,7 +715,7 @@ function build_mono_unstead_adv_diff_matrix(operator::ConvectionOps, capacite::C
     return A
 end
 
-function build_rhs(operator::ConvectionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary, Tᵢ, Δt::Float64, t::Float64)
+function build_rhs_mono_unstead_adv_diff(operator::ConvectionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary, Tᵢ, Δt::Float64, t::Float64)
     N = prod(operator.size)
     b = zeros(2N)
 
@@ -565,6 +735,148 @@ function build_rhs(operator::ConvectionOps, f, capacite::Capacity, bc_b::BorderC
 
     return b
 end
+
+function solve_AdvectionDiffusionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderConditions, bc::AbstractBoundary; method::Function = gmres, kwargs...)
+    if s.A === nothing
+        error("Solver is not initialized. Call a solver constructor first.")
+    end
+
+    kwargs_nt = (; kwargs...)
+    log = get(kwargs_nt, :log, false)
+
+    BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
+    if log
+        s.x, s.ch = method(s.A, s.b; kwargs...)
+    else
+        s.x = method(s.A, s.b; kwargs...)
+    end
+    t = 0.0
+    while t < Tₑ
+        t += Δt
+        println("Time: ", t)
+        s.b = build_rhs_mono_unstead_adv_diff(phase.operator, phase.source, phase.capacity, bc_b, bc, Tᵢ, Δt, t)
+        BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
+        if log
+            s.x, s.ch = method(s.A, s.b; kwargs...)
+        else
+            s.x = method(s.A, s.b; kwargs...)
+        end
+        push!(s.states, s.x)
+        @show maximum(s.x)
+        Tᵢ = s.x
+    end
+end
+
+
+# AdvectionDiffusion - Unsteady - Diphasic
+"""
+    AdvectionDiffusionUnsteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderConditions, ic::InterfaceConditions, Δt::Float64, Tₑ::Float64, Tᵢ::Vector{Float64})
+
+Creates a solver for an unsteady two-phase advection-diffusion problem.
+
+# Arguments
+- `phase1::Phase`: The first phase of the problem.
+- `phase2::Phase`: The second phase of the problem.
+- `bc_b::BorderConditions`: The boundary conditions of the problem.
+- `ic::InterfaceConditions`: The conditions at the interface between the two phases.
+- `Δt::Float64`: The time interval.
+- `Tₑ::Float64`: The final time.
+- `Tᵢ::Vector{Float64}`: The vector of initial temperatures.
+"""
+function AdvectionDiffusionUnsteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderConditions, ic::InterfaceConditions, Δt::Float64, Tₑ::Float64, Tᵢ::Vector{Float64})
+    println("Création du solveur:")
+    println("- Diphasic problem")
+    println("- Unsteady problem")
+    println("- Advection-Diffusion problem")
+    
+    s = Solver(Unsteady, Diphasic, DiffusionAdvection, nothing, nothing, nothing, ConvergenceHistory(), [])
+    
+    s.A = build_diph_unstead_adv_diff_matrix(phase1.operator, phase2.operator, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic, Δt)
+    s.b = build_rhs_diph_unstead_adv_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, 0.0)
+
+    return s
+end
+
+function build_diph_unstead_adv_diff_matrix(operator1::ConvectionOps, operator2::ConvectionOps, D1::Float64, D2::Float64, bc_b::BorderConditions, ic::InterfaceConditions, Δt::Float64)
+    n = prod(operator1.size)
+
+    jump, flux = ic.scalar, ic.flux
+    Iₐ1, Iₐ2 = jump.α₁*I(n), jump.α₂*I(n)
+    Iᵦ1, Iᵦ2 = flux.β₁*I(n), flux.β₂*I(n)
+    Id1, Id2 = build_I_D(operator1, D1), build_I_D(operator2, D2)
+
+    C1 = operator1.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
+    K1 = operator1.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
+    C2 = operator2.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
+    K2 = operator2.K # NTuple{N, SparseMatrixCSC{Float64, Int}
+
+    block1 = operator1.V + Δt/2 * (sum(C1) - 0.5 * sum(K1)) + Δt/2 * Id1 * operator1.G' * operator1.Wꜝ * operator1.G
+    block2 = -Δt/2 * 0.5 * sum(K1) + Δt/2 * Id1 * operator1.G' * operator1.Wꜝ * operator1.H
+    block3 = operator2.V + Δt/2 * (sum(C2) - 0.5 * sum(K2)) + Δt/2 * Id2 * operator2.G' * operator2.Wꜝ * operator2.G
+    block4 = -Δt/2 * 0.5 * sum(K2) + Δt/2 * Id2 * operator2.G' * operator2.Wꜝ * operator2.H
+    block5 = Iᵦ1 * operator1.H' * operator1.Wꜝ * operator1.G
+    block6 = Iᵦ1 * operator1.H' * operator1.Wꜝ * operator1.H
+    block7 = Iᵦ2 * operator2.H' * operator2.Wꜝ * operator2.G
+    block8 = Iᵦ2 * operator2.H' * operator2.Wꜝ * operator2.H
+
+    A = vcat(hcat(block1, block2, zeros(n, n), zeros(n, n)),
+             hcat(zeros(n, n), Iₐ1, zeros(n, n), -Iₐ2),
+             hcat(zeros(n, n), zeros(n, n), block3, block4),
+             hcat(Iᵦ1*block5, Iᵦ1*block6, Iᵦ2*block7, Iᵦ2*block8))
+
+    return A
+end
+
+function build_rhs_diph_unstead_adv_diff(operator1::ConvectionOps, operator2::ConvectionOps, f1, f2, capacite1::Capacity, capacite2::Capacity, bc_b::BorderConditions, ic::InterfaceConditions, Tᵢ, Δt::Float64, t::Float64)
+    N = prod(operator1.size)
+    b = zeros(4N)
+
+    jump, flux = ic.scalar, ic.flux
+    Iᵧ1, Iᵧ2 = build_I_g(operator1), build_I_g(operator2) #capacite1.Γ, capacite2.Γ #
+    gᵧ, hᵧ = build_g_g(operator1, jump,capacite1), build_g_g(operator2, flux, capacite2)
+
+    fₒn1, fₒn2 = build_source(operator1, f1, t, capacite1), build_source(operator2, f2, t, capacite2)
+    fₒn1p1, fₒn2p1 = build_source(operator1, f1, t+Δt, capacite1), build_source(operator2, f2, t+Δt, capacite2)
+
+    Tₒ1, Tᵧ1 = Tᵢ[1:N], Tᵢ[N+1:2N]
+    Tₒ2, Tᵧ2 = Tᵢ[2N+1:3N], Tᵢ[3N+1:end]
+
+    # Build the right-hand side
+    b = vcat((operator1.V - Δt/2 * sum(operator1.C) + Δt/2 * 0.5 * sum(operator1.K))*Tₒ1 - Δt/2 * 0.5 * sum(operator1.K) * Tᵧ1 + Δt/2 * operator1.V * (fₒn1 + fₒn1p1), gᵧ, (operator2.V - Δt/2 * sum(operator2.C) + Δt/2 * 0.5 * sum(operator2.K))*Tₒ2 - Δt/2 * 0.5 * sum(operator2.K) * Tᵧ2 + Δt/2 * operator2.V * (fₒn2 + fₒn2p1), Iᵧ2*hᵧ)
+
+    return b
+end
+
+function solve_AdvectionDiffusionUnsteadyDiph!(s::Solver, phase1::Phase, phase2::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderConditions, ic::InterfaceConditions; method::Function = gmres, kwargs...)
+    if s.A === nothing
+        error("Solver is not initialized. Call a solver constructor first.")
+    end
+
+    kwargs_nt = (; kwargs...)
+    log = get(kwargs_nt, :log, false)
+
+    BC_border_diph!(s.A, s.b, bc_b, phase2.capacity.mesh)
+    if log
+        s.x, s.ch = method(s.A, s.b; kwargs...)
+    else
+        s.x = method(s.A, s.b; kwargs...)
+    end
+    t = 0.0
+    while t < Tₑ
+        t += Δt
+        println("Time: ", t)
+        s.b = build_rhs_diph_unstead_adv_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, t)
+        BC_border_diph!(s.A, s.b, bc_b, phase2.capacity.mesh)
+        if log
+            s.x, s.ch = method(s.A, s.b; kwargs...)
+        else
+            s.x = method(s.A, s.b; kwargs...)
+        end
+        push!(s.states, s.x)
+        Tᵢ = s.x
+    end
+end
+
 
 
 

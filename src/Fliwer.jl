@@ -40,8 +40,11 @@ export identify!, find_border, find_cut, eval_sdf
 include("Solver.jl")
 export TimeType, PhaseType, EquationType, Solver
 export DiffusionSteadyMono, DiffusionSteadyDiph, DiffusionUnsteadyMono, DiffusionUnsteadyDiph
+export solve_DiffusionSteadyMono!, solve_DiffusionSteadyDiph!, solve_DiffusionUnsteadyMono!, solve_DiffusionUnsteadyDiph!
 export AdvectionUnsteadyMono
-export AdvectionDiffusionSteadyMono, AdvectionDiffusionSteadyDiph, AdvectionDiffusionUnsteadyMono
+export solve_AdvectionUnsteadyMono!
+export AdvectionDiffusionSteadyMono, AdvectionDiffusionSteadyDiph, AdvectionDiffusionUnsteadyMono, AdvectionDiffusionUnsteadyDiph
+export solve_AdvectionDiffusionSteadyMono!, solve_AdvectionDiffusionSteadyDiph!, solve_AdvectionDiffusionUnsteadyMono!, solve_AdvectionDiffusionUnsteadyDiph!
 
 include("Solve.jl")
 export solve!

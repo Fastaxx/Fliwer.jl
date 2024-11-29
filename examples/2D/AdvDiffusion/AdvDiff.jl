@@ -43,7 +43,7 @@ Fluide = Phase(capacity, operator, f, 1.0)
 solver = AdvectionDiffusionSteadyMono(Fluide, bc_b, ic)
 
 # Solve the problem
-Fliwer.solve!(solver, Fluide; method=IterativeSolvers.gmres, verbose=false, reltol=1e-40)
+solve_AdvectionDiffusionSteadyMono!(solver, Fluide; method=IterativeSolvers.gmres, verbose=false, reltol=1e-40)
 
 # Plot the solution
 plot_solution(solver, mesh, circle, capacity)

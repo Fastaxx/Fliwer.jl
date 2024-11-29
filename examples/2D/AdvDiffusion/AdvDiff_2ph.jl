@@ -1,7 +1,7 @@
 using Fliwer
 using IterativeSolvers
 
-### 2D Test Case : Diphasic Steady Diffusion Equation inside a Disk
+### 2D Test Case : Diphasic Steady Advection-Diffusion Equation inside a Disk
 # Define the mesh
 nx, ny = 40, 40
 lx, ly = 4., 4.
@@ -49,7 +49,7 @@ Fluide_2 = Phase(capacity_c, operator_c, f2, 1.0)
 solver = AdvectionDiffusionSteadyDiph(Fluide_1, Fluide_2, bc_b, ic)
 
 # Solve the problem
-solve!(solver, Fluide_1, Fluide_2; method=IterativeSolvers.gmres, verbose=false, reltol=1e-40)
+solve_AdvectionDiffusionSteadyDiph!(solver, Fluide_1, Fluide_2; method=IterativeSolvers.gmres, verbose=false, reltol=1e-40)
 
 # Plot the solution usign Makie
 plot_solution(solver, mesh, circle, capacity)
