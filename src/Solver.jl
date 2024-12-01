@@ -706,8 +706,8 @@ function build_mono_unstead_adv_diff_matrix(operator::ConvectionOps, capacite::C
     C = operator.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
     K = operator.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
 
-    A11 = operator.V + Δt/2 * (sum(C) - 0.5 * sum(K)) + Δt/2 * Id * operator.G' * operator.Wꜝ * operator.G
-    A12 = -Δt/2 * 0.5 * sum(K) + Δt/2 * Id * operator.G' * operator.Wꜝ * operator.H
+    A11 = operator.V + Δt/2 * (sum(C) + 0.5 * sum(K)) + Δt/2 * Id * operator.G' * operator.Wꜝ * operator.G
+    A12 = Δt/2 * 0.5 * sum(K) + Δt/2 * Id * operator.G' * operator.Wꜝ * operator.H
     A21 = Iᵦ * operator.H' * operator.Wꜝ * operator.G
     A22 = Iᵦ * operator.H' * operator.Wꜝ * operator.H + Iₐ * Iᵧ
 
@@ -729,10 +729,7 @@ function build_rhs_mono_unstead_adv_diff(operator::ConvectionOps, f, capacite::C
     Tₒ, Tᵧ = Tᵢ[1:N], Tᵢ[N+1:end]
 
     # Build the right-hand side
-    # convn = - Δt/2 * (sum(C) - 0.5 * sum(K))*Tₒ + Δt/2 * 0.5 * sum(K)*Tᵧ
-    b = vcat((operator.V  - Δt/2 * operator.G' * operator.Wꜝ * operator.G)*Tₒ - Δt/2 * operator.G' * operator.Wꜝ * operator.H * Tᵧ + Δt/2 * operator.V * (fₒn + fₒn1), Iᵧ * gᵧ)
-
-
+    b = vcat(operator.V * Tₒ  - Δt/2 * sum(C) * Tₒ - 0.5 * sum(K) * Tₒ - Δt/2 * 0.5 * sum(K) * Tᵧ - Δt/2 * operator.G' * operator.Wꜝ * operator.G * Tₒ - Δt/2 * operator.G' * operator.Wꜝ * operator.H * Tᵧ + Δt/2 * operator.V * (fₒn + fₒn1), Iᵧ * gᵧ)
     return b
 end
 

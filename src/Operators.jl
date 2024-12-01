@@ -133,17 +133,26 @@ function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
     elseif N == 2
         nx, ny = size[1], size[2]
         Dx_m, Dy_m = kron(I(ny), ẟ_m(nx)), kron(ẟ_m(ny), I(nx))
+        Dx_p, Dy_p = kron(I(ny), δ_p(nx)), kron(δ_p(ny), I(nx))
         Sx_p, Sy_p = kron(I(ny), Σ_p(nx)), kron(Σ_p(ny), I(nx))
         Sx_m, Sy_m = kron(I(ny), Σ_m(nx)), kron(Σ_m(ny), I(nx))
         G = [Dx_m * B[1]; Dy_m * B[2]]
         Cx1 = spdiagm(0 => diag(Dx_m * Sx_p * A[1] * uₒ[1])) * Sx_p
+        Cx1 = Dx_m * spdiagm(0 => diag(Sx_m * A[1] * uₒ[1])) * Sx_m
+        Cx1 = Dx_p * spdiagm(0 => diag(Sx_m * A[1] * uₒ[1])) * Sx_m ### LA SOLUTION Ultime : Ca marche en interpolant avec Sx puis Sy
         Cx2 = spdiagm(0 => diag(Dy_m * Sx_p * A[2] * uₒ[2])) * Sy_p
-        Cx = Cx1 + Cx2
+        Cx2 = Dy_m * spdiagm(0 => diag(Sy_m * A[2] * uₒ[2])) * Sy_m
+        Cx = Cx1 #+ Cx2
         Cy1 = spdiagm(0 => diag(Dx_m * Sy_p * A[1] * uₒ[1])) * Sx_p
+        Cy1 = Dx_m * spdiagm(0 => diag(Sy_m * A[1] * uₒ[1])) * Sx_m
         Cy2 = spdiagm(0 => diag(Dy_m * Sy_p * A[2] * uₒ[2])) * Sy_p
-        Cy = Cy1 + Cy2
+        Cy2 = Dy_m * spdiagm(0 => diag(Sy_m * A[2] * uₒ[2])) * Sy_m
+        Cy2 = Dy_p * spdiagm(0 => diag(Sy_m * A[2] * uₒ[2])) * Sy_m ### LA SOLUTION Ultime
+        Cy = Cy2 #+ Cy2
         H = [A[1]*Dx_m - Dx_m*B[1]; A[2]*Dy_m - Dy_m*B[2]]
+        Kx = Sx_m * spdiagm(0 => H' * uᵧ)
         Kx = spdiagm(0 => Sx_p * H' * uᵧ)
+        Ky = Sy_m * spdiagm(0 => H' * uᵧ)
         Ky = spdiagm(0 => Sy_p * H' * uᵧ)
         diagW = diag(blockdiag(W[1], W[2]))
         new_diagW = [val != 0 ? 1.0 / val : 1.0 for val in diagW]
