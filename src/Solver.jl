@@ -728,10 +728,10 @@ function build_rhs_mono_unstead_adv_diff(operator::ConvectionOps, f, capacite::C
 
     Tₒ, Tᵧ = Tᵢ[1:N], Tᵢ[N+1:end]
 
-    """
+    
     lx, ly = 16., 16.
     nx, ny = 160, 160
-    radius, center = ly/1, (lx/2, ly/2) .+ (0.01, 0.01)
+    radius, center = ly/4, (lx/2, ly/2) .+ (0.01, 0.01)
 
     # Coordinates of the grid centers
     x_coords = capacite.mesh.centers[1]
@@ -755,7 +755,7 @@ function build_rhs_mono_unstead_adv_diff(operator::ConvectionOps, f, capacite::C
             end
         end
     end
-    """
+    
 
     # Build the right-hand side
     b = vcat(operator.V * Tₒ  - Δt/2 * sum(C) * Tₒ - 0.5 * sum(K) * Tₒ - Δt/2 * 0.5 * sum(K) * Tᵧ - Δt/2 * operator.G' * operator.Wꜝ * operator.G * Tₒ - Δt/2 * operator.G' * operator.Wꜝ * operator.H * Tᵧ + Δt/2 * operator.V * (fₒn + fₒn1), Iᵧ * gᵧ)

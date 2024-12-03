@@ -10,7 +10,7 @@ domain = ((x0, lx), (y0, ly))
 mesh = CartesianMesh((nx, ny), (lx, ly), (x0, y0))
 
 # Define the body
-radius, center = ly/2, (lx/2, ly/2) #.+ (0.1, 0.1)
+radius, center = ly/8, (lx/2, ly/2) #.+ (0.1, 0.1)
 circle = Body((x,y,_=0)->sqrt((x-center[1])^2 + (y-center[2])^2) - radius, (x,y,_)->(x,y), domain, false)
 circle_c = Body((x,y,_=0)->-(sqrt((x-center[1])^2 + (y-center[2])^2) - radius), (x,y,_)->(x,y), domain, false)
 
@@ -22,10 +22,20 @@ capacity = Capacity(circle, mesh)
 capacity_c = Capacity(circle_c, mesh)
 
 # Initialize the velocity field by setting the velocity to zero
-uₒx, uₒy = ones((nx+1)*(ny+1)), ones((nx+1)*(ny+1))
-uγx, uγy = ones((nx+1)*(ny+1)), ones((nx+1)*(ny+1))
+# Number of nodes
+N = (nx + 1) * (ny + 1)
 
-uₒ, uᵧ = vcat(uₒx, uₒy), vcat(uγx, uγy)
+# Initialize velocity components
+uₒx = zeros(N)
+uₒy = 5.0 .* ones(N) 
+
+# Interleave the components
+uₒ = Vector{Float64}(undef, 2N)
+uₒ[1:2:2N] .= uₒx
+uₒ[2:2:2N] .= uₒy
+
+# For boundary velocities, if they are zero:
+uᵧ = zeros(2N)
 
 # Define the operators
 operator = ConvectionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1), uₒ, uᵧ)
@@ -65,3 +75,6 @@ write_vtk("solution", mesh, solver)
 
 # Plot the solution
 plot_solution(solver, mesh, circle, capacity)
+
+# Animation
+#animate_solution(solver, mesh, circle)

@@ -11,7 +11,7 @@ domain = ((x0, lx), (y0, ly))
 mesh = CartesianMesh((nx, ny), (lx, ly), (x0, y0))
 
 # Define the body
-radius, center = ly/1, (lx/2, ly/2) .+ (0.01, 0.01)
+radius, center = ly/4, (lx/2, ly/2) .+ (0.01, 0.01)
 circle = Body((x,y,_=0)->(sqrt((x-center[1])^2 + (y-center[2])^2) - radius), (x,y,_)->(x,y), domain, false)
 
 # Identify cells
@@ -140,5 +140,7 @@ plot_solution(solver, mesh, circle, capacity)
 # Write the solution to a VTK file
 write_vtk("advdiff", mesh, solver)
 
+plot_profile(solver, mesh; x=lx/2.01)
+
 # Animation
-animate_solution(solver, mesh, circle)
+#animate_solution(solver, mesh, circle)

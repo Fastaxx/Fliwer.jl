@@ -22,10 +22,20 @@ capacity = Capacity(circle, mesh)
 capacity_c = Capacity(circle_c, mesh)
 
 # Initialize the velocity field by setting the velocity to zero
-uₒx, uₒy = zeros((nx+1)*(ny+1)), zeros((nx+1)*(ny+1))
-uγx, uγy = zeros((nx+1)*(ny+1)), zeros((nx+1)*(ny+1))
+# Number of nodes
+N = (nx + 1) * (ny + 1)
 
-uₒ, uᵧ = vcat(uₒx, uₒy), vcat(uγx, uγy)
+# Initialize velocity components
+uₒx = zeros(N)
+uₒy = 10.0 .* ones(N) 
+
+# Interleave the components
+uₒ = Vector{Float64}(undef, 2N)
+uₒ[1:2:2N] .= uₒx
+uₒ[2:2:2N] .= uₒy
+
+# For boundary velocities, if they are zero:
+uᵧ = zeros(2N)
 
 # Define the operators
 operator = ConvectionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1), uₒ, uᵧ)
@@ -49,7 +59,7 @@ Fluide_2 = Phase(capacity_c, operator_c, f2, 1.0)
 solver = AdvectionDiffusionSteadyDiph(Fluide_1, Fluide_2, bc_b, ic)
 
 # Solve the problem
-solve_AdvectionDiffusionSteadyDiph!(solver, Fluide_1, Fluide_2; method=IterativeSolvers.gmres, verbose=false, reltol=1e-40)
+solve_AdvectionDiffusionSteadyDiph!(solver, Fluide_1, Fluide_2; method=IterativeSolvers.bicgstabl, verbose=false, reltol=1e-40)
 
 # Plot the solution usign Makie
 plot_solution(solver, mesh, circle, capacity)
