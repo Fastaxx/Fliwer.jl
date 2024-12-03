@@ -20,8 +20,8 @@ identify!(mesh, circle)
 capacity = Capacity(circle, mesh)
 
 # Initialize the velocity field by setting the velocity to zero
-uₒx, uₒy = ones((nx+1)*(ny+1)), ones((nx+1)*(ny+1))
-uγx, uγy = ones((nx+1)*(ny+1)), ones((nx+1)*(ny+1))
+uₒx, uₒy = ones((nx+1)*(ny+1)), zeros((nx+1)*(ny+1))
+uγx, uγy = zeros((nx+1)*(ny+1)), zeros((nx+1)*(ny+1))
 
 uₒ, uᵧ = vcat(uₒx, uₒy), vcat(uγx, uγy)
 

@@ -169,3 +169,60 @@ function identify!(mesh::CartesianMesh{N}, body::Body) where N
 
     return MeshTag
 end
+
+# Initialize temperature uniformly across the domain
+function initialize_temperature_uniform!(T0ₒ::Vector{Float64}, T0ᵧ::Vector{Float64}, value::Float64)
+    fill!(T0ₒ, value)
+    fill!(T0ᵧ, value)
+end
+
+# Initialize temperature within a square region centered at 'center' with half-width 'half_width'
+function initialize_temperature_square!(T0ₒ::Vector{Float64}, T0ᵧ::Vector{Float64}, x_coords::Vector{Float64}, y_coords::Vector{Float64}, center::Tuple{Float64, Float64}, half_width::Float64, value::Float64)
+    nx = length(x_coords) - 1
+    ny = length(y_coords) - 1
+    for j in 1:(ny + 1)
+        for i in 1:(nx + 1)
+            idx = i + (j - 1) * (nx + 1)
+            x = x_coords[i]
+            y = y_coords[j]
+            if abs(x - center[1]) <= half_width && abs(y - center[2]) <= half_width
+                T0ₒ[idx] = value
+                T0ᵧ[idx] = value
+            end
+        end
+    end
+end
+
+# Initialize temperature within a circular region centered at 'center' with radius 'radius'
+function initialize_temperature_circle!(T0ₒ::Vector{Float64}, T0ᵧ::Vector{Float64}, x_coords::Vector{Float64}, y_coords::Vector{Float64}, center::Tuple{Float64, Float64}, radius::Float64, value::Float64)
+    nx = length(x_coords) - 1
+    ny = length(y_coords) - 1
+    for j in 1:(ny + 1)
+        for i in 1:(nx + 1)
+            idx = i + (j - 1) * (nx + 1)
+            x = x_coords[i]
+            y = y_coords[j]
+            distance = sqrt((x - center[1])^2 + (y - center[2])^2)
+            if distance <= radius
+                T0ₒ[idx] = value
+                T0ᵧ[idx] = value
+            end
+        end
+    end
+end
+
+# Initialize temperature using a custom function 'func(x, y)'
+function initialize_temperature_function!(T0ₒ::Vector{Float64}, T0ᵧ::Vector{Float64}, x_coords::Vector{Float64}, y_coords::Vector{Float64}, func::Function)
+    nx = length(x_coords) - 1
+    ny = length(y_coords) - 1
+    for j in 1:(ny + 1)
+        for i in 1:(nx + 1)
+            idx = i + (j - 1) * (nx + 1)
+            x = x_coords[i]
+            y = y_coords[j]
+            T_value = func(x, y)
+            T0ₒ[idx] = T_value
+            T0ᵧ[idx] = T_value
+        end
+    end
+end

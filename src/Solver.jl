@@ -421,7 +421,7 @@ function AdvectionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::Abstr
     println("- Unsteady problem")
     println("- Advection problem")
     
-    s = Solver(Steady, Monophasic, Advection, nothing, nothing, nothing, ConvergenceHistory(), [])
+    s = Solver(Unsteady, Monophasic, Advection, nothing, nothing, nothing, ConvergenceHistory(), [])
     
     s.A = build_mono_unstead_adv_matrix(phase.operator, phase.capacity, bc_b, bc_i, Δt)
     s.b = build_rhs_mono_unstead_adv(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0)
@@ -540,8 +540,8 @@ function build_mono_stead_adv_diff_matrix(operator::ConvectionOps, capacite::Cap
     C = operator.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
     K = operator.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
 
-    A11 = 0.5 * (sum(C) - 0.5 * sum(K)) + Id * operator.G' * operator.Wꜝ * operator.G
-    A12 = -0.5 * sum(K) + Id * operator.G' * operator.Wꜝ * operator.H
+    A11 = (sum(C) - 0.5 * sum(K)) + Id * operator.G' * operator.Wꜝ * operator.G
+    A12 = 0.5 * sum(K) + Id * operator.G' * operator.Wꜝ * operator.H
     A21 = Iᵦ * operator.H' * operator.Wꜝ * operator.G
     A22 = Iᵦ * operator.H' * operator.Wꜝ * operator.H + Iₐ * Iᵧ
 
@@ -620,10 +620,10 @@ function build_diph_stead_adv_diff_matrix(operator1::ConvectionOps, operator2::C
     C2 = operator2.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
     K2 = operator2.K # NTuple{N, SparseMatrixCSC{Float64, Int}
 
-    block1 = Id1 * operator1.G' * operator1.Wꜝ * operator1.G + 0.5 * (sum(C1) - 0.5 * sum(K1))
-    block2 = Id1 * operator1.G' * operator1.Wꜝ * operator1.H - 0.5 * sum(K1)
-    block3 = Id2 * operator2.G' * operator2.Wꜝ * operator2.G + 0.5 * (sum(C2) - 0.5 * sum(K2))
-    block4 = Id2 * operator2.G' * operator2.Wꜝ * operator2.H - 0.5 * sum(K2)
+    block1 = Id1 * operator1.G' * operator1.Wꜝ * operator1.G + (sum(C1) - 0.5 * sum(K1))
+    block2 = Id1 * operator1.G' * operator1.Wꜝ * operator1.H + 0.5 * sum(K1)
+    block3 = Id2 * operator2.G' * operator2.Wꜝ * operator2.G + (sum(C2) - 0.5 * sum(K2))
+    block4 = Id2 * operator2.G' * operator2.Wꜝ * operator2.H + 0.5 * sum(K2)
     block5 = operator1.H' * operator1.Wꜝ * operator1.G
     block6 = operator1.H' * operator1.Wꜝ * operator1.H 
     block7 = operator2.H' * operator2.Wꜝ * operator2.G
@@ -728,6 +728,35 @@ function build_rhs_mono_unstead_adv_diff(operator::ConvectionOps, f, capacite::C
 
     Tₒ, Tᵧ = Tᵢ[1:N], Tᵢ[N+1:end]
 
+    """
+    lx, ly = 16., 16.
+    nx, ny = 160, 160
+    radius, center = ly/1, (lx/2, ly/2) .+ (0.01, 0.01)
+
+    # Coordinates of the grid centers
+    x_coords = capacite.mesh.centers[1]
+    y_coords = capacite.mesh.centers[2]
+
+    # Define the radius of the circle (in physical units)
+    circle_radius = lx / 60  # Adjust this value to control the size of the circle
+
+    # Loop over all grid points
+    for j in 1:(ny )
+        for i in 1:(nx )
+            idx = i + (j - 1) * (nx + 1)
+            x_i = x_coords[i]
+            y_j = y_coords[j]
+            # Compute the distance from the center
+            distance = sqrt((x_i - center[1])^2 + (y_j - center[2])^2)
+            # If the point is inside the circle, set T=1
+            if distance <= circle_radius
+                Tₒ[idx] = 1.0
+                Tᵧ[idx] = 1.0
+            end
+        end
+    end
+    """
+
     # Build the right-hand side
     b = vcat(operator.V * Tₒ  - Δt/2 * sum(C) * Tₒ - 0.5 * sum(K) * Tₒ - Δt/2 * 0.5 * sum(K) * Tᵧ - Δt/2 * operator.G' * operator.Wꜝ * operator.G * Tₒ - Δt/2 * operator.G' * operator.Wꜝ * operator.H * Tᵧ + Δt/2 * operator.V * (fₒn + fₒn1), Iᵧ * gᵧ)
     return b
@@ -808,9 +837,9 @@ function build_diph_unstead_adv_diff_matrix(operator1::ConvectionOps, operator2:
     K2 = operator2.K # NTuple{N, SparseMatrixCSC{Float64, Int}
 
     block1 = operator1.V + Δt/2 * (sum(C1) - 0.5 * sum(K1)) + Δt/2 * Id1 * operator1.G' * operator1.Wꜝ * operator1.G
-    block2 = -Δt/2 * 0.5 * sum(K1) + Δt/2 * Id1 * operator1.G' * operator1.Wꜝ * operator1.H
+    block2 = Δt/2 * 0.5 * sum(K1) + Δt/2 * Id1 * operator1.G' * operator1.Wꜝ * operator1.H
     block3 = operator2.V + Δt/2 * (sum(C2) - 0.5 * sum(K2)) + Δt/2 * Id2 * operator2.G' * operator2.Wꜝ * operator2.G
-    block4 = -Δt/2 * 0.5 * sum(K2) + Δt/2 * Id2 * operator2.G' * operator2.Wꜝ * operator2.H
+    block4 = Δt/2 * 0.5 * sum(K2) + Δt/2 * Id2 * operator2.G' * operator2.Wꜝ * operator2.H
     block5 = Iᵦ1 * operator1.H' * operator1.Wꜝ * operator1.G
     block6 = Iᵦ1 * operator1.H' * operator1.Wꜝ * operator1.H
     block7 = Iᵦ2 * operator2.H' * operator2.Wꜝ * operator2.G

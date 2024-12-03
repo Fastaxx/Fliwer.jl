@@ -35,7 +35,7 @@ include("Phase.jl")
 export Phase
 
 include("Utils.jl")
-export identify!, find_border, find_cut, eval_sdf
+export identify!, find_border, find_cut, eval_sdf, initialize_temperature_uniform!, initialize_temperature_square!, initialize_temperature_circle!, initialize_temperature_function!
 
 include("Solver.jl")
 export TimeType, PhaseType, EquationType, Solver

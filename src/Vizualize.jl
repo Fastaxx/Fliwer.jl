@@ -77,7 +77,7 @@ function animate_solution(solver, mesh::CartesianMesh{2}, body::Body)
         fig = Figure()
 
         # Créer un axe pour la figure
-        ax = Axis(fig[1, 1], title="Monophasic Unsteady Diffusion", xlabel="x", ylabel="y", aspect=DataAspect())
+        ax = Axis(fig[1, 1], title="Monophasic Unsteady", xlabel="x", ylabel="y", aspect=DataAspect())
         xlims!(ax, mesh.x0[1], length(mesh.centers[1]))
         ylims!(ax, mesh.x0[2], length(mesh.centers[2]))
 

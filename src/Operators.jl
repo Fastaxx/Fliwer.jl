@@ -122,10 +122,10 @@ function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
     N = length(size)
     if N == 1
         nx = size[1]
-        Cx = spdiagm(ẟ_m(nx) * Σ_p(nx) * A[1] * uₒ) * Σ_p(nx)
+        Cx = δ_p(nx) * spdiagm(0 => diag(Σ_m(nx) * A[1] * uₒ[1])) * Σ_m(nx)
         G = ẟ_m(nx) * B[1] # Gérer le periodicity
         H = A[1]*ẟ_m(nx) - ẟ_m(nx)*B[1]
-        Kx = spdiagm(0 => Σ_m(nx) * H' * uᵧ)
+        Kx = spdiagm(0 => Σ_p(nx) * H' * uᵧ)
         diagW = diag(blockdiag(W[1]))
         new_diagW = [val != 0 ? 1.0 / val : 1.0 for val in diagW]
         Wꜝ = spdiagm(0 => new_diagW)
@@ -137,22 +137,23 @@ function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
         Sx_p, Sy_p = kron(I(ny), Σ_p(nx)), kron(Σ_p(ny), I(nx))
         Sx_m, Sy_m = kron(I(ny), Σ_m(nx)), kron(Σ_m(ny), I(nx))
         G = [Dx_m * B[1]; Dy_m * B[2]]
-        Cx1 = spdiagm(0 => diag(Dx_m * Sx_p * A[1] * uₒ[1])) * Sx_p
-        Cx1 = Dx_m * spdiagm(0 => diag(Sx_m * A[1] * uₒ[1])) * Sx_m
-        Cx1 = Dx_p * spdiagm(0 => diag(Sx_m * A[1] * uₒ[1])) * Sx_m ### LA SOLUTION Ultime : Ca marche en interpolant avec Sx puis Sy
-        Cx2 = spdiagm(0 => diag(Dy_m * Sx_p * A[2] * uₒ[2])) * Sy_p
-        Cx2 = Dy_m * spdiagm(0 => diag(Sy_m * A[2] * uₒ[2])) * Sy_m
-        Cx = Cx1 #+ Cx2
-        Cy1 = spdiagm(0 => diag(Dx_m * Sy_p * A[1] * uₒ[1])) * Sx_p
-        Cy1 = Dx_m * spdiagm(0 => diag(Sy_m * A[1] * uₒ[1])) * Sx_m
-        Cy2 = spdiagm(0 => diag(Dy_m * Sy_p * A[2] * uₒ[2])) * Sy_p
-        Cy2 = Dy_m * spdiagm(0 => diag(Sy_m * A[2] * uₒ[2])) * Sy_m
-        Cy2 = Dy_p * spdiagm(0 => diag(Sy_m * A[2] * uₒ[2])) * Sy_m ### LA SOLUTION Ultime
-        Cy = Cy2 #+ Cy2
+
+        Dxx_p = kron(I(nx), δ_p(nx))
+        Dxy_p = kron(I(nx), δ_p(ny))
+        Sxx_m = kron(I(nx), Σ_m(nx))
+        Sxy_m = kron(I(nx), Σ_m(ny))
+        Dyx_p = kron(δ_p(ny), I(nx))
+        Dyy_p = kron(δ_p(ny), I(nx))
+        Syx_m = kron(Σ_m(ny), I(nx))
+        Syy_m = kron(Σ_m(ny), I(nx))
+        Cx = Dx_p * spdiagm(0 => diag(Sx_m * A[1] * uₒ[1])) * Sx_m #+ Dy_p * spdiagm(0 => diag(Sx_m * A[2] * uₒ[2])) * Sy_m  ### LA SOLUTION Ultime : Ca marche en interpolant avec Sx puis Sy 
+        #Cx = Dxx_p * spdiagm(0 => diag(Sxx_m * A[1] * uₒ[1])) * Sxx_m + Dxy_p * spdiagm(0 => diag(Sxx_m * A[2] * uₒ[2])) * Sxy_m
+
+        Cy = Dy_p * spdiagm(0 => diag(Sy_m * A[2] * uₒ[2])) * Sy_m #+ Dx_p * spdiagm(0 => diag(Sy_m * A[1] * uₒ[1])) * Sx_m         ### LA SOLUTION Ultime 
+        #Cy = Dyx_p * spdiagm(0 => diag(Syy_m * A[1] * uₒ[1])) * Syx_m + Dyy_p * spdiagm(0 => diag(Syy_m * A[2] * uₒ[2])) * Syy_m
+
         H = [A[1]*Dx_m - Dx_m*B[1]; A[2]*Dy_m - Dy_m*B[2]]
-        Kx = Sx_m * spdiagm(0 => H' * uᵧ)
         Kx = spdiagm(0 => Sx_p * H' * uᵧ)
-        Ky = Sy_m * spdiagm(0 => H' * uᵧ)
         Ky = spdiagm(0 => Sy_p * H' * uᵧ)
         diagW = diag(blockdiag(W[1], W[2]))
         new_diagW = [val != 0 ? 1.0 / val : 1.0 for val in diagW]
@@ -164,9 +165,9 @@ function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
         Sx_m, Sy_m, Sz_m = kron(I(nz), kron(I(ny), Σ_m(nx))), kron(I(nz), kron(Σ_m(ny), I(nx))), kron(Σ_m(nz), kron(I(ny), I(nx)))
         Sx_p, Sy_p, Sz_p = kron(I(nz), kron(I(ny), Σ_p(nx))), kron(I(nz), kron(Σ_p(ny), I(nx))), kron(Σ_p(nz), kron(I(ny), I(nx)))
         G = [Dx_m * B[1]; Dy_m * B[2]; Dz_m * B[3]]
-        Cx = spdiagm(0 => diag(Dx_m * Sx_p * A[1] * uₒ[1])) * Sx_p + spdiagm(0 => diag(Dy_m * Sx_p * A[2] * uₒ[2])) * Sy_p + spdiagm(0 => diag(Dz_m * Sx_p * A[3] * uₒ[3])) * Sz_p
-        Cy = spdiagm(0 => diag(Dx_m * Sy_p * A[1] * uₒ[1])) * Sx_p + spdiagm(0 => diag(Dy_m * Sy_p * A[2] * uₒ[2])) * Sy_p + spdiagm(0 => diag(Dz_m * Sy_p * A[3] * uₒ[3])) * Sz_p
-        Cz = spdiagm(0 => diag(Dx_m * Sz_p * A[1] * uₒ[1])) * Sx_p + spdiagm(0 => diag(Dy_m * Sz_p * A[2] * uₒ[2])) * Sy_p + spdiagm(0 => diag(Dz_m * Sz_p * A[3] * uₒ[3])) * Sz_p
+        Cx = Dx_p * spdiagm(0 => diag(Sx_m * A[1] * uₒ[1])) * Sx_m
+        Cy = Dy_p * spdiagm(0 => diag(Sy_m * A[2] * uₒ[2])) * Sy_m
+        Cz = Dz_p * spdiagm(0 => diag(Sz_m * A[3] * uₒ[3])) * Sz_m
         H = [A[1]*Dx_m - Dx_m*B[1]; A[2]*Dy_m - Dy_m*B[2]; A[3]*Dz_m - Dz_m*B[3]]
         Kx = spdiagm(0 => Sx_p * H' * uᵧ)
         Ky = spdiagm(0 => Sy_p * H' * uᵧ)

@@ -38,9 +38,15 @@ f = (x,y,z,t)->0.0
 # Define the phase
 Fluide = Phase(capacity, operator, f, 1.0)
 
-# Initial condition
+# Initial condition :  u(x, t) = 10/(4D (t + 1/2)) exp(− ‖x−xc(t)‖^2/(4D(t+ 1/2)
 u0ₒ = zeros(nx+1)
 u0ᵧ = zeros(nx+1)
+
+for i in 1:nx
+    u0ₒ[i] = 10/(4*1/2) * exp(-((mesh.centers[1][i]-xint)^2)/(4*1/2))
+    u0ᵧ[i] = 10/(4*1/2) * exp(-((mesh.centers[1][i]-xint)^2)/(4*1/2))
+end
+
 u0 = vcat(u0ₒ, u0ᵧ)
 
 # Define the solver
@@ -49,10 +55,10 @@ Tend = 1.0
 solver = AdvectionUnsteadyMono(Fluide, bc_b, bc0, Δt, Tend, u0)
 
 # Solve the problem
-solve!(solver, Fluide, u0, Δt, Tend, bc_b, bc0; method=IterativeSolvers.cg, abstol=1e-15, verbose=false)
-
-# Write the solution to a VTK file
-write_vtk("advection", mesh, solver)
+solve_AdvectionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, bc_b, bc0; method=IterativeSolvers.cg, abstol=1e-15, verbose=false)
 
 # Plot the solution
 plot_solution(solver, mesh, body, capacity; state_i=10)
+
+# Animation
+animate_solution(solver, mesh, body)
