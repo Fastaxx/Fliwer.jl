@@ -177,32 +177,31 @@ function initialize_temperature_uniform!(T0ₒ::Vector{Float64}, T0ᵧ::Vector{F
 end
 
 # Initialize temperature within a square region centered at 'center' with half-width 'half_width'
-function initialize_temperature_square!(T0ₒ::Vector{Float64}, T0ᵧ::Vector{Float64}, x_coords::Vector{Float64}, y_coords::Vector{Float64}, center::Tuple{Float64, Float64}, half_width::Float64, value::Float64)
-    nx = length(x_coords) - 1
-    ny = length(y_coords) - 1
-    for j in 1:(ny + 1)
-        for i in 1:(nx + 1)
+function initialize_temperature_square!(T0ₒ::Vector{Float64}, T0ᵧ::Vector{Float64}, x_coords::Vector{Float64}, y_coords::Vector{Float64}, center::Tuple{Float64, Float64}, half_width::Int, value::Float64, nx::Int, ny::Int)
+    center_i = findfirst(x -> x >= center[1], x_coords)
+    center_j = findfirst(y -> y >= center[2], y_coords)
+
+    i_min = max(center_i - half_width, 1)
+    i_max = min(center_i + half_width, nx + 1)
+    j_min = max(center_j - half_width, 1)
+    j_max = min(center_j + half_width, ny + 1)
+    for j in j_min:j_max
+        for i in i_min:i_max
             idx = i + (j - 1) * (nx + 1)
-            x = x_coords[i]
-            y = y_coords[j]
-            if abs(x - center[1]) <= half_width && abs(y - center[2]) <= half_width
-                T0ₒ[idx] = value
-                T0ᵧ[idx] = value
-            end
+            T0ₒ[idx] = value
+            T0ᵧ[idx] = value
         end
     end
 end
 
 # Initialize temperature within a circular region centered at 'center' with radius 'radius'
-function initialize_temperature_circle!(T0ₒ::Vector{Float64}, T0ᵧ::Vector{Float64}, x_coords::Vector{Float64}, y_coords::Vector{Float64}, center::Tuple{Float64, Float64}, radius::Float64, value::Float64)
-    nx = length(x_coords) - 1
-    ny = length(y_coords) - 1
-    for j in 1:(ny + 1)
-        for i in 1:(nx + 1)
+function initialize_temperature_circle!(T0ₒ::Vector{Float64}, T0ᵧ::Vector{Float64}, x_coords::Vector{Float64}, y_coords::Vector{Float64}, center::Tuple{Float64, Float64}, radius::Float64, value::Float64, nx::Int, ny::Int)
+    for j in 1:(ny )
+        for i in 1:(nx)
             idx = i + (j - 1) * (nx + 1)
-            x = x_coords[i]
-            y = y_coords[j]
-            distance = sqrt((x - center[1])^2 + (y - center[2])^2)
+            x_i = x_coords[i]
+            y_j = y_coords[j]
+            distance = sqrt((x_i - center[1])^2 + (y_j - center[2])^2)
             if distance <= radius
                 T0ₒ[idx] = value
                 T0ᵧ[idx] = value
@@ -212,11 +211,9 @@ function initialize_temperature_circle!(T0ₒ::Vector{Float64}, T0ᵧ::Vector{Fl
 end
 
 # Initialize temperature using a custom function 'func(x, y)'
-function initialize_temperature_function!(T0ₒ::Vector{Float64}, T0ᵧ::Vector{Float64}, x_coords::Vector{Float64}, y_coords::Vector{Float64}, func::Function)
-    nx = length(x_coords) - 1
-    ny = length(y_coords) - 1
-    for j in 1:(ny + 1)
-        for i in 1:(nx + 1)
+function initialize_temperature_function!(T0ₒ::Vector{Float64}, T0ᵧ::Vector{Float64}, x_coords::Vector{Float64}, y_coords::Vector{Float64}, func::Function, nx::Int, ny::Int)
+    for j in 1:(ny)
+        for i in 1:(nx)
             idx = i + (j - 1) * (nx + 1)
             x = x_coords[i]
             y = y_coords[j]

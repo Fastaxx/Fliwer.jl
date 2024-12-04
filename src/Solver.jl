@@ -437,8 +437,8 @@ function build_mono_unstead_adv_matrix(operator::ConvectionOps, capacite::Capaci
     C = operator.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
     K = operator.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
 
-    A11 = operator.V + Δt/2 * (sum(C) - 0.5 * sum(K))
-    A12 = -Δt/2 * 0.5 * sum(K)
+    A11 = operator.V + Δt/2 * (sum(C) + 0.5 * sum(K))
+    A12 = +Δt/2 * 0.5 * sum(K)
     A21 = 0*Iᵦ # Iᵦ * operator.H' * operator.Wꜝ * operator.G
     A22 = 0*Iᵦ # Iᵦ * operator.H' * operator.Wꜝ * operator.H + Iₐ * Iᵧ
 
@@ -460,7 +460,7 @@ function build_rhs_mono_unstead_adv(operator::ConvectionOps, f, capacite::Capaci
     Tₒ, Tᵧ = Tᵢ[1:N], Tᵢ[N+1:end]
 
     # Build the right-hand side
-    b1 = (operator.V - Δt/2 * sum(C) + Δt/2 * 0.5 * sum(K))*Tₒ + Δt/2 * 0.5 * sum(K) * Tᵧ + Δt/2 * operator.V * (fₒn + fₒn1)
+    b1 = (operator.V - Δt/2 * sum(C) - Δt/2 * 0.5 * sum(K))*Tₒ - Δt/2 * 0.5 * sum(K) * Tᵧ + Δt/2 * operator.V * (fₒn + fₒn1)
     b2 = 0*Iᵧ * gᵧ
     b = vcat(b1, b2)
     return b
@@ -540,7 +540,7 @@ function build_mono_stead_adv_diff_matrix(operator::ConvectionOps, capacite::Cap
     C = operator.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
     K = operator.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
 
-    A11 = (sum(C) - 0.5 * sum(K)) + Id * operator.G' * operator.Wꜝ * operator.G
+    A11 = (sum(C) + 0.5 * sum(K)) + Id * operator.G' * operator.Wꜝ * operator.G
     A12 = 0.5 * sum(K) + Id * operator.G' * operator.Wꜝ * operator.H
     A21 = Iᵦ * operator.H' * operator.Wꜝ * operator.G
     A22 = Iᵦ * operator.H' * operator.Wꜝ * operator.H + Iₐ * Iᵧ
@@ -620,9 +620,9 @@ function build_diph_stead_adv_diff_matrix(operator1::ConvectionOps, operator2::C
     C2 = operator2.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
     K2 = operator2.K # NTuple{N, SparseMatrixCSC{Float64, Int}
 
-    block1 = Id1 * operator1.G' * operator1.Wꜝ * operator1.G + (sum(C1) - 0.5 * sum(K1))
+    block1 = Id1 * operator1.G' * operator1.Wꜝ * operator1.G + (sum(C1) + 0.5 * sum(K1))
     block2 = Id1 * operator1.G' * operator1.Wꜝ * operator1.H + 0.5 * sum(K1)
-    block3 = Id2 * operator2.G' * operator2.Wꜝ * operator2.G + (sum(C2) - 0.5 * sum(K2))
+    block3 = Id2 * operator2.G' * operator2.Wꜝ * operator2.G + (sum(C2) + 0.5 * sum(K2))
     block4 = Id2 * operator2.G' * operator2.Wꜝ * operator2.H + 0.5 * sum(K2)
     block5 = operator1.H' * operator1.Wꜝ * operator1.G
     block6 = operator1.H' * operator1.Wꜝ * operator1.H 
@@ -728,7 +728,7 @@ function build_rhs_mono_unstead_adv_diff(operator::ConvectionOps, f, capacite::C
 
     Tₒ, Tᵧ = Tᵢ[1:N], Tᵢ[N+1:end]
 
-    
+    """
     lx, ly = 16., 16.
     nx, ny = 160, 160
     radius, center = ly/4, (lx/2, ly/2) .+ (0.01, 0.01)
@@ -755,7 +755,7 @@ function build_rhs_mono_unstead_adv_diff(operator::ConvectionOps, f, capacite::C
             end
         end
     end
-    
+    """
 
     # Build the right-hand side
     b = vcat(operator.V * Tₒ  - Δt/2 * sum(C) * Tₒ - 0.5 * sum(K) * Tₒ - Δt/2 * 0.5 * sum(K) * Tᵧ - Δt/2 * operator.G' * operator.Wꜝ * operator.G * Tₒ - Δt/2 * operator.G' * operator.Wꜝ * operator.H * Tᵧ + Δt/2 * operator.V * (fₒn + fₒn1), Iᵧ * gᵧ)
@@ -836,9 +836,9 @@ function build_diph_unstead_adv_diff_matrix(operator1::ConvectionOps, operator2:
     C2 = operator2.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
     K2 = operator2.K # NTuple{N, SparseMatrixCSC{Float64, Int}
 
-    block1 = operator1.V + Δt/2 * (sum(C1) - 0.5 * sum(K1)) + Δt/2 * Id1 * operator1.G' * operator1.Wꜝ * operator1.G
+    block1 = operator1.V + Δt/2 * (sum(C1) + 0.5 * sum(K1)) + Δt/2 * Id1 * operator1.G' * operator1.Wꜝ * operator1.G
     block2 = Δt/2 * 0.5 * sum(K1) + Δt/2 * Id1 * operator1.G' * operator1.Wꜝ * operator1.H
-    block3 = operator2.V + Δt/2 * (sum(C2) - 0.5 * sum(K2)) + Δt/2 * Id2 * operator2.G' * operator2.Wꜝ * operator2.G
+    block3 = operator2.V + Δt/2 * (sum(C2) + 0.5 * sum(K2)) + Δt/2 * Id2 * operator2.G' * operator2.Wꜝ * operator2.G
     block4 = Δt/2 * 0.5 * sum(K2) + Δt/2 * Id2 * operator2.G' * operator2.Wꜝ * operator2.H
     block5 = Iᵦ1 * operator1.H' * operator1.Wꜝ * operator1.G
     block6 = Iᵦ1 * operator1.H' * operator1.Wꜝ * operator1.H
@@ -868,7 +868,7 @@ function build_rhs_diph_unstead_adv_diff(operator1::ConvectionOps, operator2::Co
     Tₒ2, Tᵧ2 = Tᵢ[2N+1:3N], Tᵢ[3N+1:end]
 
     # Build the right-hand side
-    b = vcat((operator1.V - Δt/2 * sum(operator1.C) + Δt/2 * 0.5 * sum(operator1.K))*Tₒ1 - Δt/2 * 0.5 * sum(operator1.K) * Tᵧ1 + Δt/2 * operator1.V * (fₒn1 + fₒn1p1), gᵧ, (operator2.V - Δt/2 * sum(operator2.C) + Δt/2 * 0.5 * sum(operator2.K))*Tₒ2 - Δt/2 * 0.5 * sum(operator2.K) * Tᵧ2 + Δt/2 * operator2.V * (fₒn2 + fₒn2p1), Iᵧ2*hᵧ)
+    b = vcat((operator1.V - Δt/2 * sum(operator1.C) - Δt/2 * 0.5 * sum(operator1.K))*Tₒ1 - Δt/2 * 0.5 * sum(operator1.K) * Tᵧ1 + Δt/2 * operator1.V * (fₒn1 + fₒn1p1), gᵧ, (operator2.V - Δt/2 * sum(operator2.C) - Δt/2 * 0.5 * sum(operator2.K))*Tₒ2 - Δt/2 * 0.5 * sum(operator2.K) * Tᵧ2 + Δt/2 * operator2.V * (fₒn2 + fₒn2p1), Iᵧ2*hᵧ)
 
     return b
 end

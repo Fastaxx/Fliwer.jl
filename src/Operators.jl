@@ -137,21 +137,8 @@ function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
         Sx_p, Sy_p = kron(I(ny), Σ_p(nx)), kron(Σ_p(ny), I(nx))
         Sx_m, Sy_m = kron(I(ny), Σ_m(nx)), kron(Σ_m(ny), I(nx))
         G = [Dx_m * B[1]; Dy_m * B[2]]
-
-        Dxx_p = kron(I(nx), δ_p(nx))
-        Dxy_p = kron(I(nx), δ_p(ny))
-        Sxx_m = kron(I(nx), Σ_m(nx))
-        Sxy_m = kron(I(nx), Σ_m(ny))
-        Dyx_p = kron(δ_p(ny), I(nx))
-        Dyy_p = kron(δ_p(ny), I(nx))
-        Syx_m = kron(Σ_m(ny), I(nx))
-        Syy_m = kron(Σ_m(ny), I(nx))
-        Cx = Dx_p * spdiagm(0 => diag(Sx_m * A[1] * uₒ[1])) * Sx_m #+ Dy_p * spdiagm(0 => diag(Sx_m * A[2] * uₒ[2])) * Sy_m  ### LA SOLUTION Ultime : Ca marche en interpolant avec Sx puis Sy 
-        #Cx = Dxx_p * spdiagm(0 => diag(Sxx_m * A[1] * uₒ[1])) * Sxx_m + Dxy_p * spdiagm(0 => diag(Sxx_m * A[2] * uₒ[2])) * Sxy_m
-
-        Cy = Dy_p * spdiagm(0 => diag(Sy_m * A[2] * uₒ[2])) * Sy_m #+ Dx_p * spdiagm(0 => diag(Sy_m * A[1] * uₒ[1])) * Sx_m         ### LA SOLUTION Ultime 
-        #Cy = Dyx_p * spdiagm(0 => diag(Syy_m * A[1] * uₒ[1])) * Syx_m + Dyy_p * spdiagm(0 => diag(Syy_m * A[2] * uₒ[2])) * Syy_m
-
+        Cx = Dx_p * spdiagm(0 => diag(Sx_m * A[1] * uₒ[1])) * Sx_m
+        Cy = Dy_p * spdiagm(0 => diag(Sy_m * A[2] * uₒ[2])) * Sy_m
         H = [A[1]*Dx_m - Dx_m*B[1]; A[2]*Dy_m - Dy_m*B[2]]
         Kx = spdiagm(0 => Sx_p * H' * uᵧ)
         Ky = spdiagm(0 => Sy_p * H' * uᵧ)
