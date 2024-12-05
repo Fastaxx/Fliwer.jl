@@ -33,8 +33,9 @@ for j in 0:ny
     for i in 0:nx
         idx = i + j * (nx + 1) + 1
         y = (y0 - ly/2) + j * ly/ny
-        uₒx[idx] =  0.0
-        uₒy[idx] =  y * (1 - y)   # No velocity in the y direction for Poiseuille flow
+        x = (x0 - lx/2) + i * lx/nx
+        uₒx[idx] =  x * (1 - x) 
+        uₒy[idx] =  0.0  # No velocity in the y direction for Poiseuille flow
     end
 end
 
@@ -42,6 +43,8 @@ end
 uₒ = Vector{Float64}(undef, 2N)
 uₒ[1:2:2N] .= uₒx
 uₒ[2:2:2N] .= uₒy
+
+uₒ = (uₒx, uₒy)
 
 # For boundary velocities, if they are zero:
 uᵧ = zeros(2N)

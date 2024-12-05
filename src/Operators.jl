@@ -137,8 +137,8 @@ function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
         Sx_p, Sy_p = kron(I(ny), Σ_p(nx)), kron(Σ_p(ny), I(nx))
         Sx_m, Sy_m = kron(I(ny), Σ_m(nx)), kron(Σ_m(ny), I(nx))
         G = [Dx_m * B[1]; Dy_m * B[2]]
-        Cx = Dx_p * spdiagm(0 => diag(Sx_m * A[1] * uₒ[1])) * Sx_m
-        Cy = Dy_p * spdiagm(0 => diag(Sy_m * A[2] * uₒ[2])) * Sy_m
+        Cx = Dx_p * spdiagm(0 => (Sx_m * A[1] * uₒ[1])) * Sx_m
+        Cy = Dy_p * spdiagm(0 => (Sy_m * A[2] * uₒ[2])) * Sy_m
         H = [A[1]*Dx_m - Dx_m*B[1]; A[2]*Dy_m - Dy_m*B[2]]
         Kx = spdiagm(0 => Sx_p * H' * uᵧ)
         Ky = spdiagm(0 => Sy_p * H' * uᵧ)

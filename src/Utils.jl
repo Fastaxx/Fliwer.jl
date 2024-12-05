@@ -170,6 +170,9 @@ function identify!(mesh::CartesianMesh{N}, body::Body) where N
     return MeshTag
 end
 
+
+## Temperature initialization functions
+
 # Initialize temperature uniformly across the domain
 function initialize_temperature_uniform!(T0ₒ::Vector{Float64}, T0ᵧ::Vector{Float64}, value::Float64)
     fill!(T0ₒ, value)
@@ -222,4 +225,78 @@ function initialize_temperature_function!(T0ₒ::Vector{Float64}, T0ᵧ::Vector{
             T0ᵧ[idx] = T_value
         end
     end
+end
+
+
+## Velocity field initialization functions
+
+# Initialize the velocity field with a Rotational flow
+function initialize_rotating_velocity_field(nx, ny, lx, ly, x0, y0, magnitude)
+    # Number of nodes
+    N = (nx + 1) * (ny + 1)
+
+    # Initialize velocity components
+    uₒx = zeros(N)
+    uₒy = zeros(N)
+
+    # Define the center of rotation
+    center_x, center_y = lx / 2, ly / 2
+
+    # Calculate rotating velocity components
+    for j in 0:ny
+        for i in 0:nx
+            idx = i + j * (nx + 1) + 1
+            x = x0 + i * (lx / nx)
+            y = y0 + j * (ly / ny)
+            uₒx[idx] = -(y - center_y) * magnitude
+            uₒy[idx] = (x - center_x) * magnitude
+        end
+    end
+    return uₒx, uₒy
+end
+
+
+# Initialize the velocity field with a Poiseuille flow
+function initialize_poiseuille_velocity_field(nx, ny, lx, ly, x0, y0)
+    # Number of nodes
+    N = (nx + 1) * (ny + 1)
+
+    # Initialize velocity components
+    uₒx = zeros(N)
+    uₒy = zeros(N)
+
+    # Calculate Poiseuille velocity components
+    for j in 0:ny
+        for i in 0:nx
+            idx = i + j * (nx + 1) + 1
+            y = y0 + j * (ly / ny)
+            x = x0 + i * (lx / nx)
+            uₒx[idx] =  x * (1 - x) 
+            uₒy[idx] =  0.0  # No velocity in the y direction for Poiseuille flow
+        end
+    end
+    return uₒx, uₒy
+end
+
+# Initialize the velocity field with a radial flow
+function initialize_radial_velocity_field(nx, ny, lx, ly, x0, y0, center, magnitude)
+    # Number of nodes
+    N = (nx + 1) * (ny + 1)
+
+    # Initialize velocity components
+    uₒx = zeros(N)
+    uₒy = zeros(N)
+
+    # Calculate radial velocity components
+    for j in 0:ny
+        for i in 0:nx
+            idx = i + j * (nx + 1) + 1
+            y = y0 + j * (ly / ny)
+            x = x0 + i * (lx / nx)
+            r = sqrt((x - center[1])^2 + (y - center[2])^2)
+            uₒx[idx] = (x - center[1]) / r * magnitude
+            uₒy[idx] = (y - center[2]) / r * magnitude
+        end
+    end
+    return uₒx, uₒy
 end

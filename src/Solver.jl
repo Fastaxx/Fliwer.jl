@@ -738,7 +738,7 @@ function build_rhs_mono_unstead_adv_diff(operator::ConvectionOps, f, capacite::C
     y_coords = capacite.mesh.centers[2]
 
     # Define the radius of the circle (in physical units)
-    circle_radius = lx / 60  # Adjust this value to control the size of the circle
+    circle_radius = lx / 30  # Adjust this value to control the size of the circle
 
     # Loop over all grid points
     for j in 1:(ny )
