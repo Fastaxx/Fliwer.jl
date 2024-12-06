@@ -145,10 +145,9 @@ function build_diph_stead_diff_matrix(operator1::DiffusionOps, operator2::Diffus
     n = prod(operator1.size)
 
     jump, flux = ic.scalar, ic.flux
-    Iₐ1, Iₐ2 = jump.α₁*I(n), jump.α₂*I(n)
-    Iᵦ1, Iᵦ2 = flux.β₁*I(n), flux.β₂*I(n)
+    Iₐ1, Iₐ2 = jump.α₁ * I(n), jump.α₂ * I(n)
+    Iᵦ1, Iᵦ2 = flux.β₁ * I(n), flux.β₂ * I(n)
     Id1, Id2 = build_I_D(operator1, D1), build_I_D(operator2, D2)
-
 
     block1 = Id1 * operator1.G' * operator1.Wꜝ * operator1.G
     block2 = Id1 * operator1.G' * operator1.Wꜝ * operator1.H
@@ -159,10 +158,27 @@ function build_diph_stead_diff_matrix(operator1::DiffusionOps, operator2::Diffus
     block7 = operator2.H' * operator2.Wꜝ * operator2.G
     block8 = operator2.H' * operator2.Wꜝ * operator2.H
 
-    A = vcat(hcat(block1, block2, zeros(n, n), zeros(n, n)),
-             hcat(zeros(n, n), Iₐ1, zeros(n, n), -Iₐ2),
-             hcat(zeros(n, n), zeros(n, n), block3, block4),
-             hcat(Iᵦ1*block5, Iᵦ1*block6, Iᵦ2*block7, Iᵦ2*block8))
+    A = spzeros(Float64, 4n, 4n)
+
+    @inbounds begin
+        # Top-left blocks
+        A[1:n, 1:n] += block1
+        A[1:n, n+1:2n] += block2
+
+        # Middle blocks
+        A[n+1:2n, n+1:2n] += Iₐ1
+        A[n+1:2n, 3n+1:4n] -= Iₐ2
+
+        # Bottom-left blocks
+        A[2n+1:3n, 2n+1:3n] += block3
+        A[2n+1:3n, 3n+1:4n] += block4
+
+        # Bottom blocks with Iᵦ
+        A[3n+1:4n, 1:n] += Iᵦ1 * block5
+        A[3n+1:4n, n+1:2n] += Iᵦ1 * block6
+        A[3n+1:4n, 2n+1:3n] += Iᵦ2 * block7
+        A[3n+1:4n, 3n+1:4n] += Iᵦ2 * block8
+    end
 
     return A
 end
@@ -231,16 +247,23 @@ end
 function build_mono_unstead_diff_matrix(operator::DiffusionOps, capacite::Capacity, D::Float64, bc_b::BorderConditions, bc::AbstractBoundary, Δt::Float64)
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
-    Iᵧ = build_I_g(operator) #capacite.Γ #
+    Iᵧ = build_I_g(operator) # capacite.Γ #
     Id = build_I_D(operator, D)
 
-    block1 = operator.V + Δt/2 * Id * operator.G' * operator.Wꜝ * operator.G
-    block2 = Δt/2 * Id * operator.G' * operator.Wꜝ * operator.H
+    # Preallocate the sparse matrix A with 2n rows and 2n columns
+    A = spzeros(Float64, 2n, 2n)
+
+    # Compute blocks
+    block1 = operator.V + Δt / 2 * (Id * operator.G' * operator.Wꜝ * operator.G)
+    block2 = Δt / 2 * (Id * operator.G' * operator.Wꜝ * operator.H)
     block3 = Iᵦ * operator.H' * operator.Wꜝ * operator.G
-    block4 = Iᵦ * operator.H' * operator.Wꜝ * operator.H + Iₐ * Iᵧ
+    block4 = Iᵦ * operator.H' * operator.Wꜝ * operator.H + (Iₐ * Iᵧ)
 
-    A = vcat(hcat(block1, block2), hcat(block3, block4))
-
+    A[1:n, 1:n] = block1
+    A[1:n, n+1:2n] = block2
+    A[n+1:2n, 1:n] = block3
+    A[n+1:2n, n+1:2n] = block4
+    
     return A
 end
 
@@ -325,23 +348,48 @@ function build_diph_unstead_diff_matrix(operator1::DiffusionOps, operator2::Diff
     n = prod(operator1.size)
 
     jump, flux = ic.scalar, ic.flux
-    Iₐ1, Iₐ2 = jump.α₁*I(n), jump.α₂*I(n)
-    Iᵦ1, Iᵦ2 = flux.β₁*I(n), flux.β₂*I(n)
+    Iₐ1, Iₐ2 = jump.α₁ * I(n), jump.α₂ * I(n)
+    Iᵦ1, Iᵦ2 = flux.β₁ * I(n), flux.β₂ * I(n)
     Id1, Id2 = build_I_D(operator1, D1), build_I_D(operator2, D2)
 
-    block1 = operator1.V + Δt/2 * Id1 * operator1.G' * operator1.Wꜝ * operator1.G
-    block2 = Δt/2 * Id1 * operator1.G' * operator1.Wꜝ * operator1.H
-    block3 = operator2.V + Δt/2 * Id2 * operator2.G' * operator2.Wꜝ * operator2.G
-    block4 = Δt/2 * Id2 * operator2.G' * operator2.Wꜝ * operator2.H
-    block5 = Iᵦ1 * operator1.H' * operator1.Wꜝ * operator1.G
-    block6 = Iᵦ1 * operator1.H' * operator1.Wꜝ * operator1.H
-    block7 = Iᵦ2 * operator2.H' * operator2.Wꜝ * operator2.G
-    block8 = Iᵦ2 * operator2.H' * operator2.Wꜝ * operator2.H
+    # Precompute repeated multiplications
+    WG_G1 = operator1.Wꜝ * operator1.G
+    WG_H1 = operator1.Wꜝ * operator1.H
+    WG_G2 = operator2.Wꜝ * operator2.G
+    WG_H2 = operator2.Wꜝ * operator2.H
 
-    A = vcat(hcat(block1, block2, zeros(n, n), zeros(n, n)),
-             hcat(zeros(n, n), Iₐ1, zeros(n, n), -Iₐ2),
-             hcat(zeros(n, n), zeros(n, n), block3, block4),
-             hcat(Iᵦ1*block5, Iᵦ1*block6, Iᵦ2*block7, Iᵦ2*block8))
+    block1 = operator1.V + Δt / 2 * Id1 * operator1.G' * WG_G1
+    block2 = Δt / 2 * Id1 * operator1.G' * WG_H1
+    block3 = operator2.V + Δt / 2 * Id2 * operator2.G' * WG_G2
+    block4 = Δt / 2 * Id2 * operator2.G' * WG_H2
+    block5 = Iᵦ1 * operator1.H' * WG_G1
+    block6 = Iᵦ1 * operator1.H' * WG_H1
+    block7 = Iᵦ2 * operator2.H' * WG_G2
+    block8 = Iᵦ2 * operator2.H' * WG_H2
+
+    # Preallocate the sparse matrix
+    A = spzeros(Float64, 4n, 4n)
+
+    # Assign blocks to the matrix
+    A[1:n, 1:n] = block1
+    A[1:n, n+1:2n] = block2
+    A[1:n, 2n+1:3n] = spzeros(n, n)
+    A[1:n, 3n+1:4n] = spzeros(n, n)
+
+    A[n+1:2n, 1:n] = spzeros(n, n)
+    A[n+1:2n, n+1:2n] = Iₐ1
+    A[n+1:2n, 2n+1:3n] = spzeros(n, n)
+    A[n+1:2n, 3n+1:4n] = -Iₐ2
+
+    A[2n+1:3n, 1:n] = spzeros(n, n)
+    A[2n+1:3n, n+1:2n] = spzeros(n, n)
+    A[2n+1:3n, 2n+1:3n] = block3
+    A[2n+1:3n, 3n+1:4n] = block4
+
+    A[3n+1:4n, 1:n] = block5
+    A[3n+1:4n, n+1:2n] = block6
+    A[3n+1:4n, 2n+1:3n] = block7
+    A[3n+1:4n, 3n+1:4n] = block8
 
     return A
 end
@@ -728,7 +776,7 @@ function build_rhs_mono_unstead_adv_diff(operator::ConvectionOps, f, capacite::C
 
     Tₒ, Tᵧ = Tᵢ[1:N], Tᵢ[N+1:end]
 
-    """
+    
     lx, ly = 16., 16.
     nx, ny = 160, 160
     radius, center = ly/4, (lx/2, ly/2) .+ (0.01, 0.01)
@@ -755,7 +803,7 @@ function build_rhs_mono_unstead_adv_diff(operator::ConvectionOps, f, capacite::C
             end
         end
     end
-    """
+    
 
     # Build the right-hand side
     b = vcat(operator.V * Tₒ  - Δt/2 * sum(C) * Tₒ - 0.5 * sum(K) * Tₒ - Δt/2 * 0.5 * sum(K) * Tᵧ - Δt/2 * operator.G' * operator.Wꜝ * operator.G * Tₒ - Δt/2 * operator.G' * operator.Wꜝ * operator.H * Tᵧ + Δt/2 * operator.V * (fₒn + fₒn1), Iᵧ * gᵧ)

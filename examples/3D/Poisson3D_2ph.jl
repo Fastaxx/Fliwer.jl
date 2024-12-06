@@ -18,8 +18,8 @@ sphere_c = Body((x,y,z)->-(sqrt((x-center[1])^2 + (y-center[2])^2 + (z-center[3]
 identify!(mesh, sphere)
 
 # Define the capacity
-capacity = Capacity(sphere, mesh)
-capacity_c = Capacity(sphere_c, mesh)
+@time capacity = Capacity(sphere, mesh)
+@time capacity_c = Capacity(sphere_c, mesh)
 
 # Define the operators
 operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1, nz+1))
@@ -42,10 +42,10 @@ Fluide_1 = Phase(capacity, operator, f1, 1.0)
 Fluide_2 = Phase(capacity_c, operator_c, f2, 1.0)
 
 # Define the solver
-solver = DiffusionSteadyDiph(Fluide_1, Fluide_2, bc_b, ic)
+@time solver = DiffusionSteadyDiph(Fluide_1, Fluide_2, bc_b, ic)
 
 # Solve the problem
-solve!(solver, Fluide_1, Fluide_2; method=IterativeSolvers.gmres, verbose=false)
+@time solve_DiffusionSteadyDiph!(solver, Fluide_1, Fluide_2; method=IterativeSolvers.gmres, verbose=false)
 
 # Plot the solution usign Makie
 plot_solution(solver, mesh, sphere, capacity)

@@ -10,9 +10,9 @@ x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
 mesh = CartesianMesh((nx, ny), (lx, ly), (x0, y0))
 
-# Define the body : Planar
-radius, center = ly/8, (lx/2, ly/2) .+ (0.01, 0.01)
-circle = Body((x,y,_=0)->(x - center[2]), (x,y,_)->(x,y), domain, false)
+# Define the body
+radius, center = ly/4, (lx/2, ly/2) .+ (0.01, 0.01)
+circle = Body((x,y,_=0)->(sqrt((x-center[1])^2 + (y-center[2])^2) - radius), (x,y,_)->(x,y), domain, false)
 
 # Identify cells
 identify!(mesh, circle)
@@ -20,8 +20,8 @@ identify!(mesh, circle)
 # Define the capacity
 capacity = Capacity(circle, mesh)
 
-# Initialize the velocity field with a Poiseuille flow
-uₒx, uₒy = initialize_poiseuille_velocity_field(nx, ny, lx, ly, x0, y0)
+# Initialize the velocity field with a radial flow
+uₒx, uₒy = initialize_radial_velocity_field(nx, ny, lx, ly, x0, y0, center, 3.0)
 uₒ = (uₒx, uₒy)
 
 # For boundary velocities, if they are zero:
@@ -31,13 +31,23 @@ uᵧ = zeros(2 * (nx + 1) * (ny + 1))
 operator = ConvectionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1), uₒ, uᵧ)
 
 # Define the boundary conditions
-ic = Dirichlet(1.0)
+ic = Dirichlet(0.0)
 bc = Dirichlet(0.0)
 
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc, :top => bc, :bottom => bc))
 
 # Define the source term
-f = (x,y,z,t)-> 0.0 #sin(x)*cos(10*y)
+f = (x, y, z, t) -> 0.0
+"""
+begin
+    r = sqrt((x - lx/2)^2 + (y - 2*lx/3)^2)
+    if r <= 0.5
+        return 1.0
+    else
+        return 0.0
+    end
+end
+"""
 
 Fluide = Phase(capacity, operator, f, 1.0)
 
@@ -45,6 +55,9 @@ Fluide = Phase(capacity, operator, f, 1.0)
 # Analytical solution T (x, t) = 10/(4D (t + 1/2)) exp(− ‖x−xc(t)‖^2/(4D(t+ 1/2)
 T0ₒ = zeros((nx+1)*(ny+1))
 T0ᵧ = zeros((nx+1)*(ny+1))
+x, y = mesh.centers[1], mesh.centers[2]
+
+initialize_temperature_circle!(T0ₒ, T0ᵧ, x, y, center, lx/60, 1.0, nx, ny)
 
 # Combine the temperature arrays if needed
 T0 = vcat(T0ₒ, T0ᵧ)
@@ -62,6 +75,8 @@ solve_AdvectionDiffusionUnsteadyMono!(solver, Fluide, T0, Δt, Tend, bc_b, ic; m
 
 # Write the solution to a VTK file
 write_vtk("advdiff", mesh, solver)
+
+#plot_profile(solver, mesh; x=lx/2.01)
 
 # Animation
 #animate_solution(solver, mesh, circle)

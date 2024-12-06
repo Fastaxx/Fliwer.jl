@@ -2,3 +2,5 @@ docs/build/
 .vscode
 data/*.vti
 data/*.pvd
+*.vti
+*.pvd

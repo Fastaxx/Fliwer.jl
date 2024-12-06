@@ -3,14 +3,14 @@ using IterativeSolvers
 
 ### 3D Test Case : Diphasic Unsteady Diffusion Equation inside a Sphere
 # Define the mesh
-nx, ny, nz = 20, 20, 20
+nx, ny, nz = 40, 40, 40
 lx, ly, lz = 4., 4., 4.
 x0, y0, z0 = 0., 0., 0.
 domain = ((x0, lx), (y0, ly), (z0, lz))
 mesh = CartesianMesh((nx, ny, nz), (lx, ly, lz), (x0, y0, z0))
 
 # Define the body
-radius, center = ly/4, (lx/2, ly/2, lz/2) .+ (0.01, 0.01, 0.01)
+radius, center = ly/4, (lx/2, ly/2, lz/2) #.+ (0.01, 0.01, 0.01)
 sphere = Body((x,y,z)->(sqrt((x-center[1])^2 + (y-center[2])^2 + (z-center[3])^2) - radius), (x,y,z)->(x,y,z), domain, false)
 sphere_c = Body((x,y,z)->-(sqrt((x-center[1])^2 + (y-center[2])^2 + (z-center[3])^2) - radius), (x,y,z)->(x,y,z), domain, false)
 
@@ -53,7 +53,7 @@ Tend = 0.2
 solver = DiffusionUnsteadyDiph(Fluide_1, Fluide_2, bc_b, ic, Δt, Tend, u0)
 
 # Solve the problem
-solve!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=IterativeSolvers.gmres, maxiter=10000, verbose=false)
+solve_DiffusionUnsteadyDiph!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=IterativeSolvers.gmres, maxiter=10000, verbose=false)
 
 # Write the solution to a VTK file
 write_vtk("heat_3d", mesh, solver)
