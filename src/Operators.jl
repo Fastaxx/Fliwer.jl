@@ -122,7 +122,7 @@ function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
     N = length(size)
     if N == 1
         nx = size[1]
-        Cx = δ_p(nx) * spdiagm(0 => diag(Σ_m(nx) * A[1] * uₒ[1])) * Σ_m(nx)
+        Cx = δ_p(nx) * spdiagm(0 => (Σ_m(nx) * A[1] * uₒ[1])) * Σ_m(nx)
         G = ẟ_m(nx) * B[1] # Gérer le periodicity
         H = A[1]*ẟ_m(nx) - ẟ_m(nx)*B[1]
         Kx = spdiagm(0 => Σ_p(nx) * H' * uᵧ)
@@ -152,9 +152,9 @@ function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
         Sx_m, Sy_m, Sz_m = kron(I(nz), kron(I(ny), Σ_m(nx))), kron(I(nz), kron(Σ_m(ny), I(nx))), kron(Σ_m(nz), kron(I(ny), I(nx)))
         Sx_p, Sy_p, Sz_p = kron(I(nz), kron(I(ny), Σ_p(nx))), kron(I(nz), kron(Σ_p(ny), I(nx))), kron(Σ_p(nz), kron(I(ny), I(nx)))
         G = [Dx_m * B[1]; Dy_m * B[2]; Dz_m * B[3]]
-        Cx = Dx_p * spdiagm(0 => diag(Sx_m * A[1] * uₒ[1])) * Sx_m
-        Cy = Dy_p * spdiagm(0 => diag(Sy_m * A[2] * uₒ[2])) * Sy_m
-        Cz = Dz_p * spdiagm(0 => diag(Sz_m * A[3] * uₒ[3])) * Sz_m
+        Cx = Dx_p * spdiagm(0 => (Sx_m * A[1] * uₒ[1])) * Sx_m
+        Cy = Dy_p * spdiagm(0 => (Sy_m * A[2] * uₒ[2])) * Sy_m
+        Cz = Dz_p * spdiagm(0 => (Sz_m * A[3] * uₒ[3])) * Sz_m
         H = [A[1]*Dx_m - Dx_m*B[1]; A[2]*Dy_m - Dy_m*B[2]; A[3]*Dz_m - Dz_m*B[3]]
         Kx = spdiagm(0 => Sx_p * H' * uᵧ)
         Ky = spdiagm(0 => Sy_p * H' * uᵧ)
