@@ -8,13 +8,6 @@ d = sdf(body::AbstractBody, x, t=0)
 abstract type AbstractBody end
 
 """
-    NoBody
-
-Use for a simulation without any body.
-"""
-struct NoBody <: AbstractBody end
-
-"""
     struct Body{N} <: AbstractBody
 
 The `Body` struct represents a body in the Fliwer package.
@@ -37,6 +30,17 @@ end
     d = sdf(body::AutoBody,x,t) = body.sdf(x,t)
 """
 sdf(body::Body, x, t=0; kwargs...) = body.sdf(x, t; kwargs...)
+
+"""
+    NoBody
+
+Use for a simulation without any body.
+"""
+struct NoBody <: AbstractBody end
+
+NoBody1D(domain) = Body((x,_=0)->-1.0, (x,_)->(x,), domain, false)
+NoBody2D(domain) = Body((x,y,_=0)->-1.0, (x,y,_)->(x,y), domain, false)
+NoBody3D(domain) = Body((x,y,z,_=0)->-1.0, (x,y,z,_)->(x,y,z), domain, false)
 
 Base.:+(a::Body, b::Body) = Body((x,t)->min(a.sdf(x,t), b.sdf(x,t)), (x,t)->ifelse(a.sdf(x,t) < b.sdf(x,t), a.map(x,t), b.map(x,t)), a.domain, a.compose || b.compose)
 ∩(a::Body, b::Body) = Body((x,t)->max(a.sdf(x,t), b.sdf(x,t)), (x,t)->ifelse(a.sdf(x,t) > b.sdf(x,t), a.map(x,t), b.map(x,t)), a.domain, a.compose || b.compose)

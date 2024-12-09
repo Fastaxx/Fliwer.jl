@@ -20,7 +20,7 @@ include("Mesh.jl")
 export CartesianMesh, nC, MeshTag
 
 include("Body.jl")
-export AbstractBody,Body,NoBody,sdf,+,⊖,c,measure
+export AbstractBody,Body,NoBody,sdf,+,⊖,c,measure, NoBody1D, NoBody2D, NoBody3D
 
 include("Capacity.jl")
 export AbstractCapacity,Capacity,measure!
