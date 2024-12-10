@@ -22,6 +22,26 @@ using Fliwer
     body = c(body1)
     @test sdf(body, 0.0, 0.0) == 1.0
 
+    # Test 2D
+    nx, ny = 10, 5
+    hx, hy = ones(nx), ones(ny)
+    x0, y0 = 0., 0.
+    lx, ly = 5., 5.
+    domain = ((x0, lx), (y0, ly))
+    mesh = CartesianMesh((hx, hy), (x0, y0))
+
+    radius, center = ly/4, (lx/2, ly/2)
+    mapping = (t, x, y) -> (x + 1. * t, y)
+    circle = Body((x,y,_=0)->-(sqrt((x-center[1])^2 + (y-center[2])^2) - radius), mapping, domain, true)
+
+    @test sdf(circle, 2.5, 2.5) == 1.25
+
+    d,n,v = measure(circle, [2.9, 0.5], 1)
+
+    println("Distance: ", d)
+    println("Normal: ", n)
+    println("Velocity: ", v)
+
     # Test 1D
     nx = 10
     hx = ones(nx)
@@ -38,31 +58,32 @@ using Fliwer
 
     println("SDF: ", body.sdf(5.5, 0))
 
-    d,n,v = measure(body, [4.3,], 1)
+    d,n,v = measure(body, [4.3,], 1.0)
 
     println("Distance: ", d)
     println("Normal: ", n)
     println("Velocity: ", v)
-        
-    # Test 2D
-    nx, ny = 10, 5
-    hx, hy = ones(nx), ones(ny)
-    x0, y0 = 0., 0.
-    lx, ly = 5., 5.
-    domain = ((x0, lx), (y0, ly))
-    mesh = CartesianMesh((hx, hy), (x0, y0))
+    
+    # Test 3D
+    nx, ny, nz = 10, 5, 3
+    hx, hy, hz = ones(nx), ones(ny), ones(nz)
+    x0, y0, z0 = 0., 0., 0.
+    lx, ly, lz = 5., 5., 5.
+    domain = ((x0, lx), (y0, ly), (z0, lz))
+    mesh = CartesianMesh((hx, hy, hz), (x0, y0, z0))
 
-    radius, center = ly/4, (lx/2, ly/2)
-    mapping = (t, x, y) -> (x + 0.1 * t, y)
-    circle = Body((x,y,_=0)->-(sqrt((x-center[1])^2 + (y-center[2])^2) - radius), mapping, domain, true)
+    radius, center = ly/4, (lx/2, ly/2, lz/2)
+    mapping = (t, x, y, z) -> (x + 1. * t, y, z)
+    sphere = Body((x,y,z,_=0)->-(sqrt((x-center[1])^2 + (y-center[2])^2 + (z-center[3])^2) - radius), mapping, domain, true)
 
-    @test sdf(circle, 2.5, 2.5) == 1.25
 
-    d,n,v = measure(circle, [2.5, 2.5], 1)
+    d,n,v = measure(sphere, [2.9, 0.5, 0.5], 1)
 
     println("Distance: ", d)
     println("Normal: ", n)
     println("Velocity: ", v)
+
+   
 
 
     

@@ -54,29 +54,19 @@ measure(body::Body, x, t) = measure(body.sdf, body.map, x, t)
 
 Determine the signed distance, normal vector, and velocity of a body at a given point.
 """
-function measure(sdf, map, x, t)
-    # Eval the sdf
-    d = sdf(x...)
+function measure(sdf,map,x,t)
 
-    # Eval the gradient of the sdf
-    f = x -> sdf(x...)
-    ∇d = ForwardDiff.gradient(f, [x...])
+    # Determine the signed distance
+    d = sdf(x...,t)
 
-    # Check if the gradient is zero to avoid division by zero
-    if norm(∇d) == 0
-        n = zeros(Float64, length(x))
-    else
-        # Calculate the normal vector
-        n = ∇d ./ norm(∇d)
-    end
+    # Determine the normal vector
+    n = ForwardDiff.gradient(x -> sdf(x...,t), x)
+    m = norm(n)
+    n = n ./ m
 
-    # Calculate the Jacobian matrix of the map function with respect to x 
-    # Dm/Dt=0 → ṁ + (dm/dx)ẋ = 0 ∴  ẋ =-(dm/dx)\ṁ
-    J = ForwardDiff.jacobian(u -> [map(u..., t)[i] for i in 1:length(x)], x)
-    dt = ForwardDiff.derivative(u -> sum([map(x..., u)...]), t) # A VERIFIER
+    # Determine the velocity
+    
 
-    # Calculate velocity
-    v = dt ./ J
 
-    return d, n, v
+    return (d,n,zero(x))
 end
