@@ -101,13 +101,25 @@ function solve_DiffusionSteadyMono!(s::Solver, phase::Phase; method::Function = 
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
-    kwargs_nt = (; kwargs...)
-    log = get(kwargs_nt, :log, false)
+    n = Int(size(s.A, 1) / 2)
 
-    if log
-        s.x, s.ch = method(s.A, s.b; kwargs...)
+    if method == \
+        # Remove zero rows and columns for direct solver
+        s.A, s.b, rows_idx, cols_idx = remove_zero_rows_cols!(s.A, s.b)
+        # Solve the reduced system
+        x_reduced = s.A \ s.b
+        # Reconstruct the full solution vector
+        s.x = zeros(2n)
+        s.x[cols_idx] = x_reduced
     else
-        s.x = method(s.A, s.b; kwargs...)
+        # Use iterative solver directly
+        kwargs_nt = (; kwargs...)
+        log = get(kwargs_nt, :log, false)
+        if log
+            s.x, s.ch = method(s.A, s.b; kwargs...)
+        else
+            s.x = method(s.A, s.b; kwargs...)
+        end
     end
 end
 

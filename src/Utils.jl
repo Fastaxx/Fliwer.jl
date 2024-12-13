@@ -300,3 +300,20 @@ function initialize_radial_velocity_field(nx, ny, lx, ly, x0, y0, center, magnit
     end
     return uₒx, uₒy
 end
+
+# Remove zero rows and columns from a sparse matrix and its corresponding RHS vector
+function remove_zero_rows_cols!(A::SparseMatrixCSC{Float64, Int}, b::Vector{Float64})
+    # Compute sums of absolute values along rows and columns
+    row_sums = vec(sum(abs.(A), dims=2))
+    col_sums = vec(sum(abs.(A), dims=1))
+
+    # Find indices of non-zero rows and columns
+    rows_idx = findall(row_sums .!= 0.0)
+    cols_idx = findall(col_sums .!= 0.0)
+
+    # Create new matrix and RHS vector
+    A = A[rows_idx, cols_idx]
+    b = b[rows_idx]
+
+    return A, b, rows_idx, cols_idx
+end
