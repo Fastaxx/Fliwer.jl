@@ -52,71 +52,18 @@ u0 = vcat(u0ₒ1, u0ᵧ1, u0ₒ2, u0ᵧ2)
 Tend = 1.0
 solver = DiffusionUnsteadyDiph(Fluide_1, Fluide_2, bc_b, ic, Δt, Tend, u0)
 
-function remove_zero_rows_cols!(A::SparseMatrixCSC{Float64, Int}, b::Vector{Float64})
-    # Compute sums of absolute values along rows and columns
-    row_sums = vec(sum(abs.(A), dims=2))
-    col_sums = vec(sum(abs.(A), dims=1))
-
-    # Find indices of non-zero rows and columns
-    rows_idx = findall(row_sums .!= 0.0)
-    cols_idx = findall(col_sums .!= 0.0)
-
-    # Create new matrix and RHS vector
-    A = A[rows_idx, cols_idx]
-    b = b[rows_idx]
-
-    return A, b, rows_idx, cols_idx
-end
-
-# Store the size of the original system
-n = Int(size(solver.A, 1) /4)
-println(n)
-
-# Remove zero rows and columns
-solver.A, solver.b, rows_idx, cols_idx = remove_zero_rows_cols!(solver.A, solver.b)
-
-# Solve the reduced system
-@time solver.x = solver.A \ solver.b
-
-# Reconstruct the full solution vector
-x_full = zeros(4n)
-x_full[cols_idx] = solver.x
-
-# Extract Tw (bulk values)
-Tw1 = x_full[1:n]
-Tg1 = x_full[n+1:2n]
-Tw2 = x_full[2n+1:3n]
-Tg2 = x_full[3n+1:4n]
-
-# Reshape and plot the solution
-Tw1_matrix = reshape(Tw1, nx+1, ny+1)
-Tg1_matrix = reshape(Tg1, nx+1, ny+1)
-Tw2_matrix = reshape(Tw2, nx+1, ny+1)
-Tg2_matrix = reshape(Tg2, nx+1, ny+1)
-
-fig = Figure()
-ax1 = Axis(fig[1, 1]; xlabel = "x", ylabel = "y")
-ax2 = Axis(fig[1, 2]; xlabel = "x", ylabel = "y")
-ax3 = Axis(fig[2, 1]; xlabel = "x", ylabel = "y")
-ax4 = Axis(fig[2, 2]; xlabel = "x", ylabel = "y")
-heatmap!(ax1, Tw1_matrix, colormap = :viridis)
-heatmap!(ax2, Tg1_matrix, colormap = :viridis)
-heatmap!(ax3, Tw2_matrix, colormap = :viridis)
-heatmap!(ax4, Tg2_matrix, colormap = :viridis)
-display(fig)
-
-
 # Solve the problem
-#solve_DiffusionUnsteadyDiph!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=IterativeSolvers.gmres, maxiter=10000, verbose=false)
+Fliwer.solve_DiffusionUnsteadyDiph!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=Base.:\)
+#Fliwer.solve_DiffusionUnsteadyDiph!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=IterativeSolvers.gmres, maxiter=10000, verbose=false)
 
 # Write the solution to a VTK file
-#write_vtk("solution", mesh, solver)
+write_vtk("solution", mesh, solver)
 
 # Plot the solution
-#plot_solution(solver, mesh, circle, capacity)
+plot_solution(solver, mesh, circle, capacity)
 
 # Plot the Profile
-#plot_profile(solver, mesh; x=lx/2.01)
+plot_profile(solver, mesh; x=lx/2.01)
 
 # Animation
 #animate_solution(solver, mesh, circle)

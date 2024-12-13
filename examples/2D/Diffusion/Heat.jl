@@ -44,7 +44,8 @@ Tend = 1.0
 solver = DiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0)
 
 # Solve the problem
-solve!(solver, Fluide, u0, Δt, Tend, bc_b, bc; method=IterativeSolvers.bicgstabl, reltol=1e-40, verbose=false)
+Fliwer.solve_DiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, bc_b, bc; method=Base.:\)
+#Fliwer.solve_DiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, bc_b, bc; method=IterativeSolvers.bicgstabl, reltol=1e-40, verbose=false)
 
 # Write the solution to a VTK file
 write_vtk("heat", mesh, solver)

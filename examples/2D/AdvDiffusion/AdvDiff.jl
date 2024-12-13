@@ -19,11 +19,12 @@ identify!(mesh, circle)
 # Define the capacity
 capacity = Capacity(circle, mesh)
 
-# Initialize the velocity field by setting the velocity to zero
-uₒx, uₒy = ones((nx+1)*(ny+1)), zeros((nx+1)*(ny+1))
-uγx, uγy = zeros((nx+1)*(ny+1)), zeros((nx+1)*(ny+1))
+# Initialize the velocity field with a rotating field
+uₒx, uₒy = initialize_rotating_velocity_field(nx, ny, lx, ly, x0, y0, 3.0)
+uₒ = (uₒx, uₒy)
 
-uₒ, uᵧ = vcat(uₒx, uₒy), vcat(uγx, uγy)
+# For boundary velocities, if they are zero:
+uᵧ = zeros(2 * (nx + 1) * (ny + 1))
 
 # Define the operators
 operator = ConvectionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1), uₒ, uᵧ)
@@ -43,7 +44,8 @@ Fluide = Phase(capacity, operator, f, 1.0)
 solver = AdvectionDiffusionSteadyMono(Fluide, bc_b, ic)
 
 # Solve the problem
-solve_AdvectionDiffusionSteadyMono!(solver, Fluide; method=IterativeSolvers.gmres, verbose=false, reltol=1e-40)
+Fliwer.solve_AdvectionDiffusionSteadyMono!(solver, Fluide; method=Base.:\)
+#solve_AdvectionDiffusionSteadyMono!(solver, Fluide; method=IterativeSolvers.gmres, verbose=false, reltol=1e-40)
 
 # Plot the solution
 plot_solution(solver, mesh, circle, capacity)
