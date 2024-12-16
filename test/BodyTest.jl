@@ -38,9 +38,7 @@ using Fliwer
 
     d,n,v = measure(circle, [2.9, 0.5], 1)
 
-    println("Distance: ", d)
-    println("Normal: ", n)
-    println("Velocity: ", v)
+    @test v == [-1.0, -1.0]
 
     # Test 1D
     nx = 10
@@ -60,10 +58,8 @@ using Fliwer
 
     d,n,v = measure(body, [4.3,], 1.0)
 
-    println("Distance: ", d)
-    println("Normal: ", n)
-    println("Velocity: ", v)
-    
+    @test v == [-0.1]
+
     # Test 3D
     nx, ny, nz = 10, 5, 3
     hx, hy, hz = ones(nx), ones(ny), ones(nz)
@@ -79,12 +75,6 @@ using Fliwer
 
     d,n,v = measure(sphere, [2.9, 0.5, 0.5], 1)
 
-    println("Distance: ", d)
-    println("Normal: ", n)
-    println("Velocity: ", v)
-
-   
-
-
+    @test v == [-1.0, 0.0, 0.0]
     
 end
