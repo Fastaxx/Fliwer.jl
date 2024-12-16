@@ -31,7 +31,7 @@ using Fliwer
     mesh = CartesianMesh((hx, hy), (x0, y0))
 
     radius, center = ly/4, (lx/2, ly/2)
-    mapping = (t, x, y) -> (x + 1. * t, y)
+    mapping = (x,t) -> [x[1] + 1. * t, x[2]+ 1. * t]
     circle = Body((x,y,_=0)->-(sqrt((x-center[1])^2 + (y-center[2])^2) - radius), mapping, domain, true)
 
     @test sdf(circle, 2.5, 2.5) == 1.25
@@ -51,7 +51,7 @@ using Fliwer
     domain = ((x0, lx),)
 
     x_pos = 5.5
-    map = (x, t)->(x + 0.1 * t)
+    map = (x,t) -> [x[1] + 0.1 * t]
     body = Body((x,_=0)->-(x - x_pos), map, domain, true)
 
     @test sdf(body, 5.5, 0) == 0.0
@@ -73,7 +73,7 @@ using Fliwer
     mesh = CartesianMesh((hx, hy, hz), (x0, y0, z0))
 
     radius, center = ly/4, (lx/2, ly/2, lz/2)
-    mapping = (t, x, y, z) -> (x + 1. * t, y, z)
+    mapping = (x,t) -> [x[1] + 1. * t, x[2], x[3]]
     sphere = Body((x,y,z,_=0)->-(sqrt((x-center[1])^2 + (y-center[2])^2 + (z-center[3])^2) - radius), mapping, domain, true)
 
 

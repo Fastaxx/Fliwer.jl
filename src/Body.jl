@@ -66,7 +66,14 @@ function measure(sdf,map,x,t)
 
     # Determine the velocity
     
+    # Convert the map from a function of scalar x, y and t to a function of vector x and t
+    #map = (x,t) -> map(x...,t)
+    #sdf = (x,t) -> sdf(x...,t)
 
+    # Compute the velocity
+    J = ForwardDiff.jacobian(x -> map(x,t), x)
+    dot = ForwardDiff.derivative(t -> map(x,t), t)
+    v = -J\dot
 
-    return (d,n,zero(x))
+    return (d,n,v)
 end
