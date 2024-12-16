@@ -1,9 +1,12 @@
 using Fliwer
 using IterativeSolvers
+using SparseArrays
+using LinearAlgebra
+using CairoMakie
 
 ### 2D Test Case : Monophasic Steady Diffusion Equation inside a Disk
 # Define the mesh
-nx, ny = 40, 40
+nx, ny = 80, 80
 lx, ly = 4., 4.
 x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
@@ -37,7 +40,8 @@ Fluide = Phase(capacity, operator, f, 1.0)
 solver = DiffusionSteadyMono(Fluide, bc_b, bc)
 
 # Solve the problem
-Fliwer.solve!(solver, Fluide; method=IterativeSolvers.bicgstabl, verbose=false, reltol=1e-20)
+Fliwer.solve_DiffusionSteadyMono!(solver, Fluide; method=Base.:\)
+#Fliwer.solve_DiffusionSteadyMono!(solver, Fluide; method=IterativeSolvers.bicgstabl, verbose=false, reltol=1e-20)
 
 # Plot the solution
 plot_solution(solver, mesh, circle, capacity)

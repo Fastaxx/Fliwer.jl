@@ -101,13 +101,25 @@ function solve_DiffusionSteadyMono!(s::Solver, phase::Phase; method::Function = 
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
-    kwargs_nt = (; kwargs...)
-    log = get(kwargs_nt, :log, false)
+    n = Int(size(s.A, 1) / 2)
 
-    if log
-        s.x, s.ch = method(s.A, s.b; kwargs...)
+    if method == \
+        # Remove zero rows and columns for direct solver
+        s.A, s.b, rows_idx, cols_idx = remove_zero_rows_cols!(s.A, s.b)
+        # Solve the reduced system
+        x_reduced = s.A \ s.b
+        # Reconstruct the full solution vector
+        s.x = zeros(2n)
+        s.x[cols_idx] = x_reduced
     else
-        s.x = method(s.A, s.b; kwargs...)
+        # Use iterative solver directly
+        kwargs_nt = (; kwargs...)
+        log = get(kwargs_nt, :log, false)
+        if log
+            s.x, s.ch = method(s.A, s.b; kwargs...)
+        else
+            s.x = method(s.A, s.b; kwargs...)
+        end
     end
 end
 
@@ -205,13 +217,25 @@ function solve_DiffusionSteadyDiph!(s::Solver, phase1::Phase, phase2::Phase; met
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
-    kwargs_nt = (; kwargs...)
-    log = get(kwargs_nt, :log, false)
+    n = Int(size(s.A, 1) / 4)  # For diphasic problem, the system size is 4n
 
-    if log
-        s.x, s.ch = method(s.A, s.b; kwargs...)
+    if method == \
+        # Remove zero rows and columns for direct solver
+        s.A, s.b, rows_idx, cols_idx = remove_zero_rows_cols!(s.A, s.b)
+        # Solve the reduced system
+        x_reduced = s.A \ s.b
+        # Reconstruct the full solution vector
+        s.x = zeros(4n)
+        s.x[cols_idx] = x_reduced
     else
-        s.x = method(s.A, s.b; kwargs...)
+        # Use iterative solver directly
+        kwargs_nt = (; kwargs...)
+        log = get(kwargs_nt, :log, false)
+        if log
+            s.x, s.ch = method(s.A, s.b; kwargs...)
+        else
+            s.x = method(s.A, s.b; kwargs...)
+        end
     end
 end
 
@@ -288,26 +312,33 @@ function solve_DiffusionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ, Δt::Float6
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
-    kwargs_nt = (; kwargs...)
-    log = get(kwargs_nt, :log, false)
+    n = Int(size(s.A, 1) / 2)  # For monophasic problem, the system size is 2n
 
-    BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
-    if log
-        s.x, s.ch = method(s.A, s.b; kwargs...)
-    else
-        s.x = method(s.A, s.b; kwargs...)
-    end
     t = 0.0
     while t < Tₑ
         t += Δt
         println("Time: ", t)
         s.b = build_rhs_mono_unstead_diff(phase.operator, phase.source, phase.capacity, bc_b, bc, Tᵢ, Δt, t)
         BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
-        if log
-            s.x, s.ch = method(s.A, s.b; kwargs...)
+        
+        if method == \
+            # Remove zero rows and columns for direct solver
+            A_reduced, b_reduced, _, cols_idx = remove_zero_rows_cols!(s.A, s.b)
+            # Solve the reduced system
+            x_reduced = A_reduced \ b_reduced
+            # Reconstruct the full solution vector
+            s.x = zeros(2n)
+            s.x[cols_idx] = x_reduced
         else
-            s.x = method(s.A, s.b; kwargs...)
+            kwargs_nt = (; kwargs...)
+            log = get(kwargs_nt, :log, false)
+            if log
+                s.x, s.ch = method(s.A, s.b; kwargs...)
+            else
+                s.x = method(s.A, s.b; kwargs...)
+            end
         end
+
         push!(s.states, s.x)
         @show maximum(s.x)
         Tᵢ = s.x
@@ -414,36 +445,42 @@ function build_rhs_diph_unstead_diff(operator1::DiffusionOps, operator2::Diffusi
     return b
 end
 
-function solve_DiffusionUnsteadyDiph!(s::Solver, phase1::Phase, phase2::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderConditions, ic::InterfaceConditions; method::Function = gmres, kwargs...)
+function solve_DiffusionUnsteadyDiph!(s::Solver, phase1::Phase, phase2::Phase, Tᵢ, Δt::Float64, Tₑ::Float64, bc_b::BorderConditions, ic::InterfaceConditions; method::Function = gmres, kwargs...)
     if s.A === nothing
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
-    kwargs_nt = (; kwargs...)
-    log = get(kwargs_nt, :log, false)
+    n = Int(size(s.A, 1) / 4)  # For diphasic problem, the system size is 4n
 
-    BC_border_diph!(s.A, s.b, bc_b, phase2.capacity.mesh)
-    if log
-        s.x, s.ch = method(s.A, s.b; kwargs...)
-    else
-        s.x = method(s.A, s.b; kwargs...)
-    end
     t = 0.0
     while t < Tₑ
         t += Δt
         println("Time: ", t)
         s.b = build_rhs_diph_unstead_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, t)
         BC_border_diph!(s.A, s.b, bc_b, phase2.capacity.mesh)
-        if log
-            s.x, s.ch = method(s.A, s.b; kwargs...)
+        
+        if method == \
+            # Remove zero rows and columns for direct solver
+            A_reduced, b_reduced, _, cols_idx = remove_zero_rows_cols!(s.A, s.b)
+            # Solve the reduced system
+            x_reduced = A_reduced \ b_reduced
+            # Reconstruct the full solution vector
+            s.x = zeros(4n)
+            s.x[cols_idx] = x_reduced
         else
-            s.x = method(s.A, s.b; kwargs...)
+            kwargs_nt = (; kwargs...)
+            log = get(kwargs_nt, :log, false)
+            if log
+                s.x, s.ch = method(s.A, s.b; kwargs...)
+            else
+                s.x = method(s.A, s.b; kwargs...)
+            end
         end
+
         push!(s.states, s.x)
         Tᵢ = s.x
     end
 end
-
 
 
 
@@ -519,26 +556,33 @@ function solve_AdvectionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ, Δt::Float6
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
-    kwargs_nt = (; kwargs...)
-    log = get(kwargs_nt, :log, false)
+    n = Int(size(s.A, 1) / 2)  # For monophasic problem, the system size is 2n
 
-    BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
-    if log
-        s.x, s.ch = method(s.A, s.b; kwargs...)
-    else
-        s.x = method(s.A, s.b; kwargs...)
-    end
     t = 0.0
     while t < Tₑ
         t += Δt
         println("Time: ", t)
         s.b = build_rhs_mono_unstead_adv(phase.operator, phase.source, phase.capacity, bc_b, bc, Tᵢ, Δt, t)
         BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
-        if log
-            s.x, s.ch = method(s.A, s.b; kwargs...)
+        
+        if method == \
+            # Remove zero rows and columns for direct solver
+            A_reduced, b_reduced, _, cols_idx = remove_zero_rows_cols!(s.A, s.b)
+            # Solve the reduced system
+            x_reduced = A_reduced \ b_reduced
+            # Reconstruct the full solution vector
+            s.x = zeros(2n)
+            s.x[cols_idx] = x_reduced
         else
-            s.x = method(s.A, s.b; kwargs...)
+            kwargs_nt = (; kwargs...)
+            log = get(kwargs_nt, :log, false)
+            if log
+                s.x, s.ch = method(s.A, s.b; kwargs...)
+            else
+                s.x = method(s.A, s.b; kwargs...)
+            end
         end
+
         push!(s.states, s.x)
         @show maximum(s.x)
         Tᵢ = s.x
@@ -616,13 +660,25 @@ function solve_AdvectionDiffusionSteadyMono!(s::Solver, phase::Phase; method::Fu
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
-    kwargs_nt = (; kwargs...)
-    log = get(kwargs_nt, :log, false)
+    n = Int(size(s.A, 1) / 2)
 
-    if log
-        s.x, s.ch = method(s.A, s.b; kwargs...)
+    if method == \
+        # Remove zero rows and columns for direct solver
+        s.A, s.b, rows_idx, cols_idx = remove_zero_rows_cols!(s.A, s.b)
+        # Solve the reduced system
+        x_reduced = s.A \ s.b
+        # Reconstruct the full solution vector
+        s.x = zeros(2n)
+        s.x[cols_idx] = x_reduced
     else
-        s.x = method(s.A, s.b; kwargs...)
+        # Use iterative solver directly
+        kwargs_nt = (; kwargs...)
+        log = get(kwargs_nt, :log, false)
+        if log
+            s.x, s.ch = method(s.A, s.b; kwargs...)
+        else
+            s.x = method(s.A, s.b; kwargs...)
+        end
     end
 end
 
@@ -706,13 +762,25 @@ function solve_AdvectionDiffusionSteadyDiph!(s::Solver, phase1::Phase, phase2::P
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
-    kwargs_nt = (; kwargs...)
-    log = get(kwargs_nt, :log, false)
+    n = Int(size(s.A, 1) / 4)  # For diphasic problem, the system size is 4n
 
-    if log
-        s.x, s.ch = method(s.A, s.b; kwargs...)
+    if method == \
+        # Remove zero rows and columns for direct solver
+        s.A, s.b, rows_idx, cols_idx = remove_zero_rows_cols!(s.A, s.b)
+        # Solve the reduced system
+        x_reduced = s.A \ s.b
+        # Reconstruct the full solution vector
+        s.x = zeros(4n)
+        s.x[cols_idx] = x_reduced
     else
-        s.x = method(s.A, s.b; kwargs...)
+        # Use iterative solver directly
+        kwargs_nt = (; kwargs...)
+        log = get(kwargs_nt, :log, false)
+        if log
+            s.x, s.ch = method(s.A, s.b; kwargs...)
+        else
+            s.x = method(s.A, s.b; kwargs...)
+        end
     end
 end
 
@@ -815,26 +883,33 @@ function solve_AdvectionDiffusionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ, Δ
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
-    kwargs_nt = (; kwargs...)
-    log = get(kwargs_nt, :log, false)
+    n = Int(size(s.A, 1) / 2)  # For monophasic problem, the system size is 2n
 
-    BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
-    if log
-        s.x, s.ch = method(s.A, s.b; kwargs...)
-    else
-        s.x = method(s.A, s.b; kwargs...)
-    end
     t = 0.0
     while t < Tₑ
         t += Δt
         println("Time: ", t)
         s.b = build_rhs_mono_unstead_adv_diff(phase.operator, phase.source, phase.capacity, bc_b, bc, Tᵢ, Δt, t)
         BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
-        if log
-            s.x, s.ch = method(s.A, s.b; kwargs...)
+        
+        if method == \
+            # Remove zero rows and columns for direct solver
+            A_reduced, b_reduced, _, cols_idx = remove_zero_rows_cols!(s.A, s.b)
+            # Solve the reduced system
+            x_reduced = A_reduced \ b_reduced
+            # Reconstruct the full solution vector
+            s.x = zeros(2n)
+            s.x[cols_idx] = x_reduced
         else
-            s.x = method(s.A, s.b; kwargs...)
+            kwargs_nt = (; kwargs...)
+            log = get(kwargs_nt, :log, false)
+            if log
+                s.x, s.ch = method(s.A, s.b; kwargs...)
+            else
+                s.x = method(s.A, s.b; kwargs...)
+            end
         end
+
         push!(s.states, s.x)
         @show maximum(s.x)
         Tᵢ = s.x
@@ -926,31 +1001,37 @@ function solve_AdvectionDiffusionUnsteadyDiph!(s::Solver, phase1::Phase, phase2:
         error("Solver is not initialized. Call a solver constructor first.")
     end
 
-    kwargs_nt = (; kwargs...)
-    log = get(kwargs_nt, :log, false)
+    n = Int(size(s.A, 1) / 4)  # For diphasic problem, the system size is 4n
 
-    BC_border_diph!(s.A, s.b, bc_b, phase2.capacity.mesh)
-    if log
-        s.x, s.ch = method(s.A, s.b; kwargs...)
-    else
-        s.x = method(s.A, s.b; kwargs...)
-    end
     t = 0.0
     while t < Tₑ
         t += Δt
         println("Time: ", t)
         s.b = build_rhs_diph_unstead_adv_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, t)
         BC_border_diph!(s.A, s.b, bc_b, phase2.capacity.mesh)
-        if log
-            s.x, s.ch = method(s.A, s.b; kwargs...)
+        
+        if method == \
+            # Remove zero rows and columns for direct solver
+            A_reduced, b_reduced, _, cols_idx = remove_zero_rows_cols!(s.A, s.b)
+            # Solve the reduced system
+            x_reduced = A_reduced \ b_reduced
+            # Reconstruct the full solution vector
+            s.x = zeros(4n)
+            s.x[cols_idx] = x_reduced
         else
-            s.x = method(s.A, s.b; kwargs...)
+            kwargs_nt = (; kwargs...)
+            log = get(kwargs_nt, :log, false)
+            if log
+                s.x, s.ch = method(s.A, s.b; kwargs...)
+            else
+                s.x = method(s.A, s.b; kwargs...)
+            end
         end
+
         push!(s.states, s.x)
         Tᵢ = s.x
     end
 end
-
 
 
 

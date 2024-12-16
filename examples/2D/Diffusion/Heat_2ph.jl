@@ -53,13 +53,14 @@ Tend = 1.0
 solver = DiffusionUnsteadyDiph(Fluide_1, Fluide_2, bc_b, ic, Δt, Tend, u0)
 
 # Solve the problem
-solve_DiffusionUnsteadyDiph!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=IterativeSolvers.gmres, maxiter=10000, verbose=false)
+Fliwer.solve_DiffusionUnsteadyDiph!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=Base.:\)
+#Fliwer.solve_DiffusionUnsteadyDiph!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=IterativeSolvers.gmres, maxiter=10000, verbose=false)
 
 # Write the solution to a VTK file
 write_vtk("solution", mesh, solver)
 
 # Plot the solution
-#plot_solution(solver, mesh, circle, capacity)
+plot_solution(solver, mesh, circle, capacity)
 
 # Plot the Profile
 plot_profile(solver, mesh; x=lx/2.01)
