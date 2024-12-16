@@ -45,7 +45,7 @@ Fluide_2 = Phase(capacity_c, operator_c, f2, 1.0)
 solver = DiffusionSteadyDiph(Fluide_1, Fluide_2, bc_b, ic)
 
 # Solve the problem
-solve!(solver, Fluide_1, Fluide_2; method=IterativeSolvers.gmres, verbose=false)
+solve_DiffusionSteadyDiph!(solver, Fluide_1, Fluide_2; method=IterativeSolvers.gmres, verbose=false)
 
 # Plot the solution
 plot_solution(solver, mesh, body, capacity)

@@ -37,7 +37,7 @@ Fluide = Phase(capacity, operator, f, 1.0)
 solver = DiffusionSteadyMono(Fluide, bc_b, bc_i)
 
 # Solve the problem
-solve!(solver, Fluide; method=IterativeSolvers.bicgstabl, abstol=1e-6, verbose=false)
+solve_DiffusionSteadyMono!(solver, Fluide; method=IterativeSolvers.bicgstabl, abstol=1e-6, verbose=false)
 
 # Write the solution to a VTK file
 write_vtk("poisson_3d", mesh, solver)
