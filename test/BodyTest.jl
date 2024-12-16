@@ -40,6 +40,8 @@ using Fliwer
 
     @test v == [-1.0, -1.0]
 
+    g_c, m_c = curvature(circle, [2.9, 0.5])
+
     # Test 1D
     nx = 10
     hx = ones(nx)
@@ -53,8 +55,6 @@ using Fliwer
     body = Body((x,_=0)->-(x - x_pos), map, domain, true)
 
     @test sdf(body, 5.5, 0) == 0.0
-
-    println("SDF: ", body.sdf(5.5, 0))
 
     d,n,v = measure(body, [4.3,], 1.0)
 

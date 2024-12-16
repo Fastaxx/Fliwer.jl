@@ -48,6 +48,7 @@ Base.:+(a::Body, b::Body) = Body((x,t)->min(a.sdf(x,t), b.sdf(x,t)), (x,t)->ifel
 c(a::Body) = Body((x,t)->-a.sdf(x,t), a.map, a.domain, false)
 
 measure(body::Body, x, t) = measure(body.sdf, body.map, x, t)
+curvature(body::Body, point) = curvature(body.sdf, point)
 
 """
     d, n, v = measure(sdf, map, x, t)
@@ -76,4 +77,21 @@ function measure(sdf,map,x,t)
     v = -J\dot
 
     return (d,n,v)
+end
+
+function curvature(sdf, point)
+    # Compute the gradient of the signed distance function at the point
+    grad = ForwardDiff.gradient(x -> sdf(x...), point)
+
+    # Compute the Hessian of the signed distance function at the point
+    hess = ForwardDiff.hessian(x -> sdf(x...), point)
+    adjoint_hess = det(hess) * inv(hess)
+
+    # Compute the gaussian curvature
+    gaussian_curvature = grad' * adjoint_hess * grad / norm(grad)^4
+
+    # Compute the mean curvature
+    mean_curvature = (grad' * hess * grad - norm(grad)^2 * tr(hess)) / (2*norm(grad)^3)
+
+    return gaussian_curvature, mean_curvature
 end
