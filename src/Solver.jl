@@ -1063,30 +1063,95 @@ function BC_border_mono!(A::SparseMatrixCSC{Float64, Int}, b::Vector{Float64}, b
     end
     for (i, (cell, linear_index)) in enumerate(mesh.tag.border_cells)
         condition = nothing
+        current_key = nothing
         if cell in left_cells
             condition = bc_b.borders[:left]
+            current_key = :left
         elseif cell in right_cells
             condition = bc_b.borders[:right]
+            current_key = :right
         elseif cell in top_cells
             condition = bc_b.borders[:top]
+            current_key = :top
         elseif cell in bottom_cells
             condition = bc_b.borders[:bottom]
+            current_key = :bottom
         elseif cell in forward_cells
             condition = bc_b.borders[:forward]
+            current_key = :forward
         elseif cell in backward_cells
             condition = bc_b.borders[:backward]
+            current_key = :backward
         end
 
         if condition isa Dirichlet
             A[linear_index, :] .= 0.0
             A[linear_index, linear_index] = 1.0
             b[linear_index] = isa(condition.value, Function) ? condition.value(cell...) : condition.value
+        elseif condition isa Periodic
+            # Apply Periodic condition
+            opposite_key = get_opposite_boundary(current_key)
+            if !haskey(bc_b.borders, opposite_key)
+                error("Periodic boundary requires both boundaries to be specified")
+            end
+
+            # Find corresponding cell index
+            corresponding_cell = find_corresponding_cell(cell, current_key, opposite_key, mesh)
+            corresponding_idx = cell_to_index(mesh, corresponding_cell)
+
+            # Modify A to enforce x_i - x_j = 0
+            A[linear_index, linear_index] += 1.0
+            A[linear_index, corresponding_idx] -= 1.0
+            b[linear_index] = 0.0
         elseif condition isa Neumann
             # Not implemented yet
         elseif condition isa Robin
             # Not implemented yet
         end
     end
+end
+
+# Helper function to get the opposite boundary
+function get_opposite_boundary(key::Symbol)
+    if key == :left
+        return :right
+    elseif key == :right
+        return :left
+    elseif key == :bottom
+        return :top
+    elseif key == :top
+        return :bottom
+    elseif key == :backward
+        return :forward
+    elseif key == :forward
+        return :backward
+    else
+        error("Unknown boundary key: $key")
+    end
+end
+
+# Helper function to find the corresponding cell on the opposite boundary
+function find_corresponding_cell(cell::CartesianIndex{N}, key::Symbol, opposite_key::Symbol, mesh::CartesianMesh) where {N}
+    if key == :left || key == :right
+        new_cell = CartesianIndex(key == :left ? length(mesh.centers[1]) : 1, cell[2])
+    elseif key == :bottom || key == :top
+        new_cell = CartesianIndex(cell[1], key == :bottom ? length(mesh.centers[2]) : 1)
+    elseif key == :backward || key == :forward
+        new_cell = CartesianIndex(cell[1], cell[2], key == :backward ? length(mesh.centers[3]) : 1)
+    end
+    return new_cell
+end
+
+function cell_to_index(mesh::CartesianMesh{1}, cell::CartesianIndex)
+    return LinearIndices((length(mesh.centers[1])+1,))[cell]
+end
+
+function cell_to_index(mesh::CartesianMesh{2}, cell::CartesianIndex)
+    return LinearIndices((length(mesh.centers[1])+1, length(mesh.centers[2])+1))[cell]
+end
+
+function cell_to_index(mesh::CartesianMesh{3}, cell::CartesianIndex)
+    return LinearIndices((length(mesh.centers[1])+1, length(mesh.centers[2])+1, length(mesh.centers[3])+1))[cell]
 end
 
 function BC_border_diph!(A::SparseMatrixCSC{Float64, Int}, b::Vector{Float64}, bc_b::BorderConditions, mesh::CartesianMesh) 

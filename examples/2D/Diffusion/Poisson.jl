@@ -28,6 +28,8 @@ operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, n
 # Define the boundary conditions 
 bc = Dirichlet(1.0)
 bc1 = Dirichlet(0.0)
+bc_neumann = Neumann(1.0)
+bc_periodic = Periodic()
 
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc1, :right => bc1, :top => bc1, :bottom => bc1))
 
