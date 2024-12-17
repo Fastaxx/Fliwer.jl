@@ -165,3 +165,88 @@ function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
         return ConvectionOps{N}((Cx, Cy, Cz), (Kx, Ky, Kz), G, H, Wꜝ, V, size)
     end
 end
+
+"""
+    struct NavierStokesOps{N} <: AbstractOperators where N
+
+Struct representing a collection of Navier-Stokes operators.
+
+# Fields
+- `C`: A tuple of N sparse matrices representing the C operators : Cx, Cy, Cz.
+- `K`: A tuple of N sparse matrices representing the K operators : Kx, Ky, Kz.
+- `G`: A sparse matrix representing the G operator : Gx, Gy, Gz.
+- `H`: A sparse matrix representing the H operator : Hx, Hy, Hz.
+- `Wꜝ`: A sparse matrix representing the Wꜝ operator : Wꜝx, Wꜝy, Wꜝz.
+- `V`: A sparse matrix representing the V operator.
+"""
+struct NavierStokesOps{N} <: AbstractOperators where N
+    C :: NTuple{N, SparseMatrixCSC{Float64, Int}}
+    K :: NTuple{N, SparseMatrixCSC{Float64, Int}}
+    G :: NTuple{N, SparseMatrixCSC{Float64, Int}}
+    H :: NTuple{N, SparseMatrixCSC{Float64, Int}}
+    Wꜝ:: NTuple{N, SparseMatrixCSC{Float64, Int}}
+    V :: SparseMatrixCSC{Float64, Int}
+    size :: NTuple{N, Int}
+end
+
+"""
+    NavierStokesOps(A, B, V, W, size)
+
+Constructs the Navier-Stokes operators for a given system.
+# Arguments
+- `CapP`: Capacity for the pressure.
+- `CapU`: Capacity for the u-velocity.
+- `size`: Array of sizes for each dimension.
+"""
+function NavierStokesOps(CapP, CapU, size, uₒ, uᵧ)
+    return NavierStokesOps{length(size)}(ConvectionOps(CapU.A, CapU.B, CapU.V, CapU.W, size, CapU.uₒ, CapU.uᵧ))
+
+end
+
+function NavierStokesOps(CapP, CapU, CapV, size, uₒ, uᵧ)
+    nx, ny = size[1], size[2]
+    nxu, nyu = size[1]+1, size[2]
+    nxv, nyv = size[1], size[2]+1
+    Dx_m, Dy_m = kron(I(ny), ẟ_m(nx)), kron(ẟ_m(ny), I(nx))
+    Dx_mu, Dy_mu = kron(I(nyu), ẟ_m(nxu)), kron(ẟ_m(nyu), I(nxu))
+    Dx_mv, Dy_mv = kron(I(nyv), ẟ_m(nxv)), kron(ẟ_m(nyv), I(nxv))
+    Dx_p, Dy_p = kron(I(ny), δ_p(nx)), kron(δ_p(ny), I(nx))
+    Dx_pu, Dy_pu = kron(I(nyu), δ_p(nxu)), kron(δ_p(nyu), I(nxu))
+    Dx_pv, Dy_pv = kron(I(nyv), δ_p(nxv)), kron(δ_p(nyv), I(nxv))
+    Sx_p, Sy_p = kron(I(ny), Σ_p(nx)), kron(Σ_p(ny), I(nx))
+    Sx_pu, Sy_pu = kron(I(nyu), Σ_p(nxu)), kron(Σ_p(nyu), I(nxu))
+    Sx_pv, Sy_pv = kron(I(nyv), Σ_p(nxv)), kron(Σ_p(nyv), I(nxv))
+    Sx_m, Sy_m = kron(I(ny), Σ_m(nx)), kron(Σ_m(ny), I(nx))
+    Sx_mu, Sy_mu = kron(I(nyu), Σ_m(nxu)), kron(Σ_m(nyu), I(nxu))
+    Sx_mv, Sy_mv = kron(I(nyv), Σ_m(nxv)), kron(Σ_m(nyv), I(nxv))
+    Gp = [Dx_m * CapP.B[1]; Dy_m * CapP.B[2]]
+    Gu = [Dx_mu * CapU.B[1]; Dy_mu * CapU.B[2]]
+    Gv = [Dx_mv * CapV.B[1]; Dy_mv * CapV.B[2]]
+    Hp = [CapP.A[1]*Dx_m - Dx_m*CapP.B[1]; CapP.A[2]*Dy_m - Dy_m*CapP.B[2]]
+    Hu = [CapU.A[1]*Dx_mu - Dx_mu*CapU.B[1]; CapU.A[2]*Dy_mu - Dy_mu*CapU.B[2]]
+    Hv = [CapV.A[1]*Dx_mv - Dx_mv*CapV.B[1]; CapV.A[2]*Dy_mv - Dy_mv*CapV.B[2]]
+    diagWp = diag(blockdiag(CapP.W[1], CapP.W[2]))
+    diagWu = diag(blockdiag(CapU.W[1], CapU.W[2]))
+    diagWv = diag(blockdiag(CapV.W[1], CapV.W[2]))
+    new_diagWp = [val != 0 ? 1.0 / val : 1.0 for val in diagWp]
+    new_diagWu = [val != 0 ? 1.0 / val : 1.0 for val in diagWu]
+    new_diagWv = [val != 0 ? 1.0 / val : 1.0 for val in diagWv]
+    Wꜝp = spdiagm(0 => new_diagWp)
+    Wꜝu = spdiagm(0 => new_diagWu)
+    Wꜝv = spdiagm(0 => new_diagWv)
+    Cxu = Dx_pu * spdiagm(0 => (Sx_mu * CapU.A[1] * uₒ[1])) * Sx_mu
+    Cyu = Dy_pu * spdiagm(0 => (Sy_mu * CapU.A[2] * uₒ[2])) * Sy_mu
+    Cxv = Dx_pv * spdiagm(0 => (Sx_mv * CapV.A[1] * uₒ[1])) * Sx_mv
+    Cyv = Dy_pv * spdiagm(0 => (Sy_mv * CapV.A[2] * uₒ[2])) * Sy_mv
+    Cx = Cxu + Cyu
+    Cy = Cxv + Cyv
+    Kxu = spdiagm(0 => Sx_pu * Hu' * uᵧ)
+    Kyv = spdiagm(0 => Sy_pv * Hv' * uᵧ)
+    Kx = Kxu
+    Ky = Kyv
+    return NavierStokesOps{2}((Cx, Cy), (Kx, Ky), (Gu, Gv), (Hu, Hv), (Wꜝu, Wꜝv), CapP.V, size)
+end
+
+function NavierStokesOps(CapP, CapU, CapV, CapW, size, uₒ, uᵧ)
+    return NavierStokesOps{length(size)}(ConvectionOps(CapU.A, CapU.B, CapU.V, CapU.W, size, CapU.uₒ, CapU.uᵧ))
+end

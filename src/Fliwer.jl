@@ -23,16 +23,18 @@ include("Body.jl")
 export AbstractBody,Body,NoBody,sdf,+,⊖,c,measure, NoBody1D, NoBody2D, NoBody3D, curvature
 
 include("Capacity.jl")
-export AbstractCapacity,Capacity,measure!
+export AbstractCapacity,Capacity,remeasure!
 
 include("Operators.jl")
 export AbstractOperators, DiffusionOps, ConvectionOps, ẟ_m, δ_p, Σ_m, Σ_p, I
+export NavierStokesOps
 
 include("Boundary.jl")
 export AbstractBoundary, Dirichlet, Neumann, Robin, Periodic, AbstractInterfaceBC, ScalarJump, FluxJump, BorderConditions, InterfaceConditions
 
 include("Phase.jl")
 export Phase
+export Velocity, Pressure
 
 include("Utils.jl")
 export identify!, find_border, find_cut, eval_sdf 
