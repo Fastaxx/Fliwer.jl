@@ -54,6 +54,9 @@ export solve_AdvectionDiffusionSteadyMono!, solve_AdvectionDiffusionSteadyDiph!,
 include("Solve.jl")
 export solve!
 
+include("SolverVec.jl")
+export VectorSolver, NavierStokesUnsteadyMono, solve_NavierStokesUnsteadyMono!
+
 include("Vizualize.jl")
 export plot_solution, plot_profile, animate_solution
 

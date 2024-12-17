@@ -3,7 +3,7 @@ using IterativeSolvers
 
 ### 2D Test Case : Poiseuille Flow
 # Define the mesh
-nx, ny = 10, 10
+nx, ny = 100, 100
 lx, ly = 1., 1.
 x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
@@ -52,4 +52,9 @@ velocity = Velocity(capacity_u, capacity_v, operator, f, ρ, Re)
 # Define the solver
 Δt = 0.01
 Tend = 1.0
-#solver = NavierStokesUnsteadyMono(Pressure, Velocity, bc, Δt, Tend, u0)
+solver = NavierStokesUnsteadyMono(pressure, velocity, bc, Δt, Tend, uₒ)
+
+# Solve the problem
+solve_NavierStokesUnsteadyMono!(solver, pressure, velocity, uₒ, Δt, Tend, bc; method=IterativeSolvers.bicgstabl, abstol=1e-15, verbose=false)
+
+# Write the solution to a VTK file

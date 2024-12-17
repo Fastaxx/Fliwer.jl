@@ -1,17 +1,3 @@
-@enum TimeType begin
-    Steady
-    Unsteady
-end
-
-@enum PhaseType begin
-    Monophasic
-    Diphasic
-end
-
-@enum EquationType begin
-    Advection            # ∂ₜu⃗ +(u⃗ ·∇)u⃗ = 0
-end
-
 mutable struct VectorSolver{TT<:TimeType, PT<:PhaseType, ET<:EquationType}
     time_type::TT
     phase_type::PT
@@ -23,22 +9,35 @@ mutable struct VectorSolver{TT<:TimeType, PT<:PhaseType, ET<:EquationType}
     states::Vector{Any}
 end
 
-# Advection - Steady - Mono
-function VectorAdvectionSteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::AbstractBoundary)
-    println("Création du solveur Vector")
+# Navier-Stokes Monophasic Unsteady
+function NavierStokesUnsteadyMono(pressure, velocity, bc_b, Δt, Tend, uₒ)
+    println("Création du solveur Navier-Stokes Monophasic Unsteady")
     println("- Monophasic problem")
-    println("- Steady problem")
-    println("- Advection problem")
+    println("- Unsteady problem")
 
-    s = VectorSolver(Steady, Monophasic, Advection, nothing, nothing, nothing, ConvergenceHistory(), [])
+    s = VectorSolver(Unsteady, Monophasic, DiffusionAdvection, nothing, nothing, nothing, ConvergenceHistory(), [])
 
-    s.A = build_vector_mono_steady_advection_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i)
-    s.b = build_vector_mono_steady_advection_rhs(phase.operator, phase.capacity, bc_b, bc_i)
+    s.A = build_navier_stokes_matrix(pressure.capacity, velocity.capacity_u, velocity.capacity_v, velocity.ρ, velocity.Re, Δt)
+    s.b = build_navier_stokes_rhs(pressure.capacity, velocity.capacity_u, velocity.capacity_v, velocity.ρ, velocity.Re, Δt, uₒ)
 
     # BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
     return s
 end
 
-function build_vector_mono_steady_advection_matrix(operator::AbstractOperators, capacity::Capacity, Diffusion_coeff::Float64, bc_b::BorderConditions, bc_i::AbstractBoundary)
-    
+function build_navier_stokes_matrix(capacity_p, capacity_u, capacity_v, ρ, Re, Δt)
+    return nothing
 end
+
+function build_navier_stokes_rhs(capacity_p, capacity_u, capacity_v, ρ, Re, Δt, uₒ)
+    return nothing
+end
+
+function solve_NavierStokesUnsteadyMono!(solver::VectorSolver, pressure::Pressure, velocity::Velocity, uₒ, Δt, Tend, bc; method=IterativeSolvers.bicgstabl, abstol=1e-15, verbose=false)
+    println("Solve Navier-Stokes Monophasic Unsteady")
+    println("- Monophasic problem")
+    println("- Unsteady problem")
+    println("- Solver: ", method)
+    println("- Absolute tolerance: ", abstol)
+    println("- Verbose: ", verbose)
+end
+    
