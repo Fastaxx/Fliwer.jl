@@ -4,7 +4,7 @@ using SparseArrays
 
 ### 1D Test Case : Navier-Stokes
 # Define the mesh
-nx = 40
+nx = 80
 lx = 1.
 x0 = 0.
 domain = ((x0, lx),)
@@ -51,11 +51,11 @@ velocity = Velocity{1}((capacity_u,), operator, f, ρ, Re)
 
 # Define the solver
 Δt = 0.001
-Tend = 0.1
+Tend = 0.0
 solver = NavierStokesUnsteadyMono(velocity, bc, Δt, Tend, x0)
 
 # Solve the problem
-solve_NavierStokesUnsteadyMono!(solver, velocity, uₒ, uᵧ, Δt, Tend, bc; method=IterativeSolvers.bicgstabl, abstol=1e-15, verbose=false)
+solve_NavierStokesUnsteadyMono!(solver, velocity, Δt, Tend, bc; method=IterativeSolvers.bicgstabl, abstol=1e-15, verbose=false)
 
 # Plot
 using CairoMakie
