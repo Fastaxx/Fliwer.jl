@@ -3,8 +3,8 @@ using IterativeSolvers
 
 ### 2D Test Case : Poiseuille Flow
 # Define the mesh
-nx, ny = 100, 100
-lx, ly = 1., 1.
+nx, ny = 3, 3
+lx, ly = 3., 3.
 x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
 mesh_p = CartesianMesh((nx, ny), (lx, ly), (x0, y0))
@@ -13,6 +13,11 @@ mesh_p = CartesianMesh((nx, ny), (lx, ly), (x0, y0))
 mesh_u = CartesianMesh((nx+1, ny), (lx, ly), (x0 - lx/(2*nx), y0))
 # For v-velocity (faces in y-direction)
 mesh_v = CartesianMesh((nx, ny+1), (lx, ly), (x0, y0 - ly/(2*ny)))
+
+@show mesh_p.centers
+@show mesh_p.faces
+@show mesh_u.centers
+@show mesh_v.centers
 
 # Define the body
 body = NoBody2D(domain)
@@ -47,7 +52,7 @@ f = (x, y, z, t) -> 0.0
 ρ = 1.0
 Re = 100.0
 pressure = Pressure(capacity_p, operator, f, 1.0)
-velocity = Velocity(capacity_u, capacity_v, operator, f, ρ, Re)
+velocity = Velocity{2}((capacity_u, capacity_v), operator, source, ρ, Re)
 
 # Define the solver
 Δt = 0.01

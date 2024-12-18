@@ -16,9 +16,8 @@ mutable struct Phase
     Diffusion_coeff::Union{Function, Float64}
 end
 
-mutable struct Velocity
-    capacity_u::AbstractCapacity
-    capacity_v::AbstractCapacity
+mutable struct Velocity{N}
+    capacities::NTuple{N, AbstractCapacity}
     operator::AbstractOperators
     source::Union{Function, Nothing}
     ρ::Float64
@@ -31,4 +30,3 @@ mutable struct Pressure
     source::Union{Function, Nothing}
     ρ::Float64
 end
-

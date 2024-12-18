@@ -83,3 +83,67 @@ end
 
 nC(mesh::CartesianMesh{N}) where N = prod(length.(mesh.h))
 
+function create_staggered_meshes(mesh_cc::CartesianMesh{1})
+    # Extract cell centers and sizes
+    x_centers = mesh_cc.centers[1]
+    h_x = mesh_cc.h[1]
+
+    # Compute staggered nodes for x-velocity (mesh_stx)
+    xx = vcat(
+        x_centers[1] - h_x[1]/2,
+        x_centers[1:end-1] .+ h_x[1:end-1]/2,
+        x_centers[end] + h_x[end]/2
+    )
+
+    # Create mesh_stx
+    nx_stx = length(xx) - 1
+    mesh_stx = CartesianMesh(
+        (nx_stx,),
+        (xx[end] - xx[1],),
+        (xx[1],)
+    )
+
+    return (mesh_cc, mesh_stx)
+end
+
+function create_staggered_meshes(mesh_cc::CartesianMesh{2})
+    # Extract cell centers and sizes
+    x_centers = mesh_cc.centers[1]
+    y_centers = mesh_cc.centers[2]
+    h_x = mesh_cc.h[1]
+    h_y = mesh_cc.h[2]
+
+    # Compute staggered nodes for x-velocity (mesh_stx)
+    xx = vcat(
+        x_centers[1] - h_x[1]/2,
+        x_centers[1:end-1] .+ h_x[1:end-1]/2,
+        x_centers[end] + h_x[end]/2
+    )
+
+    # Create mesh_stx
+    nx_stx = length(xx) - 1
+    ny_stx = length(y_centers)
+    mesh_stx = CartesianMesh(
+        (nx_stx, ny_stx),
+        (xx[end] - xx[1], y_centers[end] - y_centers[1]),
+        (xx[1], y_centers[1])
+    )
+
+    # Compute staggered nodes for y-velocity (mesh_sty)
+    yy = vcat(
+        y_centers[1] - h_y[1]/2,
+        y_centers[1:end-1] .+ h_y[1:end-1]/2,
+        y_centers[end] + h_y[end]/2
+    )
+
+    # Create mesh_sty
+    nx_sty = length(x_centers)
+    ny_sty = length(yy) - 1
+    mesh_sty = CartesianMesh(
+        (nx_sty, ny_sty),
+        (x_centers[end] - x_centers[1], yy[end] - yy[1]),
+        (x_centers[1], yy[1])
+    )
+
+    return (mesh_cc, mesh_stx, mesh_sty)
+end

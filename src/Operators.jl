@@ -185,7 +185,7 @@ struct NavierStokesOps{N} <: AbstractOperators where N
     G :: NTuple{N, SparseMatrixCSC{Float64, Int}}
     H :: NTuple{N, SparseMatrixCSC{Float64, Int}}
     Wꜝ:: NTuple{N, SparseMatrixCSC{Float64, Int}}
-    V :: SparseMatrixCSC{Float64, Int}
+    V :: NTuple{N, SparseMatrixCSC{Float64, Int}}
     size :: NTuple{N, Int}
 end
 
@@ -198,9 +198,16 @@ Constructs the Navier-Stokes operators for a given system.
 - `CapU`: Capacity for the u-velocity.
 - `size`: Array of sizes for each dimension.
 """
-function NavierStokesOps(CapP, CapU, size, uₒ, uᵧ)
-    return NavierStokesOps{length(size)}(ConvectionOps(CapU.A, CapU.B, CapU.V, CapU.W, size, CapU.uₒ, CapU.uᵧ))
-
+function NavierStokesOps(CapU, size, uₒ, uᵧ)
+    nx = size[1]
+    Gu = ẟ_m(nx) * CapU.B[1]
+    Hu = CapU.A[1] * ẟ_m(nx) - ẟ_m(nx) * CapU.B[1]
+    diagWu = diag(blockdiag(CapU.W[1]))
+    new_diagWu = [val != 0 ? 1.0 / val : 1.0 for val in diagWu]
+    Wꜝu = spdiagm(0 => new_diagWu)
+    Cxu = δ_p(nx) * spdiagm(0 => (Σ_m(nx) * CapU.A[1] * uₒ[1])) * Σ_m(nx)
+    Kxu = spdiagm(0 => Σ_p(nx) * Hu' * uᵧ)
+    return NavierStokesOps{1}((Cxu,), (Kxu,), (Gu,), (Hu,), (Wꜝu,), (CapU.V,), size)
 end
 
 function NavierStokesOps(CapP, CapU, CapV, size, uₒ, uᵧ)
@@ -244,7 +251,7 @@ function NavierStokesOps(CapP, CapU, CapV, size, uₒ, uᵧ)
     Kyv = spdiagm(0 => Sy_pv * Hv' * uᵧ)
     Kx = Kxu
     Ky = Kyv
-    return NavierStokesOps{2}((Cx, Cy), (Kx, Ky), (Gu, Gv), (Hu, Hv), (Wꜝu, Wꜝv), CapP.V, size)
+    return NavierStokesOps{2}((Cx, Cy), (Kx, Ky), (Gu, Gv), (Hu, Hv), (Wꜝu, Wꜝv), (CapU.V, CapV.V), size)
 end
 
 function NavierStokesOps(CapP, CapU, CapV, CapW, size, uₒ, uᵧ)

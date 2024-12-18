@@ -17,7 +17,7 @@ using CartesianGeometry
 using WriteVTK
 
 include("Mesh.jl")
-export CartesianMesh, nC, MeshTag
+export CartesianMesh, nC, MeshTag, create_staggered_meshes
 
 include("Body.jl")
 export AbstractBody,Body,NoBody,sdf,+,⊖,c,measure, NoBody1D, NoBody2D, NoBody3D, curvature
