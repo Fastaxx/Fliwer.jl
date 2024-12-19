@@ -5,7 +5,7 @@ using SparseArrays
 ### 1D Test Case : Navier-Stokes
 # Define the mesh
 nx = 80
-lx = 1.
+lx = 10.
 x0 = 0.
 domain = ((x0, lx),)
 mesh_p = CartesianMesh((nx,), (lx,), (x0,))
@@ -45,7 +45,7 @@ f = (x, y, z, t) -> 0.0
 
 # Define the phase
 ρ = 1.0
-Re = 1.0
+Re = 100.0
 #pressure = Pressure(capacity_p, operator, f, 1.0)
 velocity = Velocity{1}((capacity_u,), operator, f, ρ, Re)
 

@@ -188,3 +188,113 @@ function solve_NavierStokesUnsteadyMono!(s::VectorSolver, velocity::Velocity, Δ
     end
 end
     
+
+
+function AdvectionVecUnsteadyMono(velocity, bc, Δt, Tend, x0)
+    println("Création du solveur Advection Vectoriel Monophasic Unsteady")
+    println("- Monophasic problem")
+    println("- Unsteady problem")
+
+    s = VectorSolver(Unsteady, Monophasic, Advection, nothing, nothing, nothing, ConvergenceHistory(), [])
+
+    if typeof(velocity)==Velocity{1}
+        println("1D")
+    elseif typeof(velocity)==Velocity{2}
+        s.A = build_advection_vec_matrix_init(velocity.operator, velocity.capacities, velocity.ρ, Δt, x0)
+        s.b = build_advection_vec_rhs_init(velocity.operator, velocity.capacities, velocity.source, Δt, x0)
+        push!(s.states, x0)
+    end
+
+    # BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
+    return s
+end
+
+function build_advection_vec_matrix_init(operator, capacities, ρ, Δt, x0)
+    n = prod(operator.size)
+
+    #A = spzeros(Float64, n, n)
+    Cx, Cy = operator.C[1], operator.C[2]
+    Kx, Ky = operator.K[1], operator.K[2]
+    Vx, Vy = operator.V[1], operator.V[2]
+
+    # Compute the blocks
+    block1 = Vx/Δt + 1/2 * Cx + 1/4 * Kx
+    block2 = 1/4 * Kx
+    block3 = I(n)
+    block4 = Vy/Δt + 1/2 * Cy + 1/4 * Ky
+    block5 = 1/4 * Ky
+    block6 = I(n)
+    zeroblock = zeros(n, n)
+
+    # Fill the matrix
+    A = [block1 block2 zeroblock zeroblock;
+        zeroblock block3 zeroblock zeroblock;
+        zeroblock zeroblock block4 block5;
+        zeroblock zeroblock zeroblock block6]
+
+    return A
+end
+
+function build_advection_vec_rhs_init(operator, capacities, source, Δt, x0)
+    n = prod(operator.size)
+    b = zeros(4n)
+
+    Cx, Cy = operator.C[1], operator.C[2]
+    Kx, Ky = operator.K[1], operator.K[2]
+    Vx, Vy = operator.V[1], operator.V[2]
+
+    uₒx, uᵧx = x0[1:n], x0[n+1:2n]
+    uₒy, uᵧy = x0[2n+1:3n], x0[3n+1:4n]
+
+    b1 = Vx/Δt * uₒx - 1/2 * Cx * uₒx - 1/4 * Kx * uₒx - 1/2 * Kx * uᵧx
+    b2 = uᵧx
+    b3 = Vy/Δt * uₒy - 1/2 * Cy * uₒy - 1/4 * Ky * uₒy - 1/2 * Ky * uᵧy
+    b4 = uᵧy
+
+    b = [b1; b2; b3; b4]
+    return b
+end
+
+function build_advection_vec_matrix(operator, capacities, ρ, Δt, xn, xn1)
+    n = prod(operator.size)
+    nx, ny = operator.size
+
+    uₒx, uᵧx = xn[1:n], xn[n+1:2n]
+    uₒy, uᵧy = xn[2n+1:3n], xn[3n+1:4n]
+    uₒx1, uᵧx1 = xn1[1:n], xn1[n+1:2n]
+    uₒy1, uᵧy1 = xn1[2n+1:3n], xn1[3n+1:4n]
+
+    Vx, Vy = operator.V[1], operator.V[2]
+
+    Dx_m, Dy_m = kron(I(ny), ẟ_m(nx)), kron(ẟ_m(ny), I(nx))
+    Dx_p, Dy_p = kron(I(ny), δ_p(nx)), kron(δ_p(ny), I(nx))
+    Sx_m, Sy_m = kron(I(ny), Σ_m(nx)), kron(Σ_m(ny), I(nx))
+    Sx_p, Sy_p = kron(I(ny), Σ_p(nx)), kron(Σ_p(ny), I(nx))
+
+    Cxun = Dx_p * spdiagm(0 => (Sx_m * capacities[1].A[1] * uₒx[1])) * Sx_m 
+    Cyun = Dy_p * spdiagm(0 => (Sy_m * capacities[1].A[2] * uₒy[2])) * Sy_m
+    Cxvn = Dx_p * spdiagm(0 => (Sx_m * capacities[2].A[1] * uₒ[1])) * Sx_m
+    Cyvn = Dy_p * spdiagm(0 => (Sy_m * capacities[2].A[2] * uₒ[2])) * Sy_m
+    Cx = Cxu + Cxv
+    Cy = Cyu + Cyv
+
+    Kx = spdiagm(0 => Sx_p * Hu' * uᵧ)
+    Ky = spdiagm(0 => Sy_p * Hv' * uᵧ)
+
+    # Compute the blocks
+    block1 = Vx/Δt 
+    block2 = 1/4 * Kx
+    block3 = I(n)
+    block4 = Vy/Δt + 1/2 * Cy + 3/4 * Ky - 1/4 * Ky
+    block5 = 1/4 * Ky
+    block6 = I(n)
+    zeroblock = zeros(n, n)
+
+    # Fill the matrix
+    A = [block1 block2 zeroblock zeroblock;
+        zeroblock block3 zeroblock zeroblock;
+        zeroblock zeroblock block4 block5;
+        zeroblock zeroblock zeroblock block6]
+
+    return A
+end

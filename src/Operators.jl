@@ -167,6 +167,46 @@ function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
 end
 
 """
+    struct AdvectionVecOps{N} <: AbstractOperators where N
+
+Struct representing a collection of advection operators for a vector field.
+"""
+struct AdvectionVecOps{N} <: AbstractOperators
+    C :: NTuple{N, SparseMatrixCSC{Float64, Int}}
+    K :: NTuple{N, SparseMatrixCSC{Float64, Int}}
+    V :: NTuple{N, SparseMatrixCSC{Float64, Int}}
+    size :: NTuple{N, Int}
+end
+
+function AdvectionVecOps(capU, capV, size, uₒ, uᵧ)
+    nx, ny = size[1], size[2]
+
+    Dx_m, Dy_m = kron(I(ny), ẟ_m(nx)), kron(ẟ_m(ny), I(nx))
+    Dx_p, Dy_p = kron(I(ny), δ_p(nx)), kron(δ_p(ny), I(nx))
+    Sx_m, Sy_m = kron(I(ny), Σ_m(nx)), kron(Σ_m(ny), I(nx))
+    Sx_p, Sy_p = kron(I(ny), Σ_p(nx)), kron(Σ_p(ny), I(nx))
+
+
+    Hu = [capU.A[1]*Dx_m - Dx_m*capU.B[1]; capU.A[2]*Dy_m - Dy_m*capU.B[2]]
+    Hv = [capV.A[1]*Dx_m - Dx_m*capV.B[1]; capV.A[2]*Dy_m - Dy_m*capV.B[2]]
+
+    Cxu = Dx_p * spdiagm(0 => (Sx_m * capU.A[1] * uₒ[1])) * Sx_m 
+    Cyu = Dy_p * spdiagm(0 => (Sy_m * capU.A[2] * uₒ[2])) * Sy_m
+    Cxv = Dx_p * spdiagm(0 => (Sx_m * capV.A[1] * uₒ[1])) * Sx_m
+    Cyv = Dy_p * spdiagm(0 => (Sy_m * capV.A[2] * uₒ[2])) * Sy_m
+    Cx = Cxu + Cxv
+    Cy = Cyu + Cyv
+
+    Kx = spdiagm(0 => Sx_p * Hu' * uᵧ)
+    Ky = spdiagm(0 => Sy_p * Hv' * uᵧ)
+
+    return AdvectionVecOps{2}((Cx, Cy), (Kx, Ky), (capU.V, capV.V), size)
+end
+
+
+
+
+"""
     struct NavierStokesOps{N} <: AbstractOperators where N
 
 Struct representing a collection of Navier-Stokes operators.
