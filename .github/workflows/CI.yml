@@ -4,7 +4,6 @@ on:
     branches-ignore:
       - '**'  # Ignore tous les push sur toutes les branches
     tags: ['*']  # S'exécute uniquement sur les tags
-  pull_request:
   workflow_dispatch:
 concurrency:
   # Skip intermediate builds: always.

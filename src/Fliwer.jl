@@ -17,22 +17,25 @@ using CartesianGeometry
 using WriteVTK
 
 include("Mesh.jl")
-export CartesianMesh, nC, MeshTag
+export CartesianMesh, nC, MeshTag, create_staggered_meshes
 
 include("Body.jl")
 export AbstractBody,Body,NoBody,sdf,+,⊖,c,measure, NoBody1D, NoBody2D, NoBody3D, curvature
 
 include("Capacity.jl")
-export AbstractCapacity,Capacity,measure!
+export AbstractCapacity,Capacity,remeasure!
 
 include("Operators.jl")
 export AbstractOperators, DiffusionOps, ConvectionOps, ẟ_m, δ_p, Σ_m, Σ_p, I
+export AdvectionVecOps
+export NavierStokesOps
 
 include("Boundary.jl")
 export AbstractBoundary, Dirichlet, Neumann, Robin, Periodic, AbstractInterfaceBC, ScalarJump, FluxJump, BorderConditions, InterfaceConditions
 
 include("Phase.jl")
 export Phase
+export Velocity, Pressure
 
 include("Utils.jl")
 export identify!, find_border, find_cut, eval_sdf 
@@ -51,6 +54,10 @@ export solve_AdvectionDiffusionSteadyMono!, solve_AdvectionDiffusionSteadyDiph!,
 
 include("Solve.jl")
 export solve!
+
+include("SolverVec.jl")
+export VectorSolver, NavierStokesUnsteadyMono, solve_NavierStokesUnsteadyMono!
+export AdvectionVecUnsteadyMono, solve_AdvectionVecUnsteadyMono!
 
 include("Vizualize.jl")
 export plot_solution, plot_profile, animate_solution

@@ -115,7 +115,7 @@ end
 
 Queries the capacity of a body in a given mesh using the VOFI method at a given time `t`.
 """
-function measure!(capacity::AbstractCapacity, body::AbstractBody; t=0)
+function remeasure!(capacity::AbstractCapacity, body::AbstractBody; t=0)
     A, B, V, W, C_ω, C_γ, Γ, cell_types = VOFI(body, capacity.mesh)
     capacity.A, capacity.B, capacity.V, capacity.W, capacity.C_ω, capacity.C_γ, capacity.Γ, capacity.cell_types = A, B, V, W, C_ω, C_γ, Γ, cell_types
 end
