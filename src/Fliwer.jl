@@ -33,6 +33,7 @@ export AbstractBoundary, Dirichlet, Neumann, Robin, Periodic, AbstractInterfaceB
 
 include("Phase.jl")
 export Phase
+export VectorPhase
 
 include("Utils.jl")
 export identify!, find_border, find_cut, eval_sdf 
@@ -49,11 +50,15 @@ export solve_AdvectionUnsteadyMono!
 export AdvectionDiffusionSteadyMono, AdvectionDiffusionSteadyDiph, AdvectionDiffusionUnsteadyMono, AdvectionDiffusionUnsteadyDiph
 export solve_AdvectionDiffusionSteadyMono!, solve_AdvectionDiffusionSteadyDiph!, solve_AdvectionDiffusionUnsteadyMono!, solve_AdvectionDiffusionUnsteadyDiph!
 
+include("SolverVec.jl")
+export DiffusionVecUnsteadyMono, solve_DiffusionVecUnsteadyMono!
+
 include("Solve.jl")
 export solve!
 
 include("Vizualize.jl")
 export plot_solution, plot_profile, animate_solution
+export plot_mesh
 
 include("Vtk.jl")
 export write_vtk

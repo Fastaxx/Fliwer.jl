@@ -775,4 +775,55 @@ function plot_profile(solver::Solver, mesh::CartesianMesh; x=1.0)
 end
 
 
-    
+# Plot the mesh
+function plot_mesh(mesh_p, mesh_u)
+    fig = Figure(resolution = (800, 800))
+    ax = Axis(fig[1, 1], title = "Mesh Plot", xlabel = "x", ylabel = "y", aspect = DataAspect())
+
+    # Plot mesh_p centers
+    scatter!(ax, repeat(mesh_p.centers[1], inner=length(mesh_p.centers[2])), repeat(mesh_p.centers[2], outer=length(mesh_p.centers[1])), color = :blue, label = "mesh_p", markersize=15, marker = 'o')
+
+    # Plot mesh_u centers triangles
+    scatter!(ax, repeat(mesh_u.centers[1], inner=length(mesh_u.centers[2])), repeat(mesh_u.centers[2], outer=length(mesh_u.centers[1])), color = :red, label = "mesh_u", markersize=15, marker = :rtriangle)
+
+    axislegend(ax)
+    display(fig)
+end
+
+
+function plot_mesh(mesh_p, mesh_u, mesh_v)
+    fig = Figure(resolution = (800, 800))
+    ax = Axis(fig[1, 1], title = "Mesh Plot", xlabel = "x", ylabel = "y", aspect = DataAspect())
+
+    # Plot mesh_p centers
+    scatter!(ax, repeat(mesh_p.centers[1], inner=length(mesh_p.centers[2])), repeat(mesh_p.centers[2], outer=length(mesh_p.centers[1])), color = :blue, label = "mesh_p", markersize=15, marker = 'o')
+
+    # Plot mesh_u centers triangles
+    scatter!(ax, repeat(mesh_u.centers[1], inner=length(mesh_u.centers[2])), repeat(mesh_u.centers[2], outer=length(mesh_u.centers[1])), color = :red, label = "mesh_u", markersize=15, marker = :rtriangle)
+
+    # Plot mesh_v centers
+    scatter!(ax, repeat(mesh_v.centers[1], inner=length(mesh_v.centers[2])), repeat(mesh_v.centers[2], outer=length(mesh_v.centers[1])), color = :green, label = "mesh_v", markersize=15, marker = :utriangle)
+
+    axislegend(ax)
+    display(fig)
+end
+
+function plot_mesh(mesh_p, mesh_u, mesh_v, mesh_w)
+    fig = Figure(resolution = (800, 800))
+    ax = Axis3(fig[1, 1], title = "Mesh Plot", xlabel = "x", ylabel = "y", zlabel = "z", aspect = DataAspect())
+
+    # Plot mesh_p centers
+    scatter!(ax, repeat(mesh_p.centers[1], inner=length(mesh_p.centers[2])), repeat(mesh_p.centers[2], outer=length(mesh_p.centers[1])), repeat(mesh_p.centers[3], outer=length(mesh_p.centers[1])*length(mesh_p.centers[2])), color = :blue, label = "mesh_p", markersize=15, marker = 'o')
+
+    # Plot mesh_u centers triangles
+    scatter!(ax, repeat(mesh_u.centers[1], inner=length(mesh_u.centers[2])), repeat(mesh_u.centers[2], outer=length(mesh_u.centers[1])), repeat(mesh_u.centers[3], outer=length(mesh_u.centers[1])*length(mesh_u.centers[2])), color = :red, label = "mesh_u", markersize=15, marker = :rtriangle)
+
+    # Plot mesh_v centers
+    scatter!(ax, repeat(mesh_v.centers[1], inner=length(mesh_v.centers[2])), repeat(mesh_v.centers[2], outer=length(mesh_v.centers[1])), repeat(mesh_v.centers[3], outer=length(mesh_v.centers[1])*length(mesh_v.centers[2])), color = :green, label = "mesh_v", markersize=15, marker = :utriangle)
+
+    # Plot mesh_w centers
+    scatter!(ax, repeat(mesh_w.centers[1], inner=length(mesh_w.centers[2])), repeat(mesh_w.centers[2], outer=length(mesh_w.centers[1])), repeat(mesh_w.centers[3], outer=length(mesh_w.centers[1])*length(mesh_w.centers[2])), color = :yellow, label = "mesh_w", markersize=15, marker = :dtriangle)
+
+    axislegend(ax)
+    display(fig)
+end
