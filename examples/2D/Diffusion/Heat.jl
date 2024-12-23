@@ -3,7 +3,7 @@ using IterativeSolvers
 
 ### 2D Test Case : Monophasic Unsteady Diffusion Equation inside a Disk
 # Define the mesh
-nx, ny = 160, 160
+nx, ny = 40, 40
 lx, ly = 4., 4.
 x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
