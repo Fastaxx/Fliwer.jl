@@ -52,6 +52,7 @@ export solve_AdvectionDiffusionSteadyMono!, solve_AdvectionDiffusionSteadyDiph!,
 
 include("SolverVec.jl")
 export DiffusionVecUnsteadyMono, solve_DiffusionVecUnsteadyMono!
+export ConvectionVecUnsteadyMono, solve_ConvectionVecUnsteadyMono!
 
 include("Solve.jl")
 export solve!
