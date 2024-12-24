@@ -27,13 +27,17 @@ uyₒ0 = zeros((nx+1)*ny)
 uxᵧ0 = zeros(nx*(ny+1))
 uyᵧ0 = zeros((nx+1)*ny)
 
-# Fill uxₒ0 using mesh_u
+# Fill uxₒ0 using mesh_u and nan values for outside the circle
 for j in 1:length(mesh_u.centers[2])
     for i in 1:length(mesh_u.centers[1])
         x = mesh_u.centers[1][i]
         y = mesh_u.centers[2][j]
         idx = i + (j - 1) * (length(mesh_u.centers[1])+1)
         uxₒ0[idx] = -0.5 * (y - center[2])   # rigid rotation around the origin
+        if sqrt((mesh_u.centers[1][i] - center[1])^2 + (mesh_u.centers[2][j] - center[2])^2) > radius
+            idx = i + (j - 1) * (length(mesh_u.centers[1])+1)
+            #uxₒ0[idx] = NaN
+        end
     end
 end
 
@@ -44,6 +48,10 @@ for j in 1:length(mesh_v.centers[2])
         y = mesh_v.centers[2][j]
         idx = i + (j - 1) * (length(mesh_v.centers[1])+1)
         uyₒ0[idx] = 0.5 * (x - center[1])   # rigid rotation around the origin
+        if sqrt((mesh_v.centers[1][i] - center[1])^2 + (mesh_v.centers[2][j] - center[2])^2) > radius
+            idx = i + (j - 1) * (length(mesh_v.centers[1])+1)
+            #uyₒ0[idx] = NaN
+        end
     end
 end
 
@@ -51,12 +59,12 @@ end
 # Plot the initial condition
 using CairoMakie
 
-fig = Figure()
-ax1 = Axis(fig[1, 1], title = "uxₒ0")
+fig = Figure(size = (800, 800))
+ax1 = Axis(fig[1, 1], title = "uxₒ0", aspect=DataAspect())
 hm1 = heatmap!(ax1, reshape(uxₒ0, nx, ny+1), colormap=:viridis)
 Colorbar(fig[1, 2], hm1, label="uxₒ0")
 
-ax2 = Axis(fig[2, 1], title = "uyₒ0")
+ax2 = Axis(fig[2, 1], title = "uyₒ0", aspect=DataAspect())
 hm2 = heatmap!(ax2, reshape(uyₒ0, nx+1, ny), colormap=:viridis)
 Colorbar(fig[2, 2], hm2, label="uyₒ0")
 
@@ -77,8 +85,7 @@ capacity_u = Capacity(circle, mesh_u)
 capacity_v = Capacity(circle, mesh_v)
 
 # Define the operators
-operator_u = ConvectionOps(capacity_u.A, capacity_u.B, capacity_u.V, capacity_u.W, (nx, ny+1), (uxₒ0, uyₒ0), vcat(uxᵧ0, uyᵧ0))
-operator_v = ConvectionOps(capacity_v.A, capacity_v.B, capacity_v.V, capacity_v.W, (nx+1, ny), (uxₒ0, uyₒ0), vcat(uxᵧ0, uyᵧ0))
+operator = AdvectionVecOps((capacity_u, capacity_v), (nx-1,ny-1), (uxₒ0, uyₒ0), (uxᵧ0, uyᵧ0))
 
 # Define the boundary conditions for each velocity component
 # For u-component
@@ -94,7 +101,7 @@ fu = (x,y,z,t)-> 0.0
 fv = (x,y,z,t)-> 0.0
 
 # Define the phase
-Fluide = VectorPhase((capacity_u, capacity_v), (operator_u, operator_v), (fu,fv), 1.0)
+Fluide = VectorPhase((capacity_u, capacity_v), (operator, operator), (fu,fv), 1.0)
 
 # Define the solver
 Δt = 0.01
@@ -103,6 +110,16 @@ solver = ConvectionVecUnsteadyMono(Fluide, (bc_u, bc_v), (ic_u, ic_v), Δt, Tend
 
 # Solve the problem
 solve_ConvectionVecUnsteadyMono!(solver, Fluide, u0, Δt, Tend, (bc_u, bc_v), (ic_u, ic_v), method=IterativeSolvers.gmres)
+
+# Replace values greater than 1e3 by NaN
+for i in 1:length(solver.states)
+    for j in 1:length(solver.states[i])
+        if abs(solver.states[i][j]) > 0.5
+            solver.states[i][j] = NaN
+        end
+    end
+end
+
 
 
 using CairoMakie

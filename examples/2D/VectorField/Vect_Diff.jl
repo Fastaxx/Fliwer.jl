@@ -97,7 +97,7 @@ function plot_solution_vector(solver, nx, ny; iter=length(solver.states), title_
     Uyᵧ  = reshape(uyᵧ, nx+1, ny)
 
     # 4) Create a figure with four subplots
-    fig = Figure(resolution = (1200, 800))
+    fig = Figure(size = (1200, 800))
 
     # Plot Uxₒ
     ax1 = Axis(fig[1, 1], title = "$title_prefix : Uxₒ")

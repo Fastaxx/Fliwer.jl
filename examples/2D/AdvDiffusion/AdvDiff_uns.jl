@@ -62,7 +62,7 @@ T0 = vcat(T0ₒ, T0ᵧ)
 
 # Define the solver
 Δt = 0.01
-Tend = 2.0
+Tend = 10.0
 solver = AdvectionDiffusionUnsteadyMono(Fluide, bc_b, ic, Δt, Tend, T0)
 
 # Solve the problem
