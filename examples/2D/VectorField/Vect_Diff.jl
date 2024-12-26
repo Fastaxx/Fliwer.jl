@@ -68,6 +68,7 @@ solver = DiffusionVecUnsteadyMono(Fluide, (bc_u, bc_v), (ic_u, ic_v), Δt, Tend,
 # Solve the problem
 solve_DiffusionVecUnsteadyMono!(solver, Fluide, u0x, u0y, Δt, Tend, (bc_u, bc_v), (ic_u, ic_v), method=IterativeSolvers.gmres)
 
+write_vtk("DiffusionVecUnsteadyMono", mesh, solver)
 
 using CairoMakie
 

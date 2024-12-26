@@ -1,3 +1,29 @@
+"""
+    mutable struct SolverVec{TT<:TimeType, PT<:PhaseType, ET<:EquationType}
+
+The `SolverVec` struct represents a solver for a specific type of problem - Vector problem.
+
+# Fields
+- `time_type::TT`: The type of time used in the solver : `Steady` or `Unsteady`.
+- `phase_type::PT`: The type of phase used in the solver : `Monophasic` or `Diphasic`.
+- `equation_type::ET`: The type of equation used in the solver : `Diffusion`, `Advection` or `DiffusionAdvection`.
+- `A::Union{SparseMatrixCSC{Float64, Int}, Nothing}`: The coefficient matrix A of the equation system, if applicable.
+- `b::Union{Vector{Float64}, Nothing}`: The right-hand side vector b of the equation system, if applicable.
+- `x::Union{Vector{Float64}, Nothing}`: The solution vector x of the equation system, if applicable.
+- `states::Vector{Any}`: The states of the system at different times, if applicable.
+
+"""
+mutable struct SolverVec{TT<:TimeType, PT<:PhaseType, ET<:EquationType}
+    time_type::TT
+    phase_type::PT
+    equation_type::ET
+    A::Union{SparseMatrixCSC{Float64, Int}, Nothing}
+    b::Union{Vector{Float64}, Nothing}
+    x::Union{Vector{Float64}, Nothing}
+    ch::IterativeSolvers.ConvergenceHistory
+    states::Vector{Any}
+end
+
 # Vector Diffusion - Unsteady - Monophasic
 function DiffusionVecUnsteadyMono(phase::VectorPhase{1}, bc::Tuple{BorderConditions}, ic::Tuple{AbstractBoundary}, Δt::Float64, Tend::Float64, u0)
     println("Création du solveur:")
@@ -6,7 +32,7 @@ function DiffusionVecUnsteadyMono(phase::VectorPhase{1}, bc::Tuple{BorderConditi
     println("- Unsteady problem")
     println("- Diffusion problem")
     
-    s = Solver(Unsteady, Monophasic, Diffusion, nothing, nothing, nothing, ConvergenceHistory(), [])
+    s = SolverVec(Unsteady, Monophasic, Diffusion, nothing, nothing, nothing, ConvergenceHistory(), [])
 
     A_u = build_mono_unstead_diff_vec_matrix(phase, bc, ic, Δt)
     b_u = build_mono_unstead_diff_vec_rhs(phase, bc, ic, Δt, u0, 0.0)
@@ -25,7 +51,7 @@ function DiffusionVecUnsteadyMono(phase::VectorPhase{2}, bc::Tuple{BorderConditi
     println("- Unsteady problem")
     println("- Diffusion problem")
     
-    s = Solver(Unsteady, Monophasic, Diffusion, nothing, nothing, nothing, ConvergenceHistory(), [])
+    s = SolverVec(Unsteady, Monophasic, Diffusion, nothing, nothing, nothing, ConvergenceHistory(), [])
 
     A_u, A_v = build_mono_unstead_diff_vec_matrix(phase, bc, ic, Δt)
     b_u, b_v = build_mono_unstead_diff_vec_rhs(phase, bc, ic, Δt, u0x, u0y, 0.0)
@@ -44,7 +70,7 @@ function DiffusionVecUnsteadyMono(phase::VectorPhase{3}, bc::Tuple{BorderConditi
     println("- Unsteady problem")
     println("- Diffusion problem")
     
-    s = Solver(Unsteady, Monophasic, Diffusion, nothing, nothing, nothing, ConvergenceHistory(), [])
+    s = SolverVec(Unsteady, Monophasic, Diffusion, nothing, nothing, nothing, ConvergenceHistory(), [])
 
     A_u, A_v, A_w = build_mono_unstead_diff_vec_matrix(phase, bc, ic, Δt)
     b_u, b_v, b_w = build_mono_unstead_diff_vec_rhs(phase, bc, ic, Δt, u0x, u0y, u0z, 0.0)
@@ -143,7 +169,7 @@ function build_mono_unstead_diff_vec_rhs(phase::VectorPhase{3}, bc, ic, Δt, u0x
     return b_u, b_v, b_w
 end
 
-function solve_DiffusionVecUnsteadyMono!(solver::Solver, phase::VectorPhase{1}, u0, Δt::Float64, Tend::Float64, bc::Tuple{BorderConditions}, ic::Tuple{AbstractBoundary}; method=IterativeSolvers.bicgstabl)
+function solve_DiffusionVecUnsteadyMono!(solver::SolverVec, phase::VectorPhase{1}, u0, Δt::Float64, Tend::Float64, bc::Tuple{BorderConditions}, ic::Tuple{AbstractBoundary}; method=IterativeSolvers.bicgstabl)
     println("Résolution du problème:")
     println("- Vector problem")
     println("- Monophasic problem")
@@ -178,7 +204,7 @@ function solve_DiffusionVecUnsteadyMono!(solver::Solver, phase::VectorPhase{1}, 
     return u
 end
 
-function solve_DiffusionVecUnsteadyMono!(solver::Solver, phase::VectorPhase{2}, u0x, u0y, Δt::Float64, Tend::Float64, bc::Tuple{BorderConditions, BorderConditions}, ic::Tuple{AbstractBoundary, AbstractBoundary}; method=IterativeSolvers.bicgstabl)
+function solve_DiffusionVecUnsteadyMono!(solver::SolverVec, phase::VectorPhase{2}, u0x, u0y, Δt::Float64, Tend::Float64, bc::Tuple{BorderConditions, BorderConditions}, ic::Tuple{AbstractBoundary, AbstractBoundary}; method=IterativeSolvers.bicgstabl)
     println("Résolution du problème:")
     println("- Vector problem")
     println("- Monophasic problem")
@@ -218,7 +244,7 @@ function solve_DiffusionVecUnsteadyMono!(solver::Solver, phase::VectorPhase{2}, 
     return u
 end
 
-function solve_DiffusionVecUnsteadyMono!(solver::Solver, phase::VectorPhase{3}, u0x, u0y, u0z, Δt::Float64, Tend::Float64, bc::Tuple{BorderConditions, BorderConditions, BorderConditions}, ic::Tuple{AbstractBoundary, AbstractBoundary, AbstractBoundary}; method=IterativeSolvers.bicgstabl)
+function solve_DiffusionVecUnsteadyMono!(solver::SolverVec, phase::VectorPhase{3}, u0x, u0y, u0z, Δt::Float64, Tend::Float64, bc::Tuple{BorderConditions, BorderConditions, BorderConditions}, ic::Tuple{AbstractBoundary, AbstractBoundary, AbstractBoundary}; method=IterativeSolvers.bicgstabl)
     println("Résolution du problème:")
     println("- Vector problem")
     println("- Monophasic problem")
@@ -297,7 +323,7 @@ function ConvectionVecUnsteadyMono(phase::VectorPhase{2}, bc::Tuple{BorderCondit
     println("- Unsteady problem")
     println("- Convection problem")
     
-    s = Solver(Unsteady, Monophasic, Advection, nothing, nothing, nothing, ConvergenceHistory(), [])
+    s = SolverVec(Unsteady, Monophasic, Advection, nothing, nothing, nothing, ConvergenceHistory(), [])
 
     s.A = build_mono_unstead_conv_vec_matrix(phase, bc, ic, Δt)
     s.b = build_mono_unstead_conv_vec_rhs(phase, bc, ic, Δt, u0, 0.0)
@@ -425,7 +451,7 @@ function build_mono_unstead_conv_vec_rhs(phase, bc, ic, Δt, u0, t)
     #return b_u, b_v
 end
 
-function solve_ConvectionVecUnsteadyMono!(solver::Solver, phase::VectorPhase, u0::Vector{Float64}, Δt::Float64, Tend::Float64, bc::Tuple{BorderConditions, BorderConditions}, ic::Tuple{AbstractBoundary, AbstractBoundary}; method=IterativeSolvers.bicgstabl)
+function solve_ConvectionVecUnsteadyMono!(solver::SolverVec, phase::VectorPhase, u0::Vector{Float64}, Δt::Float64, Tend::Float64, bc::Tuple{BorderConditions, BorderConditions}, ic::Tuple{AbstractBoundary, AbstractBoundary}; method=IterativeSolvers.bicgstabl)
     println("Résolution du problème:")
     println("- Vector problem")
     println("- Monophasic problem")

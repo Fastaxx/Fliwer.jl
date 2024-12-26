@@ -157,3 +157,90 @@ function write_vtk(filename::String, mesh::CartesianMesh, solver::Solver)
         error("Invalid number of dimensions for mesh.centers.")
     end
 end
+
+function write_vtk(filename::String, mesh::CartesianMesh, solver::SolverVec)
+    if length(mesh.centers) == 1
+        if solver.time_type == Unsteady && solver.phase_type == Monophasic
+            # Unsteady, Monophasic, Diffusion
+            pvd = paraview_collection(filename)
+            for (i, state) in enumerate(solver.states)
+                vtk_grid(filename * "_$i", 0:1:length(mesh.centers[1])) do vtk
+                    vtk["Velocity_x_o"] = state[1:length(state) ÷ 2]
+                    vtk["Velocity_x_γ"] = state[length(state) ÷ 2 + 1:end]
+                    pvd[i] = vtk
+                end
+            end
+            vtk_save(pvd)
+            println("VTK file written : $filename.pvd")
+        else
+            error("Combination of TimeType, PhaseType, and EquationType not supported.")
+        end
+    elseif length(mesh.centers) == 2
+        if solver.time_type == Unsteady && solver.phase_type == Monophasic
+            pvd = paraview_collection(filename)
+            # Cas Unsteady, Monophasic, Diffusion
+            for (i, state) in enumerate(solver.states)
+                len_ux = length(mesh.centers[1]) * (length(mesh.centers[2]) + 1)
+                len_uy = (length(mesh.centers[1]) + 1) * length(mesh.centers[2])
+
+                uxₒ = state[1:len_ux]
+                uxᵧ = state[len_ux + 1:2 * len_ux]
+                uyₒ = state[2 * len_ux + 1:2 * len_ux + len_uy]
+                uyᵧ = state[2 * len_ux + len_uy + 1:end]
+
+                Uxₒ = reshape(uxₒ, length(mesh.centers[1]), length(mesh.centers[2]) + 1)
+                Uxᵧ = reshape(uxᵧ, length(mesh.centers[1]), length(mesh.centers[2]) + 1)
+                Uyₒ = reshape(uyₒ, length(mesh.centers[1]) + 1, length(mesh.centers[2]))
+                Uyᵧ = reshape(uyᵧ, length(mesh.centers[1]) + 1, length(mesh.centers[2]))
+                vtk_grid(filename * "_$i", 0:1:length(mesh.centers[1]), 0:1:length(mesh.centers[2])) do vtk
+                    vtk["Velocity_x_o"] = Uxₒ
+                    vtk["Velocity_x_γ"] = Uxᵧ
+                    vtk["Velocity_y_o"] = Uyₒ
+                    vtk["Velocity_y_γ"] = Uyᵧ
+                    pvd[i] = vtk
+                end
+            end
+            vtk_save(pvd)
+            println("VTK file written : $filename.pvd")
+        else
+            error("Combination of TimeType, PhaseType, and EquationType not supported.")
+        end
+    elseif length(mesh.centers) == 3
+        if solver.time_type == Unsteady && solver.phase_type == Monophasic
+            pvd = paraview_collection(filename)
+            # Cas Unsteady, Monophasic, Diffusion
+            for (i, state) in enumerate(solver.states)
+                vtk_grid(filename * "_$i", 0:1:length(mesh.centers[1]), 0:1:length(mesh.centers[2]), 0:1:length(mesh.centers[3])) do vtk
+                    len_ux = length(mesh.centers[1]) * (length(mesh.centers[2]) + 1)
+                    len_uy = (length(mesh.centers[1]) + 1) * length(mesh.centers[2])
+                    len_uz = (length(mesh.centers[1]) + 1) * (length(mesh.centers[2]) + 1) * length(mesh.centers[3])
+
+                    uxₒ = state[1:len_ux]
+                    uxᵧ = state[len_ux + 1:2 * len_ux]
+                    uyₒ = state[2 * len_ux + 1:2 * len_ux + len_uy]
+                    uyᵧ = state[2 * len_ux + len_uy + 1:2 * len_ux + len_uy + len_uz]
+                    uzₒ = state[2 * len_ux + len_uy + len_uz + 1:2 * len_ux + len_uy + 2 * len_uz]
+
+                    Uxₒ = reshape(uxₒ, length(mesh.centers[1]), length(mesh.centers[2]) + 1)
+                    Uxᵧ = reshape(uxᵧ, length(mesh.centers[1]), length(mesh.centers[2]) + 1)
+                    Uyₒ = reshape(uyₒ, length(mesh.centers[1]) + 1, length(mesh.centers[2]))
+                    Uyᵧ = reshape(uyᵧ, length(mesh.centers[1]) + 1, length(mesh.centers[2]))
+                    Uzₒ = reshape(uzₒ, length(mesh.centers[1]) + 1, length(mesh.centers[2]) + 1, length(mesh.centers[3]))
+
+                    vtk["Velocity_x_o"] = Uxₒ
+                    vtk["Velocity_x_γ"] = Uxᵧ
+                    vtk["Velocity_y_o"] = Uyₒ
+                    vtk["Velocity_y_γ"] = Uyᵧ
+                    vtk["Velocity_z_o"] = Uzₒ
+                    pvd[i] = vtk
+                end
+            end
+            vtk_save(pvd)
+            println("VTK file written : $filename.pvd")
+        else
+            error("Combination of TimeType, PhaseType, and EquationType not supported.")
+        end
+    else
+        error("Invalid number of dimensions for mesh.centers.")
+    end
+end
