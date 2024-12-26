@@ -3,7 +3,7 @@ using IterativeSolvers
 
 ### 2D Test Case : Monophasic Unsteady Diffusion of a Vector Field inside a Disk
 # Define the mesh
-nx, ny = 70, 60
+nx, ny = 20, 40
 lx, ly = 1., 1.
 x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
@@ -36,13 +36,13 @@ operator_v = DiffusionOps(capacity_v.A, capacity_v.B, capacity_v.V, capacity_v.W
 # Define the boundary conditions for each velocity component
 # For u-component
 bc_u = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => Dirichlet(0.0), :right => Dirichlet(0.0), :top => Dirichlet(0.0), :bottom => Dirichlet(0.0)))
-ic_u = Dirichlet(1.0)
+ic_u = Robin(1.0, 1.0, 0.0)
 # For v-component
 bc_v = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => Dirichlet(0.0), :right => Dirichlet(0.0), :top => Dirichlet(0.0), :bottom => Dirichlet(0.0)))
 ic_v = Dirichlet(0.0)
 
 # Define the source term
-fu = (x,y,z,t)-> 2.0
+fu = (x,y,z,t)-> 1.0
 fv = (x,y,z,t)-> 1.0
 
 # Define the phase
@@ -66,7 +66,7 @@ Tend = 1.0
 solver = DiffusionVecUnsteadyMono(Fluide, (bc_u, bc_v), (ic_u, ic_v), Δt, Tend, u0x, u0y)
 
 # Solve the problem
-solve_DiffusionVecUnsteadyMono!(solver, Fluide, u0x, u0y, Δt, Tend, (bc_u, bc_v), (ic_u, ic_v))
+solve_DiffusionVecUnsteadyMono!(solver, Fluide, u0x, u0y, Δt, Tend, (bc_u, bc_v), (ic_u, ic_v), method=IterativeSolvers.gmres)
 
 
 using CairoMakie
