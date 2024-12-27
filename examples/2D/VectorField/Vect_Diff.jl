@@ -124,4 +124,4 @@ function plot_solution_vector(solver, nx, ny; iter=length(solver.states), title_
 end
 
 # Example usage after solving:
-plot_solution_vector(solver, nx, ny, iter=19,title_prefix="DiffusionVecUnsteadyMono")
+#plot_solution_vector(solver, nx, ny, iter=19,title_prefix="DiffusionVecUnsteadyMono")
