@@ -169,7 +169,7 @@ function build_mono_unstead_diff_vec_rhs(phase::VectorPhase{3}, bc, ic, Δt, u0x
     return b_u, b_v, b_w
 end
 
-function solve_DiffusionVecUnsteadyMono!(solver::SolverVec, phase::VectorPhase{1}, u0, Δt::Float64, Tend::Float64, bc::Tuple{BorderConditions}, ic::Tuple{AbstractBoundary}; method=IterativeSolvers.bicgstabl)
+function solve_DiffusionVecUnsteadyMono!(solver::SolverVec, phase::VectorPhase{1}, u0, Δt::Float64, Tend::Float64, bc::Tuple{BorderConditions}, ic::Tuple{AbstractBoundary}; method::Function = gmres, kwargs...)
     println("Résolution du problème:")
     println("- Vector problem")
     println("- Monophasic problem")
@@ -182,7 +182,7 @@ function solve_DiffusionVecUnsteadyMono!(solver::SolverVec, phase::VectorPhase{1
     n = 0
 
     lenu = length(u0[1])
-
+    n_recon = Int(size(solver.A, 1) / 2)
     # Time loop
     while t < Tend
         n += 1
@@ -192,9 +192,23 @@ function solve_DiffusionVecUnsteadyMono!(solver::SolverVec, phase::VectorPhase{1
         solver.A = build_mono_unstead_diff_vec_matrix(phase, bc, ic, Δt)
         solver.b = build_mono_unstead_diff_vec_rhs(phase, bc, ic, Δt, u0, t)
 
-        # Solve the linear system
-        solver.x = method(solver.A, solver.b)
-
+        if method == \
+            # Remove zero rows and columns for direct solver
+            solver.A, solver.b, rows_idx, cols_idx = remove_zero_rows_cols!(solver.A, solver.b)
+            x_reduced = solver.A \ solver.b
+            # Reconstruct the full solution vector
+            solver.x = zeros(2*n_recon)
+            solver.x[cols_idx] = x_reduced
+        else
+            # Use iterative solver directly
+            kwargs_nt = (; kwargs...)
+            log = get(kwargs_nt, :log, false)
+            if log
+                solver.x, solver.ch = method(solver.A, solver.b; kwargs...)
+            else
+                solver.x = method(solver.A, solver.b; kwargs...)
+            end
+        end
         # Update the solution
         push!(solver.states, solver.x)
         @show maximum(solver.x)
@@ -204,7 +218,7 @@ function solve_DiffusionVecUnsteadyMono!(solver::SolverVec, phase::VectorPhase{1
     return u
 end
 
-function solve_DiffusionVecUnsteadyMono!(solver::SolverVec, phase::VectorPhase{2}, u0x, u0y, Δt::Float64, Tend::Float64, bc::Tuple{BorderConditions, BorderConditions}, ic::Tuple{AbstractBoundary, AbstractBoundary}; method=IterativeSolvers.bicgstabl)
+function solve_DiffusionVecUnsteadyMono!(solver::SolverVec, phase::VectorPhase{2}, u0x, u0y, Δt::Float64, Tend::Float64, bc::Tuple{BorderConditions, BorderConditions}, ic::Tuple{AbstractBoundary, AbstractBoundary}; method::Function = gmres, kwargs...)
     println("Résolution du problème:")
     println("- Vector problem")
     println("- Monophasic problem")
@@ -219,6 +233,7 @@ function solve_DiffusionVecUnsteadyMono!(solver::SolverVec, phase::VectorPhase{2
     lenu = length(u0x[1])
     lenv = length(u0y[1])
 
+    n_recon = Int(size(solver.A, 1) / 4)
     # Time loop
     while t < Tend
         n += 1
@@ -231,8 +246,23 @@ function solve_DiffusionVecUnsteadyMono!(solver::SolverVec, phase::VectorPhase{2
         solver.A = blockdiag(A_u, A_v)
         solver.b = vcat(b_u, b_v)
 
-        # Solve the linear system
-        solver.x = method(solver.A, solver.b)
+        if method == \
+            # Remove zero rows and columns for direct solver
+            solver.A, solver.b, rows_idx, cols_idx = remove_zero_rows_cols!(solver.A, solver.b)
+            x_reduced = solver.A \ solver.b
+            # Reconstruct the full solution vector
+            solver.x = zeros(4*n_recon)
+            solver.x[cols_idx] = x_reduced
+        else
+            # Use iterative solver directly
+            kwargs_nt = (; kwargs...)
+            log = get(kwargs_nt, :log, false)
+            if log
+                solver.x, solver.ch = method(solver.A, solver.b; kwargs...)
+            else
+                solver.x = method(solver.A, solver.b; kwargs...)
+            end
+        end
 
         # Update the solution
         push!(solver.states, solver.x)
@@ -244,7 +274,7 @@ function solve_DiffusionVecUnsteadyMono!(solver::SolverVec, phase::VectorPhase{2
     return u
 end
 
-function solve_DiffusionVecUnsteadyMono!(solver::SolverVec, phase::VectorPhase{3}, u0x, u0y, u0z, Δt::Float64, Tend::Float64, bc::Tuple{BorderConditions, BorderConditions, BorderConditions}, ic::Tuple{AbstractBoundary, AbstractBoundary, AbstractBoundary}; method=IterativeSolvers.bicgstabl)
+function solve_DiffusionVecUnsteadyMono!(solver::SolverVec, phase::VectorPhase{3}, u0x, u0y, u0z, Δt::Float64, Tend::Float64, bc::Tuple{BorderConditions, BorderConditions, BorderConditions}, ic::Tuple{AbstractBoundary, AbstractBoundary, AbstractBoundary}; method::Function = gmres, kwargs...)
     println("Résolution du problème:")
     println("- Vector problem")
     println("- Monophasic problem")
@@ -260,6 +290,8 @@ function solve_DiffusionVecUnsteadyMono!(solver::SolverVec, phase::VectorPhase{3
     lenv = length(u0y[1])
     lenw = length(u0z[1])
 
+    n_recon = Int(div(size(solver.A, 1),6))
+
     # Time loop
     while t < Tend
         n += 1
@@ -272,8 +304,23 @@ function solve_DiffusionVecUnsteadyMono!(solver::SolverVec, phase::VectorPhase{3
         solver.A = blockdiag(A_u, A_v, A_w)
         solver.b = vcat(b_u, b_v, b_w)
 
-        # Solve the linear system
-        solver.x = method(solver.A, solver.b)
+        if method == \
+            # Remove zero rows and columns for direct solver
+            solver.A, solver.b, rows_idx, cols_idx = remove_zero_rows_cols!(solver.A, solver.b)
+            x_reduced = solver.A \ solver.b
+            # Reconstruct the full solution vector
+            solver.x = zeros(6*n_recon)
+            solver.x[cols_idx] = x_reduced
+        else
+            # Use iterative solver directly
+            kwargs_nt = (; kwargs...)
+            log = get(kwargs_nt, :log, false)
+            if log
+                solver.x, solver.ch = method(solver.A, solver.b; kwargs...)
+            else
+                solver.x = method(solver.A, solver.b; kwargs...)
+            end
+        end
 
         # Update the solution
         push!(solver.states, solver.x)

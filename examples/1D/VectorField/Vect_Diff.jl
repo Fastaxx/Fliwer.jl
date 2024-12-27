@@ -53,7 +53,7 @@ Tend = 1.0
 solver = DiffusionVecUnsteadyMono(Fluide, (bc_u,), (ic_u,), Δt, Tend, u0x)
 
 # Solve the problem
-solve_DiffusionVecUnsteadyMono!(solver, Fluide, u0x, Δt, Tend, (bc_u,), (ic_u,), method=IterativeSolvers.gmres)
+solve_DiffusionVecUnsteadyMono!(solver, Fluide, u0x, Δt, Tend, (bc_u,), (ic_u,), method=Base.:\)
 
 write_vtk("DiffusionVecUnsteadyMono", mesh, solver)
 
