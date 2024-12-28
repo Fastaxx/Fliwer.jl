@@ -3,7 +3,7 @@ using IterativeSolvers
 
 ### 2D Test Case : Monophasic Unsteady Convection of a Vector Field inside a Disk
 # Define the mesh
-nx, ny = 40, 40
+nx, ny = 80, 80
 lx, ly = 4., 4.
 x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
@@ -74,6 +74,9 @@ readline()
 
 u0 = vcat(uxₒ0, uxᵧ0, uyₒ0, uyᵧ0)
 
+u0x = (uxₒ0, uxᵧ0)
+u0y = (uyₒ0, uyᵧ0)
+
 # Identify cells
 identify!(mesh, circle)
 identify!(mesh_u, circle)
@@ -85,23 +88,32 @@ capacity_u = Capacity(circle, mesh_u)
 capacity_v = Capacity(circle, mesh_v)
 
 # Define the operators
-operator = AdvectionVecOps((capacity_u, capacity_v), (nx-1,ny-1), (uxₒ0, uyₒ0), (uxᵧ0, uyᵧ0))
+#operator = AdvectionVecOps((capacity_u, capacity_v), (nx-1,ny-1), (uxₒ0, uyₒ0), (uxᵧ0, uyᵧ0))
+operator_u = ConvectionOps(capacity_u.A, capacity_u.B, capacity_u.V, capacity_u.W, (nx, ny+1), (uxₒ0, uyₒ0), vcat(uxᵧ0, uxᵧ0))
+operator_v = ConvectionOps(capacity_v.A, capacity_v.B, capacity_v.V, capacity_v.W, (nx+1, ny), (uyₒ0, uyₒ0), vcat(uyᵧ0, uyᵧ0))
 
 # Define the boundary conditions for each velocity component
 # For u-component
 bc_u = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => Dirichlet(0.0), :right => Dirichlet(0.0), :top => Dirichlet(0.0), :bottom => Dirichlet(0.0)))
-ic_u = Dirichlet(0.0)
+ic_u = Dirichlet(1.0)
 
 # For v-component
 bc_v = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => Dirichlet(0.0), :right => Dirichlet(0.0), :top => Dirichlet(0.0), :bottom => Dirichlet(0.0)))
 ic_v = Dirichlet(0.0)
 
 # Define the source term
-fu = (x,y,z,t)-> 0.0
+fu = (x,y,z,t)-> begin
+    r = sqrt((x - lx/2)^2 + (y - lx/4)^2)
+    if r <= 0.4
+        return 1.0
+    else
+        return 0.0
+    end
+    end
 fv = (x,y,z,t)-> 0.0
 
 # Define the phase
-Fluide = VectorPhase((capacity_u, capacity_v), (operator, operator), (fu,fv), 1.0)
+Fluide = VectorPhase((capacity_u, capacity_v), (operator_u, operator_v), (fu,fv), 1.0)
 
 # Define the solver
 Δt = 0.01
@@ -109,18 +121,7 @@ Tend = 1.0
 solver = ConvectionVecUnsteadyMono(Fluide, (bc_u, bc_v), (ic_u, ic_v), Δt, Tend, u0)
 
 # Solve the problem
-solve_ConvectionVecUnsteadyMono!(solver, Fluide, u0, Δt, Tend, (bc_u, bc_v), (ic_u, ic_v), method=IterativeSolvers.gmres)
-
-# Replace values greater than 1e3 by NaN
-for i in 1:length(solver.states)
-    for j in 1:length(solver.states[i])
-        if abs(solver.states[i][j]) > 0.5
-            solver.states[i][j] = NaN
-        end
-    end
-end
-
-
+solve_ConvectionVecUnsteadyMono!(solver, Fluide, u0, Δt, Tend, (bc_u, bc_v), (ic_u, ic_v), method=Base.:\)
 
 using CairoMakie
 
@@ -176,4 +177,4 @@ function plot_solution_vector(solver, nx, ny; iter=length(solver.states), title_
 end
 
 # Example usage after solving:
-plot_solution_vector(solver, nx, ny, iter=19,title_prefix="DiffusionVecUnsteadyMono")
+plot_solution_vector(solver, nx, ny, title_prefix="DiffusionVecUnsteadyMono")
