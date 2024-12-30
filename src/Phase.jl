@@ -17,3 +17,9 @@ struct Phase
 end
 
 
+struct VectorPhase{N} 
+    capacity :: NTuple{N, AbstractCapacity}
+    operator :: NTuple{N, AbstractOperators}
+    source :: NTuple{N, Union{Function, Nothing}}
+    Diffusion_coeff :: Union{Function, Float64}
+end

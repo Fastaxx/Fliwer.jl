@@ -775,4 +775,125 @@ function plot_profile(solver::Solver, mesh::CartesianMesh; x=1.0)
 end
 
 
+# Plot the mesh
+function plot_mesh(mesh_p, mesh_u)
+    fig = Figure(resolution = (800, 800))
+    ax = Axis(fig[1, 1], title = "Mesh Plot", xlabel = "x", ylabel = "y", aspect = DataAspect())
+
+    # Plot mesh_p centers
+    scatter!(ax, repeat(mesh_p.centers[1], inner=length(mesh_p.centers[2])), repeat(mesh_p.centers[2], outer=length(mesh_p.centers[1])), color = :blue, label = "mesh_p", markersize=15, marker = 'o')
+
+    # Plot mesh_u centers triangles
+    scatter!(ax, repeat(mesh_u.centers[1], inner=length(mesh_u.centers[2])), repeat(mesh_u.centers[2], outer=length(mesh_u.centers[1])), color = :red, label = "mesh_u", markersize=15, marker = :rtriangle)
+
+    axislegend(ax)
+    display(fig)
+end
+
+
+function plot_mesh(mesh_p, mesh_u, mesh_v)
+    fig = Figure(resolution = (800, 800))
+    ax = Axis(fig[1, 1], title = "Mesh Plot", xlabel = "x", ylabel = "y", aspect = DataAspect())
+
+    # Plot mesh_p centers
+    scatter!(ax, repeat(mesh_p.centers[1], inner=length(mesh_p.centers[2])), repeat(mesh_p.centers[2], outer=length(mesh_p.centers[1])), color = :blue, label = "mesh_p", markersize=15, marker = 'o')
+
+    # Plot mesh_u centers triangles
+    scatter!(ax, repeat(mesh_u.centers[1], inner=length(mesh_u.centers[2])), repeat(mesh_u.centers[2], outer=length(mesh_u.centers[1])), color = :red, label = "mesh_u", markersize=15, marker = :rtriangle)
+
+    # Plot mesh_v centers
+    scatter!(ax, repeat(mesh_v.centers[1], inner=length(mesh_v.centers[2])), repeat(mesh_v.centers[2], outer=length(mesh_v.centers[1])), color = :green, label = "mesh_v", markersize=15, marker = :utriangle)
+
+    axislegend(ax)
+    display(fig)
+end
+
+function plot_mesh(mesh_p, mesh_u, mesh_v, mesh_w)
+    fig = Figure(resolution = (800, 800))
+    ax = Axis3(fig[1, 1], title = "Mesh Plot", xlabel = "x", ylabel = "y", zlabel = "z", aspect = DataAspect())
+
+    # Plot mesh_p centers
+    scatter!(ax, repeat(mesh_p.centers[1], inner=length(mesh_p.centers[2])), repeat(mesh_p.centers[2], outer=length(mesh_p.centers[1])), repeat(mesh_p.centers[3], outer=length(mesh_p.centers[1])*length(mesh_p.centers[2])), color = :blue, label = "mesh_p", markersize=15, marker = 'o')
+
+    # Plot mesh_u centers triangles
+    scatter!(ax, repeat(mesh_u.centers[1], inner=length(mesh_u.centers[2])), repeat(mesh_u.centers[2], outer=length(mesh_u.centers[1])), repeat(mesh_u.centers[3], outer=length(mesh_u.centers[1])*length(mesh_u.centers[2])), color = :red, label = "mesh_u", markersize=15, marker = :rtriangle)
+
+    # Plot mesh_v centers
+    scatter!(ax, repeat(mesh_v.centers[1], inner=length(mesh_v.centers[2])), repeat(mesh_v.centers[2], outer=length(mesh_v.centers[1])), repeat(mesh_v.centers[3], outer=length(mesh_v.centers[1])*length(mesh_v.centers[2])), color = :green, label = "mesh_v", markersize=15, marker = :utriangle)
+
+    # Plot mesh_w centers
+    scatter!(ax, repeat(mesh_w.centers[1], inner=length(mesh_w.centers[2])), repeat(mesh_w.centers[2], outer=length(mesh_w.centers[1])), repeat(mesh_w.centers[3], outer=length(mesh_w.centers[1])*length(mesh_w.centers[2])), color = :yellow, label = "mesh_w", markersize=15, marker = :dtriangle)
+
+    axislegend(ax)
+    display(fig)
+end
+
+function plot_solution_vector(solver::SolverVec, mesh::CartesianMesh{1}, body::Body, capacity::Capacity; state_i=1)
+    sol = solver.states[state_i]
+
+    # Decompose the solution vector: [uxₒ0; uxᵧ0]
+    # Each sub-vector is of length nx for 1D
+    len_u = length(mesh.centers[1])
+    uxₒ = sol[1:len_u]
+    uxᵧ = sol[len_u + 1:end]
     
+    fig = Figure(size = (800, 600))
+
+    ax1 = Axis(fig[1, 1], title = "$title_prefix : uxₒ")
+    lines!(ax1, 1:nx, uxₒ, color = :blue, label = "uxₒ")
+    axislegend(ax1)
+
+    ax2 = Axis(fig[2, 1], title = "$title_prefix : uxᵧ")
+    lines!(ax2, 1:nx, uxᵧ, color = :red, label = "uxᵧ")
+    axislegend(ax2)
+
+    display(fig)
+end
+
+function plot_solution_vector(solver::SolverVec, mesh::CartesianMesh{2}, body::Body, capacity::Capacity; state_i=1)
+    sol = solver.states[state_i]
+
+    nx,ny = length(mesh.centers[1]), length(mesh.centers[2])
+
+    # Decompose the solution vector: [uxₒ0; uxᵧ0; uyₒ0; uyᵧ0]
+    # Each sub-vector is of length nx*(ny+1) for ux and (nx+1)*ny for uy
+    len_ux = nx*(ny+1)
+    len_uy = (nx+1)*ny
+
+    uxₒ = sol[1 : len_ux]
+    uxᵧ = sol[len_ux + 1 : 2*len_ux]
+    uyₒ = sol[2*len_ux + 1 : 2*len_ux + len_uy]
+    uyᵧ = sol[2*len_ux + len_uy + 1 : end]
+
+    # Reshape them as 2D arrays for plotting
+    # For ux: shape is (nx, ny+1)
+    # For uy: shape is (nx+1, ny)
+    Uxₒ = reshape(uxₒ, nx,  ny+1)
+    Uxᵧ = reshape(uxᵧ, nx,  ny+1)
+    Uyₒ = reshape(uyₒ, nx+1, ny)
+    Uyᵧ = reshape(uyᵧ, nx+1, ny)
+
+    fig = Figure(size = (1200, 800))
+
+    # Plot Uxₒ
+    ax1 = Axis(fig[1, 1], title = "Uxₒ")
+    hm1 = heatmap!(ax1, Uxₒ, colormap=:viridis)
+    Colorbar(fig[1, 2], hm1, label="Uxₒ")
+
+    # Plot Uxᵧ
+    ax2 = Axis(fig[1, 3], title = "Uxᵧ")
+    hm2 = heatmap!(ax2, Uxᵧ, colormap=:viridis)
+    Colorbar(fig[1, 4], hm2, label="Uxᵧ")
+
+    # Plot Uyₒ
+    ax3 = Axis(fig[2, 1], title = "Uyₒ")
+    hm3 = heatmap!(ax3, Uyₒ, colormap=:viridis)
+    Colorbar(fig[2, 2], hm3, label="Uyₒ")
+
+    # Plot Uyᵧ
+    ax4 = Axis(fig[2, 3], title = "Uyᵧ")
+    hm4 = heatmap!(ax4, Uyᵧ, colormap=:viridis)
+    Colorbar(fig[2, 4], hm4, label="Uyᵧ")
+
+    display(fig)
+end

@@ -27,12 +27,14 @@ export AbstractCapacity,Capacity,measure!
 
 include("Operators.jl")
 export AbstractOperators, DiffusionOps, ConvectionOps, ẟ_m, δ_p, Σ_m, Σ_p, I
+export AdvectionVecOps
 
 include("Boundary.jl")
 export AbstractBoundary, Dirichlet, Neumann, Robin, Periodic, AbstractInterfaceBC, ScalarJump, FluxJump, BorderConditions, InterfaceConditions
 
 include("Phase.jl")
 export Phase
+export VectorPhase
 
 include("Utils.jl")
 export identify!, find_border, find_cut, eval_sdf 
@@ -49,11 +51,17 @@ export solve_AdvectionUnsteadyMono!
 export AdvectionDiffusionSteadyMono, AdvectionDiffusionSteadyDiph, AdvectionDiffusionUnsteadyMono, AdvectionDiffusionUnsteadyDiph
 export solve_AdvectionDiffusionSteadyMono!, solve_AdvectionDiffusionSteadyDiph!, solve_AdvectionDiffusionUnsteadyMono!, solve_AdvectionDiffusionUnsteadyDiph!
 
+include("SolverVec.jl")
+export DiffusionVecUnsteadyMono, solve_DiffusionVecUnsteadyMono!
+export ConvectionVecUnsteadyMono, solve_ConvectionVecUnsteadyMono!
+
 include("Solve.jl")
 export solve!
 
 include("Vizualize.jl")
 export plot_solution, plot_profile, animate_solution
+export plot_mesh
+export plot_solution_vector
 
 include("Vtk.jl")
 export write_vtk

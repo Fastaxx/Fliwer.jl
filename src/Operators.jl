@@ -165,3 +165,69 @@ function ConvectionOps(A, B, V, W, size, uₒ, uᵧ)
         return ConvectionOps{N}((Cx, Cy, Cz), (Kx, Ky, Kz), G, H, Wꜝ, V, size)
     end
 end
+
+
+"""
+    struct AdvectionVecOps{N} <: AbstractOperators where N
+
+Struct representing a collection of advection operators for a vector field.
+"""
+struct AdvectionVecOps{N} <: AbstractOperators
+    C :: NTuple{N, SparseMatrixCSC{Float64, Int}}
+    K :: NTuple{N, SparseMatrixCSC{Float64, Int}}
+    V :: NTuple{N, SparseMatrixCSC{Float64, Int}}
+    H :: NTuple{N, SparseMatrixCSC{Float64, Int}}
+    size :: NTuple{N, Int}
+end
+
+# 1D Case
+function AdvectionVecOps(cap::NTuple{1},size,uₒ,uᵧ)
+    nx = size[1] + 2
+
+    Dx_m = ẟ_m(nx)
+    Dx_p = δ_p(nx)
+    Sx_m = Σ_m(nx)
+    Sx_p = Σ_p(nx)
+
+    H = cap[1].A[1]*Dx_m - Dx_m*cap[1].B[1]
+
+    Cx = Dx_p * spdiagm(0 => (Sx_m * cap[1].A[1] * uₒ[1])) * Sx_m
+
+    Kx = spdiagm(0 => Sx_p * H' * uᵧ[1])
+
+    return AdvectionVecOps{1}((Cx,), (Kx,), (cap[1].V,), (H,), size)
+end
+
+# 2D Case
+function AdvectionVecOps(cap::NTuple{2}, size, uₒ, uᵧ)
+    nxu, nyu = size[1]+2, size[2]+1
+    nxv, nyv = size[1]+1, size[2]+2
+
+    # For u-velocity (faces in x-direction)
+    Dx_mu, Dy_mu = kron(I(nyu), ẟ_m(nxu)), kron(ẟ_m(nyu), I(nxu)) # Dxx-; Dxy-
+    Dx_pu, Dy_pu = kron(I(nyu), δ_p(nxu)), kron(δ_p(nyu), I(nxu)) # Dxx+; Dxy+
+    Sx_mu, Sy_mu = kron(I(nyu), Σ_m(nxu)), kron(Σ_m(nyu), I(nxu)) # Sxx-; Sxy-
+    Sx_pu, Sy_pu = kron(I(nyu), Σ_p(nxu)), kron(Σ_p(nyu), I(nxu)) # Sxx+; Sxy+
+
+    # For v-velocity (faces in y-direction)
+    Dx_mv, Dy_mv = kron(I(nyv), ẟ_m(nxv)), kron(ẟ_m(nyv), I(nxv)) # Dyx-; Dyy-
+    Dx_pv, Dy_pv = kron(I(nyv), δ_p(nxv)), kron(δ_p(nyv), I(nxv)) # Dyx+; Dyy+
+    Sx_mv, Sy_mv = kron(I(nyv), Σ_m(nxv)), kron(Σ_m(nyv), I(nxv)) # Syx-; Syy-
+    Sx_pv, Sy_pv = kron(I(nyv), Σ_p(nxv)), kron(Σ_p(nyv), I(nxv)) # Syx+; Syy+
+    
+    Hu = [cap[1].A[1]*Dx_mu - Dx_mu*cap[1].B[1] ; cap[1].A[2]*Dy_mu - Dy_mu*cap[1].B[2]]
+    Hv = [cap[2].A[1]*Dx_mv - Dx_mv*cap[2].B[1] ; cap[2].A[2]*Dy_mv - Dy_mv*cap[2].B[2]]
+
+    Cx1 = Dx_pu * spdiagm(0 => (Sx_mu * cap[1].A[1] * uₒ[1])) * Sx_mu
+    Cx2 = Dy_pu * spdiagm(0 => (Sx_mu * cap[1].A[2] * uₒ[1])) * Sy_mu
+    Cy1 = Dx_pv * spdiagm(0 => (Sy_mv * cap[2].A[1] * uₒ[2])) * Sx_mv
+    Cy2 = Dy_pv * spdiagm(0 => (Sy_mv * cap[2].A[2] * uₒ[2])) * Sy_mv
+
+    Cx = Cx1 + Cx2
+    Cy = Cy1 + Cy2
+
+    Kx = spdiagm(0 => Sx_pu * Hu' * vcat(uᵧ[1], uᵧ[1]))
+    Ky = spdiagm(0 => Sy_pv * Hv' * vcat(uᵧ[2], uᵧ[2]))
+
+    return AdvectionVecOps{2}((Cx, Cy), (Kx, Ky), (cap[1].V, cap[2].V), (Hu, Hv), size)
+end
