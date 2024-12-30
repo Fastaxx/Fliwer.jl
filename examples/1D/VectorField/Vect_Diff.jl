@@ -58,36 +58,4 @@ solve_DiffusionVecUnsteadyMono!(solver, Fluide, u0x, Δt, Tend, (bc_u,), (ic_u,)
 write_vtk("DiffusionVecUnsteadyMono", mesh, solver)
 
 # Plot the solution
-using CairoMakie
-
-function plot_solution_vector_1D(
-    solver,
-    nx::Int;
-    iter = length(solver.states),
-    title_prefix = ""
-)
-    # 1) Extract the final solution (or chosen iteration)
-    sol = solver.states[iter]
-
-    # 2) Decompose the solution vector: [uxₒ0; uxᵧ0]
-    #    Each sub-vector is of length nx for 1D
-    len_u = nx
-    uxₒ = sol[1:len_u]
-    uxᵧ = sol[len_u + 1:end]
-
-    # 3) Make a figure with two subplots: one for uxₒ, one for uxᵧ
-    fig = Figure(resolution = (800, 600))
-
-    ax1 = Axis(fig[1, 1], title = "$title_prefix : uxₒ")
-    lines!(ax1, 1:nx, uxₒ, color = :blue, label = "uxₒ")
-    axislegend(ax1)
-
-    ax2 = Axis(fig[2, 1], title = "$title_prefix : uxᵧ")
-    lines!(ax2, 1:nx, uxᵧ, color = :red, label = "uxᵧ")
-    axislegend(ax2)
-
-    display(fig)
-end
-
-# Example usage (after solving):
-plot_solution_vector_1D(solver, nx, iter = 10, title_prefix="1D DiffusionVecUnsteadyMono")
+plot_solution_vector(solver, mesh, circle, capacity_u)

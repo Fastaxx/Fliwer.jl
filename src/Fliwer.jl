@@ -61,6 +61,7 @@ export solve!
 include("Vizualize.jl")
 export plot_solution, plot_profile, animate_solution
 export plot_mesh
+export plot_solution_vector
 
 include("Vtk.jl")
 export write_vtk
