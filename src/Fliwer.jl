@@ -58,6 +58,9 @@ export ConvectionVecUnsteadyMono, solve_ConvectionVecUnsteadyMono!
 include("Solve.jl")
 export solve!
 
+include("Darcy.jl")
+export DarcyFlow, solve_DarcyFlow!
+
 include("Vizualize.jl")
 export plot_solution, plot_profile, animate_solution
 export plot_mesh
