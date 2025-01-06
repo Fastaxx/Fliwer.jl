@@ -231,3 +231,46 @@ function AdvectionVecOps(cap::NTuple{2}, size, uₒ, uᵧ)
 
     return AdvectionVecOps{2}((Cx, Cy), (Kx, Ky), (cap[1].V, cap[2].V), (Hu, Hv), size)
 end
+
+
+struct SpaceTimeOps{N} <: AbstractOperators where N
+    G :: SparseMatrixCSC{Float64, Int}
+    H :: SparseMatrixCSC{Float64, Int}
+    Wꜝ :: SparseMatrixCSC{Float64, Int}
+    V :: SparseMatrixCSC{Float64, Int}
+    size :: NTuple{N, Int}
+end
+
+function SpaceTimeOps(A, B, V, W, size)
+    N = length(size)
+    if N == 1
+        nx = size[1]
+        G = ẟ_m(nx) * B[1] # Gérer le periodicity
+        H = A[1]*ẟ_m(nx) - ẟ_m(nx)*B[1]
+        diagW = diag(blockdiag(W[1]))
+        new_diagW = [val != 0 ? 1.0 / val : 1.0 for val in diagW]
+        Wꜝ = spdiagm(0 => new_diagW)
+    elseif N == 2
+        nx, ny = size[1], size[2]
+        Dx_m = kron(I(ny), ẟ_m(nx))
+        Dy_m = kron(ẟ_m(ny), I(nx))
+        G = [Dx_m * B[1]; Dy_m * B[2]]
+        H = [A[1]*Dx_m - Dx_m*B[1]; A[2]*Dy_m - Dy_m*B[2]]
+        diagW = diag(blockdiag(W[1], W[2]))
+        new_diagW = [val != 0 ? 1.0 / val : 1.0 for val in diagW]
+        Wꜝ = spdiagm(0 => new_diagW)
+    elseif N == 3
+        nx, ny, nz = size[1], size[2], size[3]
+        Dx_m = kron(I(nz), kron(I(ny), ẟ_m(nx)))
+        Dy_m = kron(I(nz), kron(ẟ_m(ny), I(nx)))
+        Dz_m = kron(ẟ_m(nz), kron(I(ny), I(nx)))
+        G = [Dx_m * B[1]; Dy_m * B[2]; Dz_m * B[3]]
+        H = [A[1]*Dx_m - Dx_m*B[1]; A[2]*Dy_m - Dy_m*B[2]; A[3]*Dz_m - Dz_m*B[3]]
+        diagW = diag(blockdiag(W[1], W[2], W[3]))
+        new_diagW = [val != 0 ? 1.0 / val : 1.0 for val in diagW]
+        Wꜝ = spdiagm(0 => new_diagW)
+    end
+
+    return SpaceTimeOps{N}(G, H, Wꜝ, V, size)
+end
+

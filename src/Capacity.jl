@@ -31,7 +31,7 @@ mutable struct Capacity{N} <: AbstractCapacity
     C_γ :: Vector{SVector{N,Float64}}               # Interface Centroid
     Γ :: SparseMatrixCSC{Float64, Int}              # Interface Norm
     cell_types :: Vector{Float64}                   # Cell Types
-    mesh :: CartesianMesh{N}
+    mesh :: AbstractMesh
 end
 
 """
@@ -53,7 +53,7 @@ Compute the Capacity quantities based on VOFI for a given body and mesh.
 - `Γ::SparseMatrixCSC`: The Γ matrix : Interface Norm.
 
 """
-function VOFI(body::AbstractBody, mesh::CartesianMesh)
+function VOFI(body::AbstractBody, mesh::AbstractMesh)
     N = length(mesh.h)
     nc = nC(mesh)
 
@@ -102,7 +102,7 @@ Compute the capacity of a body in a given mesh using the VOFI method.
 # Returns
 - `Capacity{N}`: The capacity of the body.
 """
-function Capacity(body::AbstractBody, mesh::CartesianMesh)
+function Capacity(body::AbstractBody, mesh::AbstractMesh)
     A, B, V, W, C_ω, C_γ, Γ, cell_types = VOFI(body, mesh)
     
     N = length(A)

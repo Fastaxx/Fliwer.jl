@@ -18,6 +18,7 @@ using WriteVTK
 
 include("Mesh.jl")
 export CartesianMesh, nC, MeshTag
+export CartesianSpaceTimeMesh
 
 include("Body.jl")
 export AbstractBody,Body,NoBody,sdf,+,⊖,c,measure, NoBody1D, NoBody2D, NoBody3D, curvature
@@ -28,6 +29,7 @@ export AbstractCapacity,Capacity,measure!
 include("Operators.jl")
 export AbstractOperators, DiffusionOps, ConvectionOps, ẟ_m, δ_p, Σ_m, Σ_p, I
 export AdvectionVecOps
+export SpaceTimeOps
 
 include("Boundary.jl")
 export AbstractBoundary, Dirichlet, Neumann, Robin, Periodic, AbstractInterfaceBC, ScalarJump, FluxJump, BorderConditions, InterfaceConditions

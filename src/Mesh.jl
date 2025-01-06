@@ -83,3 +83,44 @@ end
 
 nC(mesh::CartesianMesh{N}) where N = prod(length.(mesh.h))
 
+"""
+    mutable struct CartesianSpaceTimeMesh{N} <: AbstractMesh
+
+A simple (N+1)-dimensional mesh that combines an existing CartesianMesh{N}
+(covering only space) with a discrete time vector.
+Fields mirror the structure of a usual `CartesianMesh` but add time as the (N+1)-th dimension.
+
+Use the provided constructor `CartesianSpaceTimeMesh(spaceMesh::CartesianMesh{N}, t::Vector{Float64})`
+to build one from a spatial mesh and a list of time instants.
+"""
+mutable struct CartesianSpaceTimeMesh{M} <: AbstractMesh
+    h         :: NTuple{M, Vector{Float64}}
+    x0        :: NTuple{M, Float64}
+    nodes     :: NTuple{M, Vector{Float64}}
+    centers   :: NTuple{M, Vector{Float64}}
+    faces     :: NTuple{M, NTuple{M, Vector{Float64}}}
+    tag       :: MeshTag
+
+    function CartesianSpaceTimeMesh(spaceMesh::CartesianMesh{N}, t::Vector{Float64}; tag = MeshTag([], [], [])) where {N}
+        # Compute M = N + 1 at runtime
+        local M = N + 1
+
+        # -- Build time arrays --
+        Δt          = [t[i+1] - t[i] for i in 1:length(t)-1]
+        x0_time     = t[1]
+        centers_time = [(t[i+1] + t[i]) / 2 for i in 1:length(t)-1]
+
+        # -- Assemble the ND+1 arrays --
+        new_h       = ntuple(i -> i <= N ? spaceMesh.h[i] : Δt, M)
+        new_x0      = ntuple(i -> i <= N ? spaceMesh.x0[i] : x0_time, M)
+        new_nodes   = ntuple(i -> i <= N ? spaceMesh.nodes[i] : t, M)
+        new_centers = ntuple(i -> i <= N ? spaceMesh.centers[i] : centers_time, M)
+        new_faces   = ntuple(dim -> ntuple(i -> (dim == i) ? 
+            [new_centers[i][j] + 0.5 * new_h[i][j] for j in 1:length(new_h[i])]
+            : new_centers[i], M), M)
+
+        return new{M}(new_h, new_x0, new_nodes, new_centers, new_faces, tag)
+    end
+end
+
+nC(stmesh::CartesianSpaceTimeMesh{N}) where N = prod(length.(stmesh.h))
