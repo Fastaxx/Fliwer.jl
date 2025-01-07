@@ -26,9 +26,15 @@ spaceTimeMesh = CartesianSpaceTimeMesh(mesh, t[2:3])
 
 # Identify cells TO FIX
 #identify!(spaceTimeMesh, body)
+#identify!(mesh, body)
 
 # Define the capacity
 capacity = Capacity(body, spaceTimeMesh)
+
+#identify!(capacity, mesh)
+
+
+@show capacity.cell_types[1:nx+1]
 
 # Define the operators
 operator = SpaceTimeOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, 2))
@@ -56,8 +62,8 @@ solver = MovingDiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0)
 solve_MovingDiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, nt, bc_b, bc, body, mesh, t; method=IterativeSolvers.gmres, restart=10, maxiter=1000, verbose=false)
 
 # Write the solution to a VTK file
-write_vtk("moving_heat_1d", mesh, solver)
+#write_vtk("moving_heat_1d", mesh, solver)
 
 # Plot the solution
-#plot_solution(solver, mesh, body, capacity; state_i=1)
+plot_solution(solver, mesh, body, capacity; state_i=1)
 
