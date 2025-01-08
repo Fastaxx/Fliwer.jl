@@ -171,41 +171,6 @@ function identify!(mesh::CartesianMesh{N}, body::Body) where N
 end
 
 
-"""
-    identify!(stmesh::CartesianSpaceTimeMesh{M}, body::Body)
-
-Similar to `identify!(mesh::CartesianMesh{N}, body::Body)`, but ignores the last
-dimension (the time). Internally builds a temporary spatial CartesianMesh, calls
-`identify!` on that, and then updates `stmesh.tag` accordingly.
-"""
-function identify!(stmesh::CartesianSpaceTimeMesh{M}, body::Body) where M
-    local N = M - 1  # ignore the time dimension
-
-    # Extract spatial fields from stmesh
-    space_h       = ntuple(i -> stmesh.h[i], N)
-    space_x0      = ntuple(i -> stmesh.x0[i], N)
-    space_nodes   = ntuple(i -> stmesh.nodes[i], N)
-    space_centers = ntuple(i -> stmesh.centers[i], N)
-    space_faces   = ntuple(dim -> ntuple(i -> stmesh.centers[i], N), N)
-
-    @show typeof(space_h)
-    @show typeof(space_x0)
-    @show typeof(space_nodes)
-    @show typeof(space_centers)
-    @show typeof(space_faces)
-
-    # Build a temporary CartesianMesh{N} with the same tag (or an empty one if needed)
-    # If you have faces, pass them similarly:
-    space_mesh = CartesianMesh{N}(space_h, space_x0, space_nodes, space_centers, space_faces, MeshTag([], [], []))
-
-    # Reuse your existing identify! for CartesianMesh
-    identify!(space_mesh, body)
-
-    # Update stmesh tag
-    stmesh.tag = space_mesh.tag
-    return stmesh
-end
-
 ## Temperature initialization functions
 
 # Initialize temperature uniformly across the domain

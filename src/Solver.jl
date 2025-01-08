@@ -1038,7 +1038,7 @@ end
 
 
 
-function BC_border_mono!(A::SparseMatrixCSC{Float64, Int}, b::Vector{Float64}, bc_b::BorderConditions, mesh::CartesianMesh) 
+function BC_border_mono!(A::SparseMatrixCSC{Float64, Int}, b::Vector{Float64}, bc_b::BorderConditions, mesh::AbstractMesh) 
     # Identify location border cells based on the dimension : 1D (left, right), 2D (left, right, top, bottom), 3D (left, right, top, bottom, front, back)
     left_cells = []
     right_cells = []

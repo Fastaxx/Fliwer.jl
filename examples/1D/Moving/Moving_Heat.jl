@@ -11,42 +11,38 @@ mesh = CartesianMesh((nx,), (lx,), (x0,))
 
 # Define the time mesh
 Δt = 0.01
-Tend = 1.0
+Tend = 2.0
 nt = Int(Tend/Δt)
 @show nt
 t = [i*Δt for i in 0:nt]
 
 # Define the body
-xf = lx/4   # Interface position
-c = 1.0     # Interface velocity
-body = Body((x,t, _=0)->(x - xf - c*t), (x,)->(x,), domain, false)  # Body moving to the right
+xf = lx/3   # Interface position
+c = 0.5     # Interface velocity
+initial_body = Body((x,_=0)->(x - xf), (x,_)->(x), domain, false)  # Initial body
+body = Body((x,t, _=0)->(x - xf + c*t), (x,)->(x,), domain, false)  # Body moving to the right
 
 # Define the space-time mesh
 spaceTimeMesh = CartesianSpaceTimeMesh(mesh, t[2:3])
 
-# Identify cells TO FIX
-#identify!(spaceTimeMesh, body)
-#identify!(mesh, body)
+# Identify cells
+identify!(mesh, initial_body)
+spaceTimeMesh.tag = mesh.tag
 
 # Define the capacity
 capacity = Capacity(body, spaceTimeMesh)
-
-#identify!(capacity, mesh)
-
-
-@show capacity.cell_types[1:nx+1]
 
 # Define the operators
 operator = SpaceTimeOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, 2))
 
 # Define the boundary conditions
-bc = Dirichlet(1.0)
-bc1 = Dirichlet(0.0)
+bc = Dirichlet(0.0)
+bc1 = Dirichlet(1.0)
 
-bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc))
+bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc1, :right => bc1))
 
 # Define the source term
-f = (x,y,z,t)-> 4.0 #sin(x)*cos(10*y)
+f = (x,y,z,t)-> 0.0 #sin(x)*cos(10*y)
 
 Fluide = Phase(capacity, operator, f, 1.0)
 
@@ -67,3 +63,5 @@ solve_MovingDiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, nt, bc_b, bc, 
 # Plot the solution
 plot_solution(solver, mesh, body, capacity; state_i=1)
 
+# Animation
+animate_solution(solver, mesh, body)

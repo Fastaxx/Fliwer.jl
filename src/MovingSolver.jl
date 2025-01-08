@@ -52,8 +52,8 @@ function build_mono_unstead_diff_moving_matrix(operator::SpaceTimeOps, capacity:
     Iₐ = Iₐ[1:nx, 1:nx]
     Iᵧ = Iᵧ[1:nx, 1:nx]
 
-    block1 = Vn_1/Δt + G' * W! * G * Ψn1
-    block2 = -(Vn_1 - Vn)/Δt + G' * W! * H
+    block1 = Vn_1 + Δt * G' * W! * G * Ψn1
+    block2 = -(Vn_1 - Vn) + Δt*G' * W! * H
     block3 = Iᵦ * H' * W! * G
     block4 = Iᵦ * H' * W! * H + (Iₐ * Iᵧ)
 
@@ -80,11 +80,13 @@ function build_rhs_mono_unstead_moving_diff(operator::SpaceTimeOps, f::Function,
     W! = operator.Wꜝ[1:nx, 1:nx]
     G = operator.G[1:nx, 1:nx]
     H = operator.H[1:nx, 1:nx]
+    V = operator.V[1:nx, 1:nx]
     Iᵧ = Iᵧ[1:nx, 1:nx]
     gᵧ = gᵧ[1:nx]
+    fₒn, fₒn1 = fₒn[1:nx], fₒn1[1:nx]
 
     # Build the right-hand side
-    b1 = (Vn/Δt - G' * W! * G * Ψn)*Tₒ - 0.5 * G' * W! * H * Tᵧ # + Vn*(fₒn + fₒn1)/2
+    b1 = (Vn - Δt * G' * W! * G * Ψn)*Tₒ - Δt/2 * G' * W! * H * Tᵧ + 0.5 * V * (fₒn + fₒn1)
     b2 = Iᵧ * gᵧ
 
     b = [b1; b2]
@@ -111,6 +113,7 @@ function solve_MovingDiffusionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ::Vecto
         operator = SpaceTimeOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx, 2))
         s.A = build_mono_unstead_diff_moving_matrix(operator, capacity, phase.Diffusion_coeff, bc_b, bc, Δt)
         s.b = build_rhs_mono_unstead_moving_diff(operator, phase.source, capacity, bc_b, bc, Tᵢ, Δt, t[i])
+        BC_border_mono!(s.A, s.b, bc_b, capacity.mesh)
         
         s.x = method(s.A, s.b; kwargs...)
 
