@@ -167,6 +167,8 @@ function identify!(mesh::CartesianMesh{N}, body::Body) where N
     cut_cells = find_cut(mesh, body)
     mesh.tag.cut_cells = cut_cells
 
+    println("== Identified cells == \n - Border cells: $(length(border_cells))\n - Regular cells: $(length(regular_cells))\n - Cut cells: $(length(cut_cells))\n")
+
     return MeshTag
 end
 

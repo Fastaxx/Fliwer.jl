@@ -48,6 +48,8 @@ mutable struct CartesianMesh{N} <: AbstractMesh
 
     # Main constructor
     function CartesianMesh(h::NTuple{N, Vector{Float64}}, x0::NTuple{N, Float64}) where N
+        println("=== Creating CartesianMesh ===\n- h: $(h)\n- x0: $(x0)\n")
+
         center = ntuple(i -> cumsum([x0[i]; h[i]]), N)
         nodes = ntuple(i -> (center[i][1:end-1] .+ center[i][2:end]) ./ 2.0, N)
         
@@ -66,6 +68,7 @@ mutable struct CartesianMesh{N} <: AbstractMesh
      # Constructor for a uniform Cartesian mesh with fewer parameters
     function CartesianMesh(n::NTuple{N, Int}, domain_size::NTuple{N, Float64}, 
         x0::NTuple{N, Float64}=ntuple(_ -> 0.0, N)) where N
+        println("=== Creating uniform CartesianMesh ===\n- n: $(n)\n- domain_size: $(domain_size)\n- x0: $(x0)\n")
 
         h_uniform = ntuple(i -> fill(domain_size[i] / n[i], n[i]), N)
         centers_uniform = ntuple(i -> [x0[i] + j * (domain_size[i] / n[i]) for j in 0:n[i]-1], N)

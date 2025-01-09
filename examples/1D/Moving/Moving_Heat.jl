@@ -3,7 +3,7 @@ using IterativeSolvers
 
 ### 1D Test Case : Monophasic Unsteady Diffusion Equation inside a moving body
 # Define the spatial mesh
-nx = 50
+nx = 80
 lx = 10.
 x0 = 0.
 domain = ((x0, lx),)
@@ -13,12 +13,11 @@ mesh = CartesianMesh((nx,), (lx,), (x0,))
 Δt = 0.01
 Tend = 2.0
 nt = Int(Tend/Δt)
-@show nt
 t = [i*Δt for i in 0:nt]
 
 # Define the body
-xf = lx/3   # Interface position
-c = 0.5     # Interface velocity
+xf = 0.72*lx   # Interface position
+c = 1.0     # Interface velocity
 initial_body = Body((x,_=0)->(x - xf), (x,_)->(x), domain, false)  # Initial body
 body = Body((x,t, _=0)->(x - xf + c*t), (x,)->(x,), domain, false)  # Body moving to the right
 
@@ -36,8 +35,8 @@ capacity = Capacity(body, spaceTimeMesh)
 operator = SpaceTimeOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, 2))
 
 # Define the boundary conditions
-bc = Dirichlet(0.0)
-bc1 = Dirichlet(1.0)
+bc = Dirichlet(1.0)
+bc1 = Dirichlet(0.0)
 
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc1, :right => bc1))
 
@@ -48,7 +47,7 @@ Fluide = Phase(capacity, operator, f, 1.0)
 
 # Initial condition
 u0ₒ = zeros((nx+1))
-u0ᵧ = zeros((nx+1))
+u0ᵧ = ones((nx+1))
 u0 = vcat(u0ₒ, u0ᵧ)
 
 # Define the solver

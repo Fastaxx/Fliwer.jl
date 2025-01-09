@@ -24,6 +24,11 @@ struct Body{N} <: AbstractBody
     map::Function
     domain::NTuple{N, Tuple{Float64, Float64}}
     compose::Bool
+
+    function Body(sdf::Function, map::Function, domain::NTuple{N, Tuple{Float64, Float64}}, compose::Bool) where N
+        println("=== Creating Body ===\n- sdf: $(sdf)\n- map: $(map)\n- domain: $(domain)\n- compose: $(compose)\n")
+        return new{N}(sdf, map, domain, compose)
+    end
 end
 
 """
