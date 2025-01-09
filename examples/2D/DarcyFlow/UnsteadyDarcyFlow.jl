@@ -66,16 +66,16 @@ mag = sqrt.(ux.^2 + uy.^2)
 function plot_darcy_velocity(ux, uy, mag)
     fig = Figure(size=(800, 800))
     ax1 = Axis(fig[1, 1], aspect=DataAspect(), xlabel="x", ylabel="y")
-    heatmap!(ax1, ux, colormap=:viridis)
-    Colorbar(fig[1, 2], label="u_x")
+    hm1 = heatmap!(ax1, ux, colormap=:viridis)
+    Colorbar(fig[1, 2], label="u_x", hm1)
 
     ax2 = Axis(fig[2, 1], aspect=DataAspect(), xlabel="x", ylabel="y")
-    heatmap!(ax2, uy, colormap=:viridis)
-    Colorbar(fig[2, 2], label="u_y")
+    hm2 = heatmap!(ax2, uy, colormap=:viridis)
+    Colorbar(fig[2, 2], label="u_y", hm2)
 
     ax3 = Axis(fig[3, 1], aspect=DataAspect(), xlabel="x", ylabel="y")
-    heatmap!(ax3, mag, colormap=:viridis)
-    Colorbar(fig[3, 2], label="u")
+    hm3 = heatmap!(ax3, mag, colormap=:viridis)
+    Colorbar(fig[3, 2], label="u", hm3)
 
     display(fig)
 end

@@ -39,6 +39,8 @@ function solve_DarcyFlow!(s::Solver, phase::Phase; method::Function = gmres, kwa
             s.x = method(s.A, s.b; kwargs...)
         end
     end
+
+    push!(s.states, s.x)
 end
 
 function solve_darcy_velocity(solver, Fluide; state_i=1)
