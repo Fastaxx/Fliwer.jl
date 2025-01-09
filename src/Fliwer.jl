@@ -29,6 +29,7 @@ export AbstractCapacity,Capacity,measure!
 include("Operators.jl")
 export AbstractOperators, DiffusionOps, ConvectionOps, ẟ_m, δ_p, Σ_m, Σ_p, I
 export AdvectionVecOps
+export ∇
 export SpaceTimeOps
 
 include("Boundary.jl")
@@ -62,6 +63,10 @@ export MovingDiffusionUnsteadyMono, solve_MovingDiffusionUnsteadyMono!
 
 include("Solve.jl")
 export solve!
+
+include("Darcy.jl")
+export DarcyFlow, solve_DarcyFlow!, solve_darcy_velocity
+export DarcyFlowUnsteady, solve_DarcyFlowUnsteady!
 
 include("Vizualize.jl")
 export plot_solution, plot_profile, animate_solution

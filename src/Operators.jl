@@ -6,6 +6,16 @@ An abstract type representing a collection of operators.
 abstract type AbstractOperators end
 
 """
+    ∇(operator::AbstractOperators, p::Vector{Float64})
+
+Compute the gradient of a scalar field.
+"""
+function ∇(operator::AbstractOperators, p::Vector{Float64})
+    ∇ = operator.Wꜝ * (operator.G * p[1:div(end,2)] + operator.H * p[div(end,2)+1:end])
+    return ∇
+end
+
+"""
     struct DiffusionOps{N} <: AbstractOperators where N
 
 Struct representing diffusion operators.
