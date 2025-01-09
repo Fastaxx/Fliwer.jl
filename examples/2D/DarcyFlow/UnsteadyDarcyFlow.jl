@@ -1,7 +1,7 @@
 using Fliwer
 using IterativeSolvers
 
-### 2D Test Case : Darcy Flow with a disk
+### 2D Test Case : Unsteady Darcy Flow with a disk
 # Define the mesh
 nx, ny = 80, 80
 lx, ly = 4., 4.
@@ -31,23 +31,30 @@ bc_p = BorderConditions(Dict{Symbol, AbstractBoundary}(:top => bc_10, :bottom =>
 ic = Neumann(0.0)
 
 # Define the source term
-f = (x,y,z)-> 0.0
+f = (x,y,z,t)-> 0.0
 
 # Define the phase
 K = 1.0
 Fluide = Phase(capacity, operator, f, K)
 
-# Define the solver
-solver = DarcyFlow(Fluide, bc_p, ic)
+# Initial condition
+u0ₒ = zeros((nx+1)*(ny+1))
+u0ᵧ = zeros((nx+1)*(ny+1))
+u0 = vcat(u0ₒ, u0ᵧ)
 
-# Solve the pressure problem
-solve_DarcyFlow!(solver, Fluide; method=IterativeSolvers.gmres)
+# Define the solver
+Δt = 0.01
+Tend = 1.0
+solver = DarcyFlowUnsteady(Fluide, bc_p, ic, Δt, Tend, u0)
+
+# Solve the problem
+Fliwer.solve_DarcyFlowUnsteady!(solver, Fluide, u0, Δt, Tend, bc_p, ic; method=Base.:\)
 
 # Plot the pressure solution
-#plot_solution(solver, mesh, circle, capacity)
+#animate_solution(solver, mesh, circle)
 
 # Solve the velocity problem
-u = solve_darcy_velocity(solver, Fluide)
+u = solve_darcy_velocity(solver, Fluide; state_i=100)
 
 # Plot the velocity solution
 xrange, yrange = range(x0, stop=lx, length=nx+1), range(y0, stop=ly, length=ny+1)
@@ -55,12 +62,6 @@ ux, uy = u[1:div(end,2)], u[div(end,2)+1:end]
 ux, uy= reshape(ux, (nx+1, ny+1)), reshape(uy, (nx+1, ny+1))
 mag = sqrt.(ux.^2 + uy.^2)
 
-function plot_darcy_arrow(ux, uy, mag, xrange, yrange; arrowsize=10, lengthscale=0.02)
-    fig = Figure(size=(800, 800))
-    ax = Axis(fig[1, 1], backgroundcolor=:white, xlabel="x", ylabel="y")
-    arrows!(ax, xrange, yrange, ux, uy, arrowsize=arrowsize, arrowcolor=mag, linecolor=mag, lengthscale=lengthscale)
-    display(fig)
-end
 
 function plot_darcy_velocity(ux, uy, mag)
     fig = Figure(size=(800, 800))
@@ -82,6 +83,4 @@ end
 
 using CairoMakie
 
-plot_darcy_arrow(ux, uy, vec(mag), xrange, yrange)
-#plot_darcy_velocity(ux, uy, mag)
-
+plot_darcy_velocity(ux, uy, mag)

@@ -61,6 +61,7 @@ export solve!
 
 include("Darcy.jl")
 export DarcyFlow, solve_DarcyFlow!, solve_darcy_velocity
+export DarcyFlowUnsteady, solve_DarcyFlowUnsteady!
 
 include("Vizualize.jl")
 export plot_solution, plot_profile, animate_solution
