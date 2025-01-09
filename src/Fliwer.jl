@@ -28,6 +28,7 @@ export AbstractCapacity,Capacity,measure!
 include("Operators.jl")
 export AbstractOperators, DiffusionOps, ConvectionOps, ẟ_m, δ_p, Σ_m, Σ_p, I
 export AdvectionVecOps
+export ∇
 
 include("Boundary.jl")
 export AbstractBoundary, Dirichlet, Neumann, Robin, Periodic, AbstractInterfaceBC, ScalarJump, FluxJump, BorderConditions, InterfaceConditions
@@ -59,7 +60,7 @@ include("Solve.jl")
 export solve!
 
 include("Darcy.jl")
-export DarcyFlow, solve_DarcyFlow!
+export DarcyFlow, solve_DarcyFlow!, solve_darcy_velocity
 
 include("Vizualize.jl")
 export plot_solution, plot_profile, animate_solution

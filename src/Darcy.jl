@@ -41,3 +41,18 @@ function solve_DarcyFlow!(s::Solver, phase::Phase; method::Function = gmres, kwa
     end
 end
 
+function solve_darcy_velocity(solver, Fluide)
+    cell_types = Fluide.capacity.cell_types
+    pₒ = solver.x[1:div(end,2)]
+    pᵧ = solver.x[div(end,2)+1:end]
+
+    pₒ[cell_types .== 0] .= NaN
+    pᵧ[cell_types .== 0] .= NaN
+    pᵧ[cell_types .== 1] .= NaN
+
+    p = vcat(pₒ, pᵧ)
+
+    # Compute the velocity field
+    u = Fluide.Diffusion_coeff * ∇(Fluide.operator, p)
+    return u
+end
