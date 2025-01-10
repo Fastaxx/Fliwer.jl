@@ -1,5 +1,7 @@
 using Fliwer
 using IterativeSolvers
+using LinearAlgebra
+using SparseArrays
 
 ### 2D Test Case : Darcy Flow with a disk
 # Define the mesh
@@ -48,6 +50,52 @@ solve_DarcyFlow!(solver, Fluide; method=IterativeSolvers.gmres)
 
 # Solve the velocity problem
 u = solve_darcy_velocity(solver, Fluide)
+
+# Compute drag and lift forces
+function compute_drag_lift_forces(
+    p_gamma::Vector{Float64},      # Pressure at each boundary point
+    normals::Vector{NTuple{2, Float64}},  # Boundary normal vectors
+    ds::Vector{Float64}            # Boundary segment lengths
+)
+    drag = 0.0
+    lift = 0.0
+    for i in 1:length(ds)
+        drag += p_gamma[i] * normals[i][1] * ds[i]
+        lift += p_gamma[i] * normals[i][2] * ds[i]
+    end
+    return drag, lift
+end
+
+function compute_drag_lift_coeffs(
+    drag::Float64, lift::Float64,
+    density::Float64, uref::Float64, length_ref::Float64
+)
+    Cd = 2 * drag / (density * uref^2 * length_ref)
+    Cl = 2 * lift / (density * uref^2 * length_ref)
+    return Cd, Cl
+end
+
+"""
+function compute_drag_lift_forces(solver, capacity)
+    pᵧ = solver.x[div(end,2)+1:end]
+    Γ = capacity.Γ
+
+    # Extract the diagonal of Γ and reshape it
+    Γ = reshape(diag(Γ), (nx+1, ny+1))  # Length of the interface in each cell
+    pᵧ = reshape(pᵧ, (nx+1, ny+1))  # Pressure on the interface in each cell
+
+    # Compute drag and lift forces
+    Fᵧ = sum(Γ .* pᵧ)
+
+    return Fᵧ
+end
+"""
+
+# Compute drag and lift forces
+pᵧ = solver.x[div(end,2)+1:end]
+ds = diag(capacity.Γ)
+
+
 
 # Plot the velocity solution
 xrange, yrange = range(x0, stop=lx, length=nx+1), range(y0, stop=ly, length=ny+1)
