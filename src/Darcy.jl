@@ -55,7 +55,7 @@ function solve_darcy_velocity(solver, Fluide; state_i=1)
     p = vcat(pₒ, pᵧ)
 
     # Compute the velocity field
-    u = Fluide.Diffusion_coeff * ∇(Fluide.operator, p)
+    u = - ∇(Fluide.operator, p)
     return u
 end
 

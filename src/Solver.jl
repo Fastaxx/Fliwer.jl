@@ -71,11 +71,11 @@ function DiffusionSteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::Abstrac
     return s
 end
 
-function build_mono_stead_diff_matrix(operator::DiffusionOps, capacity::Capacity, D::Float64, bc_b::BorderConditions, bc::AbstractBoundary)
+function build_mono_stead_diff_matrix(operator::DiffusionOps, capacity::Capacity, D, bc_b::BorderConditions, bc::AbstractBoundary)
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
     Iᵧ =  build_I_g(operator) #capacity.Γ
-    Id = build_I_D(operator, D)
+    Id = build_I_D(operator, D, capacity)
 
     A = vcat(hcat(Id * operator.G' * operator.Wꜝ * operator.G, Id * operator.G' * operator.Wꜝ * operator.H), hcat(Iᵦ * operator.H' * operator.Wꜝ * operator.G, Iᵦ * operator.H' * operator.Wꜝ * operator.H + Iₐ * Iᵧ))
 
@@ -1209,17 +1209,36 @@ function BC_border_diph!(A::SparseMatrixCSC{Float64, Int}, b::Vector{Float64}, b
     end
 end
     
-function build_I_D(operator::AbstractOperators, D::Union{Float64,Function})
+function build_I_D(operator::AbstractOperators, D::Union{Float64,Function}, capacite::Capacity)
     n = prod(operator.size)
     Id = spdiagm(0 => ones(n))
 
     if D isa Function
-        Id = D(Id)
+        for i in 1:n
+            x, y, z = get_coordinates(i, capacite.C_ω)
+            Id[i, i] = D(x, y, z)
+        end
     else
         Id = D * Id
     end
     return Id
 end
+
+function build_I_D(operator::AbstractOperators, D::Union{Float64,Function}, capacite::Capacity, t::Float64)
+    n = prod(operator.size)
+    Id = spdiagm(0 => ones(n))
+
+    if D isa Function
+        for i in 1:n
+            x, y, z = get_coordinates(i, capacite.C_ω)
+            Id[i, i] = D(x, y, z, t)
+        end
+    else
+        Id = D * Id
+    end
+    return Id
+end
+
 
 function build_I_bc(operator,bc::AbstractBoundary)
     n = prod(operator.size)
