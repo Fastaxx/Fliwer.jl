@@ -17,7 +17,7 @@ function psip(args::Vararg{T,2}) where {T<:Real}
     if all(iszero, args)
         0.0
     elseif all(!iszero, args)
-        0.5
+        1.0
     else
         1.0
     end
@@ -27,7 +27,7 @@ function psim(args::Vararg{T,2}) where {T<:Real}
     if all(iszero, args)
         0.0
     elseif all(!iszero, args)
-        0.5
+        0.0
     else
         0.0
     end
@@ -38,7 +38,7 @@ function build_mono_unstead_diff_moving_matrix(operator::SpaceTimeOps, capacity:
     nx, nt = operator.size
     Iₐ, Iᵦ = build_I_bc(operator, bc)
     Iᵧ = build_I_g(operator) # capacite.Γ #
-    Id = build_I_D(operator, D)
+    Id = build_I_D(operator, D, capacity)
 
     Vn_1 = capacity.A[2][1:end÷2, 1:end÷2]
     Vn = capacity.A[2][end÷2+1:end, end÷2+1:end]
@@ -53,9 +53,9 @@ function build_mono_unstead_diff_moving_matrix(operator::SpaceTimeOps, capacity:
     Iᵧ = Iᵧ[1:nx, 1:nx]
 
     block1 = Vn_1 + Δt * G' * W! * G * Ψn1
-    block2 = -(Vn_1 - Vn) + Δt*G' * W! * H
-    block3 = Iᵦ * H' * W! * G
-    block4 = Iᵦ * H' * W! * H + (Iₐ * Iᵧ)
+    block2 = -(Vn_1 - Vn) + Δt * G' * W! * H 
+    block3 = Iᵦ * H' * W! * G 
+    block4 = Iᵦ * H' * W! * H + (Iₐ * Iᵧ) 
 
     A = [block1 block2; block3 block4]
 
@@ -86,7 +86,8 @@ function build_rhs_mono_unstead_moving_diff(operator::SpaceTimeOps, f::Function,
     fₒn, fₒn1 = fₒn[1:nx], fₒn1[1:nx]
 
     # Build the right-hand side
-    b1 = (Vn - Δt * G' * W! * G * Ψn)*Tₒ - Δt/2 * G' * W! * H * Tᵧ + 0.5 * V * (fₒn + fₒn1)
+    #b1 = (Vn - Δt * G' * W! * G * Ψn)*Tₒ - Δt/2 * G' * W! * H * Tᵧ + 0.5 * V * (fₒn + fₒn1)
+    b1 = (Vn)*Tₒ + V * (fₒn1)
     b2 = Iᵧ * gᵧ
 
     b = [b1; b2]

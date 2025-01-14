@@ -17,9 +17,9 @@ t = [i*Δt for i in 0:nt]
 
 # Define the body
 xf = 0.72*lx   # Interface position
-c = 1.0     # Interface velocity
+c = -1.0     # Interface velocity
 initial_body = Body((x,_=0)->(x - xf), (x,_)->(x), domain, false)  # Initial body
-body = Body((x,t, _=0)->(x - xf + c*t), (x,)->(x,), domain, false)  # Body moving to the right
+body = Body((x,t, _=0)->(x - xf + c*sqrt(t)), (x,)->(x,), domain, false)  # Body moving to the right
 
 # Define the space-time mesh
 spaceTimeMesh = CartesianSpaceTimeMesh(mesh, t[2:3])

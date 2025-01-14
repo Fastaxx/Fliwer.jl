@@ -272,7 +272,7 @@ function build_mono_unstead_diff_matrix(operator::DiffusionOps, capacite::Capaci
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
     Iᵧ = build_I_g(operator) # capacite.Γ #
-    Id = build_I_D(operator, D)
+    Id = build_I_D(operator, D, capacite)
 
     # Preallocate the sparse matrix A with 2n rows and 2n columns
     A = spzeros(Float64, 2n, 2n)
@@ -627,7 +627,7 @@ function build_mono_stead_adv_diff_matrix(operator::ConvectionOps, capacite::Cap
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
     Iᵧ = build_I_g(operator) #capacite.Γ #
-    Id = build_I_D(operator, D)
+    Id = build_I_D(operator, D, capacite)
 
     C = operator.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
     K = operator.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
@@ -817,7 +817,7 @@ function build_mono_unstead_adv_diff_matrix(operator::ConvectionOps, capacite::C
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
     Iᵧ = build_I_g(operator) #capacite.Γ #
-    Id = build_I_D(operator, D)
+    Id = build_I_D(operator, D, capacite)
 
     C = operator.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
     K = operator.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
