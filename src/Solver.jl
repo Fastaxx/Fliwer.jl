@@ -145,7 +145,7 @@ function DiffusionSteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderCondition
     
     s = Solver(Steady, Diphasic, Diffusion, nothing, nothing, nothing, ConvergenceHistory(), [])
     
-    s.A = build_diph_stead_diff_matrix(phase1.operator, phase2.operator, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic)
+    s.A = build_diph_stead_diff_matrix(phase1.operator, phase2.operator, phase1.capacity, phase2.capacity, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic)
     s.b = build_rhs_diph_stead_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic)
 
     BC_border_diph!(s.A, s.b, bc_b, phase2.capacity.mesh)
@@ -153,13 +153,13 @@ function DiffusionSteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderCondition
     return s
 end
 
-function build_diph_stead_diff_matrix(operator1::DiffusionOps, operator2::DiffusionOps, D1::Float64, D2::Float64, bc_b::BorderConditions, ic::InterfaceConditions)
+function build_diph_stead_diff_matrix(operator1::DiffusionOps, operator2::DiffusionOps, capacite1::Capacity, capacite2::Capacity, D1::Float64, D2::Float64, bc_b::BorderConditions, ic::InterfaceConditions)
     n = prod(operator1.size)
 
     jump, flux = ic.scalar, ic.flux
     Iₐ1, Iₐ2 = jump.α₁ * I(n), jump.α₂ * I(n)
     Iᵦ1, Iᵦ2 = flux.β₁ * I(n), flux.β₂ * I(n)
-    Id1, Id2 = build_I_D(operator1, D1), build_I_D(operator2, D2)
+    Id1, Id2 = build_I_D(operator1, D1, capacite1), build_I_D(operator2, D2, capacite2)
 
     block1 = Id1 * operator1.G' * operator1.Wꜝ * operator1.G
     block2 = Id1 * operator1.G' * operator1.Wꜝ * operator1.H

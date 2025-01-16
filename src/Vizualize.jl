@@ -264,7 +264,7 @@ function plot_solution(solver, mesh::CartesianMesh{1}, body::Body, capacity::Cap
             scatter!(ax, u1ᵧ, color=:green, label="Phase 1 - Interface")
             scatter!(ax, u2ₒ, color=:red, label="Phase 2 - Bulk")
             scatter!(ax, u2ᵧ, color=:purple, label="Phase 2 - Interface")
-            axislegend(ax)
+            axislegend(ax, position=:rb)
             display(fig)
         end
     else
