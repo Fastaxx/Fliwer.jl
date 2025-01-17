@@ -17,7 +17,7 @@ function psip(args::Vararg{T,2}) where {T<:Real}
     if all(iszero, args)
         0.0
     elseif all(!iszero, args)
-        1.0
+        0.5
     else
         1.0
     end
@@ -27,7 +27,7 @@ function psim(args::Vararg{T,2}) where {T<:Real}
     if all(iszero, args)
         0.0
     elseif all(!iszero, args)
-        0.0
+        0.5
     else
         0.0
     end
@@ -52,13 +52,12 @@ function build_mono_unstead_diff_moving_matrix(operator::SpaceTimeOps, capacity:
     Iₐ = Iₐ[1:nx, 1:nx]
     Iᵧ = Iᵧ[1:nx, 1:nx]
 
-    block1 = Vn_1 + Δt * G' * W! * G * Ψn1
-    block2 = -(Vn_1 - Vn) + Δt * G' * W! * H 
+    block1 = Vn_1 + G' * W! * G * Ψn1
+    block2 = -(Vn_1 - Vn) + G' * W! * H * Ψn1 
     block3 = Iᵦ * H' * W! * G 
     block4 = Iᵦ * H' * W! * H + (Iₐ * Iᵧ) 
 
     A = [block1 block2; block3 block4]
-
     return A
 end
 
@@ -86,8 +85,8 @@ function build_rhs_mono_unstead_moving_diff(operator::SpaceTimeOps, f::Function,
     fₒn, fₒn1 = fₒn[1:nx], fₒn1[1:nx]
 
     # Build the right-hand side
-    #b1 = (Vn - Δt * G' * W! * G * Ψn)*Tₒ - Δt/2 * G' * W! * H * Tᵧ + 0.5 * V * (fₒn + fₒn1)
-    b1 = (Vn)*Tₒ + V * (fₒn1)
+    b1 = (Vn - G' * W! * G * Ψn)*Tₒ - 0.5 * G' * W! * H * Tᵧ + 0.5 * V * (fₒn + fₒn1)
+    #b1 = (Vn)*Tₒ + V * (fₒn1)
     b2 = Iᵧ * gᵧ
 
     b = [b1; b2]
@@ -95,7 +94,22 @@ function build_rhs_mono_unstead_moving_diff(operator::SpaceTimeOps, f::Function,
    return b
 end
 
-function solve_MovingDiffusionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ::Vector{Float64}, Δt::Float64, Tₑ::Float64, nt::Int, bc_b::BorderConditions, bc::AbstractBoundary, body::Body, mesh::CartesianMesh, t::Vector{Float64}; method=IterativeSolvers.gmres, kwargs...)
+function solve_MovingDiffusionUnsteadyMono!(
+    s::Solver,
+    phase::Phase,
+    Tᵢ::Vector{Float64},
+    Δt::Float64,
+    Tₑ::Float64,
+    nt::Int,
+    bc_b::BorderConditions,
+    bc::AbstractBoundary,
+    body::Body,
+    mesh::CartesianMesh,
+    t::Vector{Float64};
+    method = IterativeSolvers.gmres,
+    kwargs...
+)
+
     if s.A === nothing
         error("Solver is not initialized. Call a solver constructor first.")
     end
@@ -107,19 +121,66 @@ function solve_MovingDiffusionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ::Vecto
     println("- Diffusion problem")
 
     nx, _ = phase.operator.size
+    cond_log = Float64[]
+
     for i in 2:nt
         println("Time : $(t[i])")
-        spaceTimeMesh = CartesianSpaceTimeMesh(mesh, t[i:i+1])
+        spaceTimeMesh = CartesianSpaceTimeMesh(mesh, t[i:i+1];tag=mesh.tag)
         capacity = Capacity(body, spaceTimeMesh)
-        operator = SpaceTimeOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx, 2))
-        s.A = build_mono_unstead_diff_moving_matrix(operator, capacity, phase.Diffusion_coeff, bc_b, bc, Δt)
-        s.b = build_rhs_mono_unstead_moving_diff(operator, phase.source, capacity, bc_b, bc, Tᵢ, Δt, t[i])
+        operator = SpaceTimeOps(
+            capacity.A, capacity.B,
+            capacity.V, capacity.W,
+            (nx, 2)
+        )
+
+        s.A = build_mono_unstead_diff_moving_matrix(
+            operator,
+            capacity,
+            phase.Diffusion_coeff,
+            bc_b,
+            bc,
+            Δt
+        )
+        s.b = build_rhs_mono_unstead_moving_diff(
+            operator,
+            phase.source,
+            capacity,
+            bc_b,
+            bc,
+            Tᵢ,
+            Δt,
+            t[i]
+        )
         BC_border_mono!(s.A, s.b, bc_b, capacity.mesh)
-        
-        s.x = method(s.A, s.b; kwargs...)
+
+
+
+        # Solve system
+        if method == \
+            A_reduced, b_reduced, rows_idx, cols_idx = remove_zero_rows_cols!(s.A, s.b)
+            # Compute condition number
+            push!(cond_log, cond(Array(A_reduced),2))
+            x_reduced = A_reduced \ b_reduced
+            s.x = zeros(size(s.A, 1))
+            s.x[cols_idx] .= x_reduced
+        else
+            log = get(kwargs, :log, false)
+            if log
+                s.x, s.ch = method(s.A, s.b; kwargs...)
+            else
+                s.x = method(s.A, s.b; kwargs...)
+            end
+        end
 
         push!(s.states, s.x)
-        @show maximum(s.x)
+        @show maximum(abs.(s.x))
         Tᵢ = s.x
+    end
+
+    # Store condition numbers in a file at the end
+    open("condition_numbers.txt", "w") do f
+        for c in cond_log
+            println(f, c)
+        end
     end
 end

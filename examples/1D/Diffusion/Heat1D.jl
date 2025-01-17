@@ -21,7 +21,9 @@ capacity = Capacity(body, mesh)
 
 # Define the operators
 operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1,))
-
+A = operator.Wꜝ*(operator.G*ones(size(operator.G,2)) + operator.H*ones(size(operator.H,2)))
+A = A[2:end-1]
+println("Gradient Champ Constant: ", A)
 # Define the boundary conditions
 bc0 = Dirichlet(0.0)
 bc1 = Dirichlet(1.0)
