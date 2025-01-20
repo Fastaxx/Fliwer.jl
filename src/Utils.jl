@@ -158,14 +158,16 @@ function identify!(mesh::CartesianMesh{N}, body::Body) where N
     # Identify border cells
     border_cells = find_border(mesh)
     mesh.tag.border_cells = border_cells
-    
-    # Identify cut cells
-    cut_cells = find_cut(mesh, body)
-    mesh.tag.cut_cells = cut_cells
 
     # Identify regular cells
     regular_cells = find_regular(mesh)
     mesh.tag.regular_cells = regular_cells
+
+    # Identify cut cells
+    cut_cells = find_cut(mesh, body)
+    mesh.tag.cut_cells = cut_cells
+
+    println("== Identified cells == \n - Border cells: $(length(border_cells))\n - Regular cells: $(length(regular_cells))\n - Cut cells: $(length(cut_cells))\n")
 
     return MeshTag
 end
@@ -342,4 +344,9 @@ function remove_zero_rows_cols!(A::SparseMatrixCSC{Float64, Int}, b::Vector{Floa
     b = b[rows_idx]
 
     return A, b, rows_idx, cols_idx
+end
+
+function compute_gradient(operator)
+    Grad = operator.Wꜝ * (operator.G * ones(size(operator.G, 2)) .+ operator.H * ones(size(operator.H, 2)))
+    return Grad
 end

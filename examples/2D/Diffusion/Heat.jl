@@ -22,6 +22,24 @@ capacity = Capacity(circle, mesh)
 # Define the operators
 operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1))
 
+cell_types = capacity.cell_types
+@show length(cell_types)
+
+A = operator.Wꜝ*(operator.G*ones(size(operator.G,2)) + operator.H*ones(size(operator.H,2)))
+Aω = A[1:end÷2]
+Aᵧ = A[end÷2+1:end]
+
+Aω = reshape(Aω, (nx+1, ny+1))
+Aᵧ = reshape(Aᵧ, (nx+1, ny+1))
+
+using CairoMakie
+
+fig = Figure()
+ax = Axis(fig[1, 1])
+heatmap!(ax, Aω, colormap=:viridis)
+display(fig)
+
+readline()
 # Define the boundary conditions 
 bc = Dirichlet(10.0)
 

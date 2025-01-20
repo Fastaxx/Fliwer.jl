@@ -264,7 +264,7 @@ function plot_solution(solver, mesh::CartesianMesh{1}, body::Body, capacity::Cap
             scatter!(ax, u1ᵧ, color=:green, label="Phase 1 - Interface")
             scatter!(ax, u2ₒ, color=:red, label="Phase 2 - Bulk")
             scatter!(ax, u2ᵧ, color=:purple, label="Phase 2 - Interface")
-            axislegend(ax)
+            axislegend(ax, position=:rb)
             display(fig)
         end
     else
@@ -895,5 +895,17 @@ function plot_solution_vector(solver::SolverVec, mesh::CartesianMesh{2}, body::B
     hm4 = heatmap!(ax4, Uyᵧ, colormap=:viridis)
     Colorbar(fig[2, 4], hm4, label="Uyᵧ")
 
+    display(fig)
+end
+
+function plot_body(body, x0, lx, nx, Tend, nt)
+    x = range(x0, stop=lx, length=nx)
+    t = range(0, stop=Tend, length=nt)
+    fig = Figure()
+    ax = Axis(fig[1, 1])
+    for i in 1:length(t)
+        body_pos = [body.sdf(x, t[i]) for x in x]
+        lines!(ax, x, body_pos, color=:blue, linewidth=2, label="t=$i")
+    end
     display(fig)
 end

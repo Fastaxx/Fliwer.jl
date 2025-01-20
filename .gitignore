@@ -4,3 +4,5 @@ data/*.vti
 data/*.pvd
 *.vti
 *.pvd
+*.mp4
+*.txt

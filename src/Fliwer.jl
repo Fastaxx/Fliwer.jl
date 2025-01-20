@@ -18,6 +18,7 @@ using WriteVTK
 
 include("Mesh.jl")
 export CartesianMesh, nC, MeshTag
+export CartesianSpaceTimeMesh
 
 include("Body.jl")
 export AbstractBody,Body,NoBody,sdf,+,⊖,c,measure, NoBody1D, NoBody2D, NoBody3D, curvature
@@ -28,6 +29,8 @@ export AbstractCapacity,Capacity,measure!
 include("Operators.jl")
 export AbstractOperators, DiffusionOps, ConvectionOps, ẟ_m, δ_p, Σ_m, Σ_p, I
 export AdvectionVecOps
+export ∇ 
+export SpaceTimeOps
 
 include("Boundary.jl")
 export AbstractBoundary, Dirichlet, Neumann, Robin, Periodic, AbstractInterfaceBC, ScalarJump, FluxJump, BorderConditions, InterfaceConditions
@@ -41,6 +44,7 @@ export identify!, find_border, find_cut, eval_sdf
 export initialize_temperature_uniform!, initialize_temperature_square!, initialize_temperature_circle!, initialize_temperature_function!
 export initialize_rotating_velocity_field, initialize_radial_velocity_field, initialize_poiseuille_velocity_field
 export remove_zero_rows_cols!
+export compute_gradient
 
 include("Solver.jl")
 export TimeType, PhaseType, EquationType, Solver
@@ -55,12 +59,19 @@ include("SolverVec.jl")
 export DiffusionVecUnsteadyMono, solve_DiffusionVecUnsteadyMono!
 export ConvectionVecUnsteadyMono, solve_ConvectionVecUnsteadyMono!
 
+include("MovingSolver.jl")
+export MovingDiffusionUnsteadyMono, solve_MovingDiffusionUnsteadyMono!
+
 include("Solve.jl")
 export solve!
 
+include("Darcy.jl")
+export DarcyFlow, solve_DarcyFlow!, solve_darcy_velocity
+export DarcyFlowUnsteady, solve_DarcyFlowUnsteady!
+
 include("Vizualize.jl")
 export plot_solution, plot_profile, animate_solution
-export plot_mesh
+export plot_mesh, plot_body
 export plot_solution_vector
 
 include("Vtk.jl")

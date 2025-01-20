@@ -3,14 +3,14 @@ using IterativeSolvers
 
 ### 1D Test Case : Diphasic Steady Diffusion Equation
 # Define the mesh
-nx = 20
-lx = 4.0
+nx = 40
+lx = 1.0
 x0 = 0.
 domain = ((x0, lx),)
 mesh = CartesianMesh((nx,), (lx,), (x0,))
 
 # Define the body
-pos = 2.0+0.1
+pos = 0.5
 body = Body((x,_=0)->(x - pos), (x,)->(x,), domain, false)
 body_c = Body((x,_=0)->-(x - pos), (x,)->(x,), domain, false)
 
@@ -26,12 +26,15 @@ operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1,))
 operator_c = DiffusionOps(capacity_c.A, capacity_c.B, capacity_c.V, capacity_c.W, (nx+1,))
 
 # Define the boundary conditions
-bc = Dirichlet(1.0)
+bc = Dirichlet(2.0)
 bc1 = Dirichlet(0.0)
 
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:top => bc, :bottom => bc1))
 
 ic = InterfaceConditions(ScalarJump(1.0, 1.0, 0.0), FluxJump(1.0, 1.0, 0.0))
+
+# Fedkiw test case : 1) ScalarJump(1.0, 1.0, -1.0), FluxJump(1.0, 1.0, 0.0), f=0, u(0)=0, u(1)=2
+#                     2) ScalarJump(1.0, 1.0, 0.0), FluxJump(1.0, 1.0, -1.0), f=0, u(0)=0, u(1)=2
 
 # Define the source term
 f1 = (x, y, _=0) -> 0.0

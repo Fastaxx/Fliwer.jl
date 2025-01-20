@@ -14,7 +14,7 @@ mesh = CartesianMesh((nx, ny), (lx, ly), (x0, y0))
 
 # Define the body
 radius, center = ly/4, (lx/2, ly/2) .+ (0.01, 0.01)
-circle = Body((x,y,_=0)->-(sqrt((x-center[1])^2 + (y-center[2])^2) - radius), (x,y,_)->(x,y), domain, false)
+circle = Body((x,y,_=0)->(sqrt((x-center[1])^2 + (y-center[2])^2) - radius), (x,y,_)->(x,y), domain, false)
 
 # Identify cells
 identify!(mesh, circle)
@@ -35,8 +35,16 @@ bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc1, :right => b
 
 # Define the source term
 f = (x,y,_)-> 4.0 #sin(x)*cos(10*y)
+K = (x,y,_) -> begin
+    r = sqrt((x - lx/2)^2 + (y - lx/3)^2)
+    if r <= 1.0
+        return 10.0
+    else
+        return 0.1
+    end
+end
 
-Fluide = Phase(capacity, operator, f, 1.0)
+Fluide = Phase(capacity, operator, f, K)
 
 # Define the solver
 solver = DiffusionSteadyMono(Fluide, bc_b, bc)

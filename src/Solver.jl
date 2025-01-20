@@ -71,11 +71,11 @@ function DiffusionSteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::Abstrac
     return s
 end
 
-function build_mono_stead_diff_matrix(operator::DiffusionOps, capacity::Capacity, D::Float64, bc_b::BorderConditions, bc::AbstractBoundary)
+function build_mono_stead_diff_matrix(operator::DiffusionOps, capacity::Capacity, D, bc_b::BorderConditions, bc::AbstractBoundary)
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
     Iᵧ =  build_I_g(operator) #capacity.Γ
-    Id = build_I_D(operator, D)
+    Id = build_I_D(operator, D, capacity)
 
     A = vcat(hcat(Id * operator.G' * operator.Wꜝ * operator.G, Id * operator.G' * operator.Wꜝ * operator.H), hcat(Iᵦ * operator.H' * operator.Wꜝ * operator.G, Iᵦ * operator.H' * operator.Wꜝ * operator.H + Iₐ * Iᵧ))
 
@@ -145,7 +145,7 @@ function DiffusionSteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderCondition
     
     s = Solver(Steady, Diphasic, Diffusion, nothing, nothing, nothing, ConvergenceHistory(), [])
     
-    s.A = build_diph_stead_diff_matrix(phase1.operator, phase2.operator, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic)
+    s.A = build_diph_stead_diff_matrix(phase1.operator, phase2.operator, phase1.capacity, phase2.capacity, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic)
     s.b = build_rhs_diph_stead_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic)
 
     BC_border_diph!(s.A, s.b, bc_b, phase2.capacity.mesh)
@@ -153,13 +153,13 @@ function DiffusionSteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderCondition
     return s
 end
 
-function build_diph_stead_diff_matrix(operator1::DiffusionOps, operator2::DiffusionOps, D1::Float64, D2::Float64, bc_b::BorderConditions, ic::InterfaceConditions)
+function build_diph_stead_diff_matrix(operator1::DiffusionOps, operator2::DiffusionOps, capacite1::Capacity, capacite2::Capacity, D1::Float64, D2::Float64, bc_b::BorderConditions, ic::InterfaceConditions)
     n = prod(operator1.size)
 
     jump, flux = ic.scalar, ic.flux
     Iₐ1, Iₐ2 = jump.α₁ * I(n), jump.α₂ * I(n)
     Iᵦ1, Iᵦ2 = flux.β₁ * I(n), flux.β₂ * I(n)
-    Id1, Id2 = build_I_D(operator1, D1), build_I_D(operator2, D2)
+    Id1, Id2 = build_I_D(operator1, D1, capacite1), build_I_D(operator2, D2, capacite2)
 
     block1 = Id1 * operator1.G' * operator1.Wꜝ * operator1.G
     block2 = Id1 * operator1.G' * operator1.Wꜝ * operator1.H
@@ -272,7 +272,7 @@ function build_mono_unstead_diff_matrix(operator::DiffusionOps, capacite::Capaci
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
     Iᵧ = build_I_g(operator) # capacite.Γ #
-    Id = build_I_D(operator, D)
+    Id = build_I_D(operator, D, capacite)
 
     # Preallocate the sparse matrix A with 2n rows and 2n columns
     A = spzeros(Float64, 2n, 2n)
@@ -369,19 +369,19 @@ function DiffusionUnsteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderConditi
     
     s = Solver(Unsteady, Diphasic, Diffusion, nothing, nothing, nothing, ConvergenceHistory(), [])
     
-    s.A = build_diph_unstead_diff_matrix(phase1.operator, phase2.operator, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic, Δt)
+    s.A = build_diph_unstead_diff_matrix(phase1.operator, phase2.operator, phase1.capacity, phase2.capacity, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic, Δt)
     s.b = build_rhs_diph_unstead_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, 0.0)
 
     return s
 end
 
-function build_diph_unstead_diff_matrix(operator1::DiffusionOps, operator2::DiffusionOps, D1::Float64, D2::Float64, bc_b::BorderConditions, ic::InterfaceConditions, Δt::Float64)
+function build_diph_unstead_diff_matrix(operator1::DiffusionOps, operator2::DiffusionOps, capacite1::Capacity, capacite2::Capacity, D1::Float64, D2::Float64, bc_b::BorderConditions, ic::InterfaceConditions, Δt::Float64)
     n = prod(operator1.size)
 
     jump, flux = ic.scalar, ic.flux
     Iₐ1, Iₐ2 = jump.α₁ * I(n), jump.α₂ * I(n)
     Iᵦ1, Iᵦ2 = flux.β₁ * I(n), flux.β₂ * I(n)
-    Id1, Id2 = build_I_D(operator1, D1), build_I_D(operator2, D2)
+    Id1, Id2 = build_I_D(operator1, D1, capacite1), build_I_D(operator2, D2, capacite2)
 
     # Precompute repeated multiplications
     WG_G1 = operator1.Wꜝ * operator1.G
@@ -627,7 +627,7 @@ function build_mono_stead_adv_diff_matrix(operator::ConvectionOps, capacite::Cap
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
     Iᵧ = build_I_g(operator) #capacite.Γ #
-    Id = build_I_D(operator, D)
+    Id = build_I_D(operator, D, capacite)
 
     C = operator.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
     K = operator.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
@@ -703,7 +703,7 @@ function AdvectionDiffusionSteadyDiph(phase1::Phase, phase2::Phase, bc_b::Border
     
     s = Solver(Steady, Diphasic, DiffusionAdvection, nothing, nothing, nothing, ConvergenceHistory(), [])
     
-    s.A = build_diph_stead_adv_diff_matrix(phase1.operator, phase2.operator, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic)
+    s.A = build_diph_stead_adv_diff_matrix(phase1.operator, phase2.operator, phase1.capacity, phase2.capacity, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic)
     s.b = build_rhs_diph_stead_adv_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic)
 
     BC_border_diph!(s.A, s.b, bc_b, phase2.capacity.mesh)
@@ -711,13 +711,13 @@ function AdvectionDiffusionSteadyDiph(phase1::Phase, phase2::Phase, bc_b::Border
     return s
 end
 
-function build_diph_stead_adv_diff_matrix(operator1::ConvectionOps, operator2::ConvectionOps, D1::Float64, D2::Float64, bc_b::BorderConditions, ic::InterfaceConditions)
+function build_diph_stead_adv_diff_matrix(operator1::ConvectionOps, operator2::ConvectionOps, capacite1::Capacity, capacite2::Capacity, D1::Float64, D2::Float64, bc_b::BorderConditions, ic::InterfaceConditions)
     n = prod(operator1.size)
 
     jump, flux = ic.scalar, ic.flux
     Iₐ1, Iₐ2 = jump.α₁*I(n), jump.α₂*I(n)
     Iᵦ1, Iᵦ2 = flux.β₁*I(n), flux.β₂*I(n)
-    Id1, Id2 = build_I_D(operator1, D1), build_I_D(operator2, D2)
+    Id1, Id2 = build_I_D(operator1, D1, capacite1), build_I_D(operator2, D2, capacite2)
 
     C1 = operator1.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
     K1 = operator1.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
@@ -817,7 +817,7 @@ function build_mono_unstead_adv_diff_matrix(operator::ConvectionOps, capacite::C
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
     Iᵧ = build_I_g(operator) #capacite.Γ #
-    Id = build_I_D(operator, D)
+    Id = build_I_D(operator, D, capacite)
 
     C = operator.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
     K = operator.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
@@ -940,19 +940,19 @@ function AdvectionDiffusionUnsteadyDiph(phase1::Phase, phase2::Phase, bc_b::Bord
     
     s = Solver(Unsteady, Diphasic, DiffusionAdvection, nothing, nothing, nothing, ConvergenceHistory(), [])
     
-    s.A = build_diph_unstead_adv_diff_matrix(phase1.operator, phase2.operator, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic, Δt)
+    s.A = build_diph_unstead_adv_diff_matrix(phase1.operator, phase2.operator, phase1.capacity, phase2.capacity, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic, Δt)
     s.b = build_rhs_diph_unstead_adv_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, 0.0)
 
     return s
 end
 
-function build_diph_unstead_adv_diff_matrix(operator1::ConvectionOps, operator2::ConvectionOps, D1::Float64, D2::Float64, bc_b::BorderConditions, ic::InterfaceConditions, Δt::Float64)
+function build_diph_unstead_adv_diff_matrix(operator1::ConvectionOps, operator2::ConvectionOps, capacite1::Capacity, capacite2::Capacity, D1::Float64, D2::Float64, bc_b::BorderConditions, ic::InterfaceConditions, Δt::Float64)
     n = prod(operator1.size)
 
     jump, flux = ic.scalar, ic.flux
     Iₐ1, Iₐ2 = jump.α₁*I(n), jump.α₂*I(n)
     Iᵦ1, Iᵦ2 = flux.β₁*I(n), flux.β₂*I(n)
-    Id1, Id2 = build_I_D(operator1, D1), build_I_D(operator2, D2)
+    Id1, Id2 = build_I_D(operator1, D1, capacite1), build_I_D(operator2, D2, capacite2)
 
     C1 = operator1.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
     K1 = operator1.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
@@ -1038,7 +1038,7 @@ end
 
 
 
-function BC_border_mono!(A::SparseMatrixCSC{Float64, Int}, b::Vector{Float64}, bc_b::BorderConditions, mesh::CartesianMesh) 
+function BC_border_mono!(A::SparseMatrixCSC{Float64, Int}, b::Vector{Float64}, bc_b::BorderConditions, mesh::AbstractMesh) 
     # Identify location border cells based on the dimension : 1D (left, right), 2D (left, right, top, bottom), 3D (left, right, top, bottom, front, back)
     left_cells = []
     right_cells = []
@@ -1209,17 +1209,36 @@ function BC_border_diph!(A::SparseMatrixCSC{Float64, Int}, b::Vector{Float64}, b
     end
 end
     
-function build_I_D(operator::AbstractOperators, D::Union{Float64,Function})
+function build_I_D(operator::AbstractOperators, D::Union{Float64,Function}, capacite::Capacity)
     n = prod(operator.size)
     Id = spdiagm(0 => ones(n))
 
     if D isa Function
-        Id = D(Id)
+        for i in 1:n
+            x, y, z = get_coordinates(i, capacite.C_ω)
+            Id[i, i] = D(x, y, z)
+        end
     else
         Id = D * Id
     end
     return Id
 end
+
+function build_I_D(operator::AbstractOperators, D::Union{Float64,Function}, capacite::Capacity, t::Float64)
+    n = prod(operator.size)
+    Id = spdiagm(0 => ones(n))
+
+    if D isa Function
+        for i in 1:n
+            x, y, z = get_coordinates(i, capacite.C_ω)
+            Id[i, i] = D(x, y, z, t)
+        end
+    else
+        Id = D * Id
+    end
+    return Id
+end
+
 
 function build_I_bc(operator,bc::AbstractBoundary)
     n = prod(operator.size)
