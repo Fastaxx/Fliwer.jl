@@ -897,3 +897,15 @@ function plot_solution_vector(solver::SolverVec, mesh::CartesianMesh{2}, body::B
 
     display(fig)
 end
+
+function plot_body(body, x0, lx, nx, Tend, nt)
+    x = range(x0, stop=lx, length=nx)
+    t = range(0, stop=Tend, length=nt)
+    fig = Figure()
+    ax = Axis(fig[1, 1])
+    for i in 1:length(t)
+        body_pos = [body.sdf(x, t[i]) for x in x]
+        lines!(ax, x, body_pos, color=:blue, linewidth=2, label="t=$i")
+    end
+    display(fig)
+end

@@ -345,3 +345,8 @@ function remove_zero_rows_cols!(A::SparseMatrixCSC{Float64, Int}, b::Vector{Floa
 
     return A, b, rows_idx, cols_idx
 end
+
+function compute_gradient(operator)
+    Grad = operator.Wꜝ * (operator.G * ones(size(operator.G, 2)) .+ operator.H * ones(size(operator.H, 2)))
+    return Grad
+end

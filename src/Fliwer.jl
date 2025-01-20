@@ -44,6 +44,7 @@ export identify!, find_border, find_cut, eval_sdf
 export initialize_temperature_uniform!, initialize_temperature_square!, initialize_temperature_circle!, initialize_temperature_function!
 export initialize_rotating_velocity_field, initialize_radial_velocity_field, initialize_poiseuille_velocity_field
 export remove_zero_rows_cols!
+export compute_gradient
 
 include("Solver.jl")
 export TimeType, PhaseType, EquationType, Solver
@@ -70,7 +71,7 @@ export DarcyFlowUnsteady, solve_DarcyFlowUnsteady!
 
 include("Vizualize.jl")
 export plot_solution, plot_profile, animate_solution
-export plot_mesh
+export plot_mesh, plot_body
 export plot_solution_vector
 
 include("Vtk.jl")

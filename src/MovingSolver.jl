@@ -1,4 +1,4 @@
-function MovingDiffusionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::AbstractBoundary, Δt::Float64, Tₑ::Float64, Tᵢ::Vector{Float64})
+function MovingDiffusionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::AbstractBoundary, Δt::Float64, Tₑ::Float64, Tᵢ::Vector{Float64}, scheme::String)
     println("Création du solveur:")
     println("- Moving problem")
     println("- Monophasic problem")
@@ -7,13 +7,18 @@ function MovingDiffusionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i:
     
     s = Solver(Unsteady, Monophasic, Diffusion, nothing, nothing, nothing, ConvergenceHistory(), [])
     
-    s.A = build_mono_unstead_diff_moving_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i, Δt)
-    s.b = build_rhs_mono_unstead_moving_diff(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0)
+    if scheme == "CN"
+        s.A = build_mono_unstead_diff_moving_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i, Δt, "CN")
+        s.b = build_rhs_mono_unstead_moving_diff(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0, "CN")
+    else 
+        s.A = build_mono_unstead_diff_moving_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i, Δt, "BE")
+        s.b = build_rhs_mono_unstead_moving_diff(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0, "BE")
+    end
 
     return s
 end
 
-function psip(args::Vararg{T,2}) where {T<:Real}
+function psip_cn(args::Vararg{T,2}) where {T<:Real}
     if all(iszero, args)
         0.0
     elseif all(!iszero, args)
@@ -23,7 +28,7 @@ function psip(args::Vararg{T,2}) where {T<:Real}
     end
 end
 
-function psim(args::Vararg{T,2}) where {T<:Real}
+function psim_cn(args::Vararg{T,2}) where {T<:Real}
     if all(iszero, args)
         0.0
     elseif all(!iszero, args)
@@ -33,7 +38,27 @@ function psim(args::Vararg{T,2}) where {T<:Real}
     end
 end
 
-function build_mono_unstead_diff_moving_matrix(operator::SpaceTimeOps, capacity::Capacity, D::Float64, bc_b::BorderConditions, bc::AbstractBoundary, Δt::Float64)
+function psip_be(args::Vararg{T,2}) where {T<:Real}
+    if all(iszero, args)
+        0.0
+    elseif all(!iszero, args)
+        1.0
+    else
+        1.0
+    end
+end
+
+function psim_be(args::Vararg{T,2}) where {T<:Real}
+    if all(iszero, args)
+        0.0
+    elseif all(!iszero, args)
+        0.0
+    else
+        0.0
+    end
+end
+
+function build_mono_unstead_diff_moving_matrix(operator::SpaceTimeOps, capacity::Capacity, D::Float64, bc_b::BorderConditions, bc::AbstractBoundary, Δt::Float64, scheme::String)
     n = prod(operator.size)
     nx, nt = operator.size
     Iₐ, Iᵦ = build_I_bc(operator, bc)
@@ -42,6 +67,12 @@ function build_mono_unstead_diff_moving_matrix(operator::SpaceTimeOps, capacity:
 
     Vn_1 = capacity.A[2][1:end÷2, 1:end÷2]
     Vn = capacity.A[2][end÷2+1:end, end÷2+1:end]
+
+    if scheme == "CN"
+        psip, psim = psip_cn, psim_cn
+    else
+        psip, psim = psip_be, psim_be
+    end
 
     Ψn1 = Diagonal(psip.(Vn,Vn_1))
 
@@ -61,7 +92,7 @@ function build_mono_unstead_diff_moving_matrix(operator::SpaceTimeOps, capacity:
     return A
 end
 
-function build_rhs_mono_unstead_moving_diff(operator::SpaceTimeOps, f::Function, capacity::Capacity, bc_b::BorderConditions, bc::AbstractBoundary, Tᵢ::Vector{Float64}, Δt::Float64, t::Float64)
+function build_rhs_mono_unstead_moving_diff(operator::SpaceTimeOps, f::Function, capacity::Capacity, bc_b::BorderConditions, bc::AbstractBoundary, Tᵢ::Vector{Float64}, Δt::Float64, t::Float64, scheme::String)
     N = prod(operator.size)
     nx,nt = operator.size
 
@@ -74,6 +105,12 @@ function build_rhs_mono_unstead_moving_diff(operator::SpaceTimeOps, f::Function,
     Vn_1 = capacity.A[2][1:end÷2, 1:end÷2]
     Vn = capacity.A[2][end÷2+1:end, end÷2+1:end]
 
+    if scheme == "CN"
+        psip, psim = psip_cn, psim_cn
+    else
+        psip, psim = psip_be, psim_be
+    end
+
     Ψn = Diagonal(psim.(Vn,Vn_1))
 
     W! = operator.Wꜝ[1:nx, 1:nx]
@@ -85,8 +122,11 @@ function build_rhs_mono_unstead_moving_diff(operator::SpaceTimeOps, f::Function,
     fₒn, fₒn1 = fₒn[1:nx], fₒn1[1:nx]
 
     # Build the right-hand side
-    b1 = (Vn - G' * W! * G * Ψn)*Tₒ - 0.5 * G' * W! * H * Tᵧ + 0.5 * V * (fₒn + fₒn1)
-    #b1 = (Vn)*Tₒ + V * (fₒn1)
+    if scheme == "CN"
+        b1 = (Vn - G' * W! * G * Ψn)*Tₒ - 0.5 * G' * W! * H * Tᵧ + 0.5 * V * (fₒn + fₒn1)
+    else
+        b1 = (Vn)*Tₒ + V * (fₒn1)
+    end
     b2 = Iᵧ * gᵧ
 
     b = [b1; b2]
@@ -105,7 +145,8 @@ function solve_MovingDiffusionUnsteadyMono!(
     bc::AbstractBoundary,
     body::Body,
     mesh::CartesianMesh,
-    t::Vector{Float64};
+    t::Vector{Float64},
+    scheme::String;
     method = IterativeSolvers.gmres,
     kwargs...
 )
@@ -122,6 +163,10 @@ function solve_MovingDiffusionUnsteadyMono!(
 
     nx, _ = phase.operator.size
     cond_log = Float64[]
+    minV_log = Float64[]
+    maxV_log = Float64[]
+    minW_log = Float64[]
+    maxW_log = Float64[]
 
     for i in 2:nt
         println("Time : $(t[i])")
@@ -139,7 +184,8 @@ function solve_MovingDiffusionUnsteadyMono!(
             phase.Diffusion_coeff,
             bc_b,
             bc,
-            Δt
+            Δt,
+            scheme
         )
         s.b = build_rhs_mono_unstead_moving_diff(
             operator,
@@ -149,7 +195,8 @@ function solve_MovingDiffusionUnsteadyMono!(
             bc,
             Tᵢ,
             Δt,
-            t[i]
+            t[i],
+            scheme
         )
         BC_border_mono!(s.A, s.b, bc_b, capacity.mesh)
 
@@ -159,7 +206,12 @@ function solve_MovingDiffusionUnsteadyMono!(
         if method == \
             A_reduced, b_reduced, rows_idx, cols_idx = remove_zero_rows_cols!(s.A, s.b)
             # Compute condition number
-            push!(cond_log, cond(Array(A_reduced),2))
+            cnum = cond(Array(A_reduced), 2)
+            push!(cond_log, cnum)
+            push!(minV_log, minimum(x for x in capacity.V if x != 0))
+            push!(maxV_log, maximum(capacity.V))
+            push!(minW_log, minimum(x for x in capacity.W[1] if x != 0))
+            push!(maxW_log, maximum(capacity.W[1]))
             x_reduced = A_reduced \ b_reduced
             s.x = zeros(size(s.A, 1))
             s.x[cols_idx] .= x_reduced
@@ -177,10 +229,16 @@ function solve_MovingDiffusionUnsteadyMono!(
         Tᵢ = s.x
     end
 
-    # Store condition numbers in a file at the end
+    # Store condition numbers & min/max in a file
     open("condition_numbers.txt", "w") do f
-        for c in cond_log
-            println(f, c)
+        for j in 1:length(cond_log)
+            println(f, join((
+                cond_log[j],
+                minV_log[j],
+                maxV_log[j],
+                minW_log[j],
+                maxW_log[j]
+            ), " "))
         end
     end
 end
