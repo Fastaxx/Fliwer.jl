@@ -61,6 +61,7 @@ export ConvectionVecUnsteadyMono, solve_ConvectionVecUnsteadyMono!
 
 include("MovingSolver.jl")
 export MovingDiffusionUnsteadyMono, solve_MovingDiffusionUnsteadyMono!
+export MovingDiffusionUnsteadyMono2, solve_MovingDiffusionUnsteadyMono2!
 
 include("Solve.jl")
 export solve!

@@ -11,18 +11,17 @@ mesh = CartesianMesh((nx, ny), (lx, ly), (x0, y0))
 
 # Define the time mesh
 Δt = 0.01
-Tend = 0.1
+Tend = 0.02
 nt = Int(Tend/Δt)
 t = [i*Δt for i in 0:nt]
 
-# Define the body
+# Define the body : Translating disk : radius = 0.5, center = (lx/2 + 0.1*t, ly/2)
 radius, center = ly/4, (lx/2, ly/2) .+ (0.01, 0.01)
-mapping = (x, y, t) -> (x + 0.1 * t, y)
 initial_body = Body((x, y,_=0) -> sqrt((x - center[1])^2 + (y - center[2])^2) - radius, (x,y,_)->(x,y), domain, false)
-body = Body((x, y, t) -> sqrt((x - mapping(x, y, t)[1])^2 + (y - mapping(x, y, t)[2])^2) - radius, (x,y,_)->(x,y), domain, false)
+body = Body((x, y, t) -> sqrt((x - center[1] - 0.4*t)^2 + (y - center[2])^2) - radius, (x,y,_)->(x,y), domain, false)
 
 # Define the space-time mesh
-spaceTimeMesh = CartesianSpaceTimeMesh(mesh, t[1:2])
+spaceTimeMesh = CartesianSpaceTimeMesh(mesh, t[2:3])
 
 # Identify cells
 identify!(mesh, initial_body)
@@ -31,6 +30,7 @@ spaceTimeMesh.tag = mesh.tag
 # Define the capacity
 capacity = Capacity(body, spaceTimeMesh)
 capacity_init = Capacity(initial_body, mesh)
+capacity.cell_types = capacity_init.cell_types
 
 # Define the operators
 operator = SpaceTimeOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1, 2))
@@ -43,41 +43,20 @@ bc1 = Dirichlet(1.0)
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc, :top => bc, :bottom => bc))
 
 # Define the source term
-f = (x,y,z,t)-> 1.0 #sin(x)*cos(10*y)
+f = (x,y,z,t)-> 0.0 #sin(x)*cos(10*y)
 
 Fluide = Phase(capacity, operator, f, 1.0)
 
 # Initial condition
-u0ₒ = ones((nx+1)*(ny+1))
-u0ᵧ = ones((nx+1)*(ny+1))
+u0ₒ = zeros((nx+1)*(ny+1))
+u0ᵧ = zeros((nx+1)*(ny+1))
 u0 = vcat(u0ₒ, u0ᵧ)
 
 # Define the solver
-solver = MovingDiffusionUnsteadyMono(Fluide, bc_b, bc1, Δt, Tend, u0, "CN")
+solver = MovingDiffusionUnsteadyMono2(Fluide, bc_b, bc1, Δt, Tend, u0, "BE")
 
 # Solve the problem
-solve_MovingDiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, nt, bc_b, bc1, body, mesh, t, "CN"; method=Base.:\)
-
-# Plot
-using CairoMakie
-
-xₒ = solver.x[1:end÷2]
-xᵧ = solver.x[end÷2+1:end]
-
-xₒ = reshape(xₒ, (nx+1, ny+1))
-xᵧ = reshape(xᵧ, (nx+1, ny+1))
-
-fig = Figure()
-ax = Axis(fig[1, 1])
-heatmap!(ax, xₒ, colormap=:viridis)
-display(fig)
-
-fig = Figure()
-ax = Axis(fig[1, 1])
-heatmap!(ax, xᵧ, colormap=:viridis)
-display(fig)
-
-
+solve_MovingDiffusionUnsteadyMono2!(solver, Fluide, u0, Δt, Tend, nt, bc_b, bc1, body, mesh, t, "BE"; method=Base.:\)
 
 
 # Plot the solution
