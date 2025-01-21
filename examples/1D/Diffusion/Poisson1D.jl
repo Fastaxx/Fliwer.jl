@@ -1,16 +1,17 @@
 using Fliwer
 using IterativeSolvers
+using LinearAlgebra
 
 ### 1D Test Case : Monophasic Steady Diffusion Equation
 # Define the mesh
-nx = 20
-lx = 4.
+nx = 160
+lx = 1.
 x0 = 0.
 domain = ((x0, lx),)
 mesh = CartesianMesh((nx,), (lx,), (x0,))
 
 # Define the body
-pos = 2. + 0.1
+pos = 0.5
 body = Body((x,_=0)->(x - pos), (x,)->(x,), domain, false)
 
 # Identify cells
@@ -37,7 +38,20 @@ Fluide = Phase(capacity, operator, f, 1.0)
 solver = DiffusionSteadyMono(Fluide, bc_b, bc)
 
 # Solve the problem
-solve_DiffusionSteadyMono!(solver, Fluide; method=IterativeSolvers.bicgstabl, verbose=false)
+solve_DiffusionSteadyMono!(solver, Fluide; method=Base.:\)
 
 # Plot the solution
 plot_solution(solver, mesh, body, capacity)
+
+# Analytical solution
+u_analytical = (x) -> (x < pos) ? 2x : 0.0
+
+err, global_err, full_err, cut_err, empty_err = check_convergence((x) -> (x < pos) ? 2x : 0.0, solver, capacity, 2)
+
+# Plot the error
+using CairoMakie
+
+fig = Figure(size = (800, 600))
+ax = Axis(fig[1, 1], xlabel = "x", ylabel = "u(x) - u_num(x)")
+scatter!(ax, err, color = :blue)
+fig

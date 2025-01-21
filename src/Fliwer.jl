@@ -44,7 +44,7 @@ export identify!, find_border, find_cut, eval_sdf
 export initialize_temperature_uniform!, initialize_temperature_square!, initialize_temperature_circle!, initialize_temperature_function!
 export initialize_rotating_velocity_field, initialize_radial_velocity_field, initialize_poiseuille_velocity_field
 export remove_zero_rows_cols!
-export compute_gradient
+export check_convergence
 
 include("Solver.jl")
 export TimeType, PhaseType, EquationType, Solver
