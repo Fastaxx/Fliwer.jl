@@ -254,21 +254,26 @@ Constructs a solver for the unsteady monophasic diffusion problem.
 - `Tₑ::Float64`: The final time.
 - `Tᵢ::Vector{Float64}`: The initial temperature distribution.
 """
-function DiffusionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::AbstractBoundary, Δt::Float64, Tₑ::Float64, Tᵢ::Vector{Float64})
+function DiffusionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::AbstractBoundary, Δt::Float64, Tₑ::Float64, Tᵢ::Vector{Float64}, scheme::String)
     println("Création du solveur:")
     println("- Monophasic problem")
     println("- Unsteady problem")
     println("- Diffusion problem")
     
     s = Solver(Unsteady, Monophasic, Diffusion, nothing, nothing, nothing, ConvergenceHistory(), [])
-    
-    s.A = build_mono_unstead_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i, Δt)
-    s.b = build_rhs_mono_unstead_diff(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0)
 
+    if scheme == "CN"
+        s.A = build_mono_unstead_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i, Δt, "CN")
+        s.b = build_rhs_mono_unstead_diff(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0, "CN")
+    else
+        s.A = build_mono_unstead_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i, Δt, "BE")
+        s.b = build_rhs_mono_unstead_diff(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0, "BE")
+    end
+    
     return s
 end
 
-function build_mono_unstead_diff_matrix(operator::DiffusionOps, capacite::Capacity, D::Float64, bc_b::BorderConditions, bc::AbstractBoundary, Δt::Float64)
+function build_mono_unstead_diff_matrix(operator::DiffusionOps, capacite::Capacity, D::Float64, bc_b::BorderConditions, bc::AbstractBoundary, Δt::Float64, scheme::String)
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
     Iᵧ = build_I_g(operator) # capacite.Γ #
@@ -278,8 +283,13 @@ function build_mono_unstead_diff_matrix(operator::DiffusionOps, capacite::Capaci
     A = spzeros(Float64, 2n, 2n)
 
     # Compute blocks
-    block1 = operator.V + Δt / 2 * (Id * operator.G' * operator.Wꜝ * operator.G)
-    block2 = Δt / 2 * (Id * operator.G' * operator.Wꜝ * operator.H)
+    if scheme=="CN"
+        block1 = operator.V + Δt / 2 * (Id * operator.G' * operator.Wꜝ * operator.G)
+        block2 = Δt / 2 * (Id * operator.G' * operator.Wꜝ * operator.H)
+    else
+        block1 = operator.V + Δt * (Id * operator.G' * operator.Wꜝ * operator.G)
+        block2 = Δt * (Id * operator.G' * operator.Wꜝ * operator.H)
+    end
     block3 = Iᵦ * operator.H' * operator.Wꜝ * operator.G
     block4 = Iᵦ * operator.H' * operator.Wꜝ * operator.H + (Iₐ * Iᵧ)
 
@@ -291,7 +301,7 @@ function build_mono_unstead_diff_matrix(operator::DiffusionOps, capacite::Capaci
     return A
 end
 
-function build_rhs_mono_unstead_diff(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary, Tᵢ, Δt::Float64, t::Float64)
+function build_rhs_mono_unstead_diff(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary, Tᵢ, Δt::Float64, t::Float64, scheme::String)
     N = prod(operator.size)
     b = zeros(2N)
 
@@ -302,12 +312,17 @@ function build_rhs_mono_unstead_diff(operator::DiffusionOps, f, capacite::Capaci
     Tₒ, Tᵧ = Tᵢ[1:N], Tᵢ[N+1:end]
 
     # Build the right-hand side
-    b = vcat((operator.V - Δt/2 * operator.G' * operator.Wꜝ * operator.G)*Tₒ - Δt/2 * operator.G' * operator.Wꜝ * operator.H * Tᵧ + Δt/2 * operator.V * (fₒn + fₒn1), Iᵧ * gᵧ)
-
+    if scheme=="CN"
+        b1 = (operator.V - Δt/2 * operator.G' * operator.Wꜝ * operator.G)*Tₒ - Δt/2 * operator.G' * operator.Wꜝ * operator.H * Tᵧ + Δt/2 * operator.V * (fₒn + fₒn1)
+    else
+        b1 = (operator.V)*Tₒ + Δt * operator.V * (fₒn1)
+    end
+    b2 = Iᵧ * gᵧ
+    b = vcat(b1, b2)
    return b
 end
 
-function solve_DiffusionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderConditions, bc::AbstractBoundary; method::Function = gmres, kwargs...)
+function solve_DiffusionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ, Δt::Float64, Tₑ, bc_b::BorderConditions, bc::AbstractBoundary, scheme::String; method::Function = gmres, kwargs...)
     if s.A === nothing
         error("Solver is not initialized. Call a solver constructor first.")
     end
@@ -315,10 +330,39 @@ function solve_DiffusionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ, Δt::Float6
     n = Int(size(s.A, 1) / 2)  # For monophasic problem, the system size is 2n
 
     t = 0.0
+    # Solve for the initial condition
+    if method == \
+        # Remove zero rows and columns for direct solver
+        A_reduced, b_reduced, _, cols_idx = remove_zero_rows_cols!(s.A, s.b)
+        # Solve the reduced system
+        x_reduced = A_reduced \ b_reduced
+        # Reconstruct the full solution vector
+        s.x = zeros(2n)
+        s.x[cols_idx] = x_reduced
+    else
+        kwargs_nt = (; kwargs...)
+        log = get(kwargs_nt, :log, false)
+        if log
+            s.x, s.ch = method(s.A, s.b; kwargs...)
+        else
+            s.x = method(s.A, s.b; kwargs...)
+        end
+    end
+
+    push!(s.states, s.x)
+    @show maximum(s.x)
+    Tᵢ = s.x
+
     while t < Tₑ
         t += Δt
         println("Time: ", t)
-        s.b = build_rhs_mono_unstead_diff(phase.operator, phase.source, phase.capacity, bc_b, bc, Tᵢ, Δt, t)
+        if scheme == "CN"
+            s.A = build_mono_unstead_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc, Δt, "CN")
+            s.b = build_rhs_mono_unstead_diff(phase.operator, phase.source, phase.capacity, bc_b, bc, Tᵢ, Δt, t, "CN")
+        else
+            s.A = build_mono_unstead_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc, Δt, "BE")
+            s.b = build_rhs_mono_unstead_diff(phase.operator, phase.source, phase.capacity, bc_b, bc, Tᵢ, Δt, t, "BE")
+        end
         BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
         
         if method == \

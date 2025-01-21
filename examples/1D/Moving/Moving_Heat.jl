@@ -23,16 +23,16 @@ function create_adaptive_times(Tend::Float64, nsteps::Int, ratio::Float64=1.1)
     return times
 end
 
-Δt = 0.01
-Tend = 0.5
+Δt = 0.001
+Tend = 0.2
 nt = Int(Tend/Δt)
 t = [i*Δt for i in 0:nt]
 
 # Define the body
-xf = 0.53*lx   # Interface position
+xf = 0.52*lx   # Interface position
 c = 1.0     # Interface velocity
 initial_body = Body((x,_=0)->(x - xf), (x,_)->(x), domain, false)  # Initial body
-body = Body((x,t, _=0)->(x - xf + c*sqrt(t)), (x,)->(x,), domain, false)  # Body moving to the right
+body = Body((x,t, _=0)->(x - xf - c*sqrt(t)), (x,)->(x,), domain, false)  # Body moving to the right
 
 # Define the space-time mesh
 spaceTimeMesh = CartesianSpaceTimeMesh(mesh, t[1:2])
@@ -66,10 +66,10 @@ u0ᵧ = ones((nx+1))
 u0 = vcat(u0ₒ, u0ᵧ)
 
 # Define the solver
-solver = MovingDiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0, "BE")
+solver = MovingDiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0, "CN")
 
 # Solve the problem
-solve_MovingDiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, nt, bc_b, bc, body, mesh, t, "BE"; method=Base.:\)
+solve_MovingDiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, nt, bc_b, bc, body, mesh, t, "CN"; method=Base.:\)
 
 # Write the solution to a VTK file
 #write_vtk("moving_heat_1d", mesh, solver)
