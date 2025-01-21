@@ -2,3 +2,4 @@
 CartesianGeometry = "5961ddb3-e46d-41f1-806c-0197ba873d0b"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 Fliwer = "7dcd8e42-b57a-4688-8f8e-7027ed0a0b06"
+LiveServer = "16fef848-5104-11e9-1b77-fb7a48bbb589"
