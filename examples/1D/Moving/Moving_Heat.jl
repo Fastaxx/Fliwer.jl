@@ -66,10 +66,10 @@ u0ᵧ = ones((nx+1))
 u0 = vcat(u0ₒ, u0ᵧ)
 
 # Define the solver
-solver = MovingDiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0, "CN")
+solver = MovingDiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0, "BE")
 
 # Solve the problem
-solve_MovingDiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, nt, bc_b, bc, body, mesh, t, "CN"; method=Base.:\)
+solve_MovingDiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, nt, bc_b, bc, body, mesh, t, "BE"; method=Base.:\)
 
 # Write the solution to a VTK file
 #write_vtk("moving_heat_1d", mesh, solver)

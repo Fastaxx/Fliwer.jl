@@ -84,11 +84,7 @@ function build_mono_unstead_diff_moving_matrix(operator::SpaceTimeOps, capacity:
     Iᵧ = Iᵧ[1:nx, 1:nx]
 
     block1 = Vn_1 + G' * W! * G * Ψn1
-    if scheme == "CN"
-        block2 = -(Vn_1 - Vn) + 0.5 * G' * W! * H
-    else
-        block2 = -(Vn_1 - Vn)
-    end
+    block2 = -(Vn_1 - Vn) + G' * W! * H * Ψn1
     block3 = Iᵦ * H' * W! * G 
     block4 = Iᵦ * H' * W! * H + (Iₐ * Iᵧ) 
 
@@ -303,11 +299,7 @@ function build_mono_unstead_diff_moving_matrix2(operator::SpaceTimeOps, capacity
     Iᵧ = Iᵧ[1:n, 1:n]
 
     block1 = Vn_1 + G' * W! * G * Ψn1
-    if scheme == "CN"
-        block2 = -(Vn_1 - Vn) + 0.5 * G' * W! * H
-    else
-        block2 = -(Vn_1 - Vn)
-    end
+    block2 = -(Vn_1 - Vn) + G' * W! * H * Ψn1
     block3 = Iᵦ * H' * W! * G 
     block4 = Iᵦ * H' * W! * H + (Iₐ * Iᵧ) 
 
@@ -388,6 +380,7 @@ function solve_MovingDiffusionUnsteadyMono2!(
     maxV_log = Float64[]
     minW_log = Float64[]
     maxW_log = Float64[]
+    maxT_log = Float64[]
 
     # Solve for the initial condition
     BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
@@ -417,9 +410,72 @@ function solve_MovingDiffusionUnsteadyMono2!(
 
     push!(s.states, s.x)
     @show maximum(abs.(s.x))
+    push!(maxT_log, maximum(abs.(s.x)))
     Tᵢ = s.x
 
-    for i in 2:nt
+    # Solve for the second time step
+    println("Time : $(t[2])")
+    spaceTimeMesh = CartesianSpaceTimeMesh(mesh, t[2:3];tag=mesh.tag)
+    capacity = Capacity(body, spaceTimeMesh)
+    operator = SpaceTimeOps(
+        capacity.A, capacity.B,
+        capacity.V, capacity.W,
+        (nx, ny, 2)
+    )
+
+    s.A = build_mono_unstead_diff_moving_matrix2(
+        operator,
+        capacity,
+        phase.Diffusion_coeff,
+        bc_b,
+        bc,
+        Δt,
+        "BE"
+    )
+
+    s.b = build_rhs_mono_unstead_moving_diff2(
+        operator,
+        phase.source,
+        capacity,
+        bc_b,
+        bc,
+        Tᵢ,
+        Δt,
+        t[2],
+        "BE"
+    )
+
+    BC_border_mono!(s.A, s.b, bc_b, capacity.mesh)
+
+    # Solve system
+    if method == \
+        A_reduced, b_reduced, rows_idx, cols_idx = remove_zero_rows_cols!(s.A, s.b)
+        # Compute condition number
+        #cnum = cond(Array(A_reduced), 2)
+        cnum = 0.0
+        push!(cond_log, cnum)
+        push!(minV_log, minimum(x for x in capacity.V if x != 0))
+        push!(maxV_log, maximum(capacity.V))
+        push!(minW_log, minimum(x for x in capacity.W[1] if x != 0))
+        push!(maxW_log, maximum(capacity.W[1]))
+        x_reduced = A_reduced \ b_reduced
+        s.x = zeros(size(s.A, 1))
+        s.x[cols_idx] .= x_reduced
+    else
+        log = get(kwargs, :log, false)
+        if log
+            s.x, s.ch = method(s.A, s.b; kwargs...)
+        else
+            s.x = method(s.A, s.b; kwargs...)
+        end
+    end
+
+    push!(s.states, s.x)
+    @show maximum(abs.(s.x))
+    push!(maxT_log, maximum(abs.(s.x)))
+    Tᵢ = s.x
+
+    for i in 3:nt
         println("Time : $(t[i])")
         spaceTimeMesh = CartesianSpaceTimeMesh(mesh, t[i:i+1];tag=mesh.tag)
         capacity = Capacity(body, spaceTimeMesh)
@@ -485,6 +541,7 @@ function solve_MovingDiffusionUnsteadyMono2!(
 
         push!(s.states, s.x)
         @show maximum(abs.(s.x))
+        push!(maxT_log, maximum(abs.(s.x)))
         Tᵢ = s.x
     end
 
@@ -498,6 +555,13 @@ function solve_MovingDiffusionUnsteadyMono2!(
                 minW_log[j],
                 maxW_log[j]
             ), " "))
+        end
+    end
+
+    # Store maxT in a file
+    open("max_T_log.txt", "w") do f
+        for j in 1:length(maxT_log)
+            println(f, maxT_log[j])
         end
     end
 end
