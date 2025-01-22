@@ -13,7 +13,7 @@ domain = ((x0, lx), (y0, ly))
 mesh = CartesianMesh((nx, ny), (lx, ly), (x0, y0))
 
 # Define the body
-radius, center = ly/4, (lx/2, ly/2) .+ (0.01, 0.01)
+radius, center = ly/4.0, (lx/2, ly/2) #.+ (0.01, 0.01)
 circle = Body((x,y,_=0)->(sqrt((x-center[1])^2 + (y-center[2])^2) - radius), (x,y,_)->(x,y), domain, false)
 
 # Identify cells
@@ -24,6 +24,54 @@ capacity = Capacity(circle, mesh)
 
 # Define the operators
 operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1))
+
+# Gradient operator
+xₒ = capacity.C_ω[1]
+pₒ = [capacity.C_ω[i][1]^2 + capacity.C_ω[i][2]^2 for i in 1:length(capacity.C_ω)]
+pᵧ = [capacity.C_ω[i][1]^2 + capacity.C_ω[i][2]^2 for i in 1:length(capacity.C_ω)]
+
+p = vcat(pₒ, pᵧ)
+∇_ = ∇(operator, p)
+
+@show size(∇_)
+
+∇x = ∇_[1:((nx+1)*(ny+1))]
+∇y = ∇_[((nx+1)*(ny+1)+1):end]
+∇x[capacity.cell_types .== 0] .= NaN
+#∇x[capacity.cell_types .== -1] .= NaN
+∇y[capacity.cell_types .== 0] .= NaN
+#∇y[capacity.cell_types .== -1] .= NaN
+
+
+∇x_true = [2*capacity.C_ω[i][1]  for i in 1:length(capacity.C_ω)]
+∇y_true = [2*capacity.C_ω[i][2] for i in 1:length(capacity.C_ω)]
+∇x_true[capacity.cell_types .== 0] .= NaN
+∇y_true[capacity.cell_types .== 0] .= NaN
+
+error_∇x = log10.(abs.((∇x - ∇x_true)./∇x_true))
+error_∇y = log10.(abs.((∇y - ∇y_true)./∇y_true))
+
+using CairoMakie
+
+fig = Figure()
+ax = Axis(fig[1, 1], aspect = DataAspect(), xlabel = "x", ylabel = "y", title="∇x")
+ax1 = Axis(fig[1, 2], aspect = DataAspect(), xlabel = "x", ylabel = "y", title="∇y")
+hm = heatmap!(ax, reshape(∇x, (nx+1, ny+1)), colormap = :viridis)
+hm2 = heatmap!(ax1, reshape(∇y, (nx+1, ny+1)), colormap = :viridis)
+Colorbar(fig[1, 3], hm)
+display(fig)
+readline()
+
+fig = Figure()
+ax = Axis(fig[1, 1], aspect = DataAspect(), xlabel = "x", ylabel = "y", title="Error ∇x")
+ax1 = Axis(fig[1, 2], aspect = DataAspect(), xlabel = "x", ylabel = "y", title="Error ∇y")
+hm = heatmap!(ax, reshape(error_∇x, (nx+1, ny+1)), colormap = :viridis)
+hm2 = heatmap!(ax1, reshape(error_∇y, (nx+1, ny+1)), colormap = :viridis)
+Colorbar(fig[1, 3], hm)
+display(fig)
+readline()
+
+
 
 Ax = capacity.A[1]
 Ay = capacity.A[2]
