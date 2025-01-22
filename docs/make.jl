@@ -4,6 +4,7 @@ makedocs(
     sitename = "Fliwer.jl",
     pages = [
         "index.md",
+        "Gradient Test" => "gradient.md",
         "Poisson 2D - 1 Phase" => "poisson.md"
     ]
 )
