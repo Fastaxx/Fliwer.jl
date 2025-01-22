@@ -357,6 +357,7 @@ function check_convergence(u_analytical::Function, solver, capacity::Capacity{1}
 
     # 2) Retrieve cell types and separate full, cut, empty
     cell_types = capacity.cell_types
+    idx_all    = findall((cell_types .== 1) .| (cell_types .== -1))
     idx_full   = findall(cell_types .== 1)
     idx_cut    = findall(cell_types .== -1)
     idx_empty  = findall(cell_types .== 0)
@@ -376,7 +377,7 @@ function check_convergence(u_analytical::Function, solver, capacity::Capacity{1}
     end
 
     # 4) Compute norms
-    global_err = lp_norm(err, eachindex(err), p)
+    global_err = lp_norm(err, idx_all, p)
     full_err   = lp_norm(err, idx_full,  p)
     cut_err    = lp_norm(err, idx_cut,   p)
     empty_err  = lp_norm(err, idx_empty, p)
@@ -401,6 +402,7 @@ function check_convergence(u_analytical::Function, solver, capacity::Capacity{2}
 
     # 2) Retrieve cell types and separate full, cut, empty
     cell_types = capacity.cell_types
+    idx_all    = findall((cell_types .== 1) .| (cell_types .== -1))
     idx_full   = findall(cell_types .== 1)
     idx_cut    = findall(cell_types .== -1)
     idx_empty  = findall(cell_types .== 0)
@@ -420,7 +422,7 @@ function check_convergence(u_analytical::Function, solver, capacity::Capacity{2}
     end
 
     # 4) Compute norms
-    global_err = lp_norm(err, eachindex(err), p)
+    global_err = lp_norm(err, idx_all, p)
     full_err   = lp_norm(err, idx_full,  p)
     cut_err    = lp_norm(err, idx_cut,   p)
     empty_err  = lp_norm(err, idx_empty, p)
@@ -443,6 +445,7 @@ function check_convergence(u_analytical::Function, solver, capacity::Capacity{3}
 
     # 2) Retrieve cell types and separate full, cut, empty
     cell_types = capacity.cell_types
+    idx_all   = findall((cell_types .== 1) .| (cell_types .== -1))
     idx_full   = findall(cell_types .== 1)
     idx_cut    = findall(cell_types .== -1)
     idx_empty  = findall(cell_types .== 0)
@@ -462,7 +465,7 @@ function check_convergence(u_analytical::Function, solver, capacity::Capacity{3}
     end
 
     # 4) Compute norms
-    global_err = lp_norm(err, eachindex(err), p)
+    global_err = lp_norm(err, idx_all, p)
     full_err   = lp_norm(err, idx_full,  p)
     cut_err    = lp_norm(err, idx_cut,   p)
     empty_err  = lp_norm(err, idx_empty, p)
