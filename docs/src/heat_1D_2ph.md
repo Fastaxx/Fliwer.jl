@@ -1,4 +1,4 @@
-# Heat 1D - 2 phases
+# Heat 1D - 2 phases
 
 This example demonstrates how to solve a 1D Heat equation in two domains with temperature and heat flux jump boundary conditions.
 We create two bodies (phases) that share an interface at x = 4.1, allowing for discontinuities in temperature and flux across the boundary.
