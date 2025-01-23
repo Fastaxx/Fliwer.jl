@@ -23,8 +23,8 @@ c = 0.0     # Interface velocity
 initial_body = Body((x,_=0)->(x - xf), (x,_)->(x), domain, false)  # Initial body
 initial_body_c = Body((x,_=0)->-(x - xf), (x,_)->(x), domain, false)  # Initial body complement
 
-body = Body((x,t, _=0)->(x - xf), (x,)->(x,), domain, false)  # Body moving to the right
-body_c = Body((x,t, _=0)->-(x - xf), (x,)->(x,), domain, false)  # Body moving to the left
+body = Body((x,t, _=0)->(x - xf - c*sqrt(t)), (x,)->(x,), domain, false)  # Body moving to the right
+body_c = Body((x,t, _=0)->-(x - xf - c*sqrt(t)), (x,)->(x,), domain, false)  # Body moving to the left
 
 # Define the space-time mesh
 spaceTimeMesh = CartesianSpaceTimeMesh(mesh, t[1:2])
@@ -48,7 +48,7 @@ operator_init = DiffusionOps(capacity_init.A, capacity_init.B, capacity_init.V, 
 operator_init_c = DiffusionOps(capacity_init_c.A, capacity_init_c.B, capacity_init_c.V, capacity_init_c.W, (nx+1,))
 
 # Define the boundary conditions
-bc1 = Dirichlet(0.0)
+bc1 = Dirichlet(1.0)
 bc0 = Dirichlet(1.0)
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:top => bc0, :bottom => bc1))
 
@@ -62,8 +62,8 @@ Fluide_1 = Phase(capacity, operator, f1, 1.0)
 Fluide_2 = Phase(capacity_c, operator_c, f2, 1.0)
 
 # Initial condition
-u0ₒ1 = zeros(nx+1)
-u0ᵧ1 = zeros(nx+1)
+u0ₒ1 = ones(nx+1)
+u0ᵧ1 = ones(nx+1)
 u0ₒ2 = ones(nx+1)
 u0ᵧ2 = ones(nx+1)
 

@@ -19,6 +19,7 @@ function MovingDiffusionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i:
     return s
 end
 
+"""
 function psip_cn(args::Vararg{T,2}) where {T<:Real}
     if all(iszero, args)
         0.0
@@ -28,7 +29,38 @@ function psip_cn(args::Vararg{T,2}) where {T<:Real}
         0.5
     end
 end
+"""
 
+function psip_cn(args::Vararg{T,2}) where {T<:Real}
+    if all(iszero, args)
+        0.0
+    elseif all(!iszero, args)
+        0.5
+    elseif iszero(args[1]) && !iszero(args[2])
+        0.5
+    elseif !iszero(args[1]) && iszero(args[2])
+        1.0
+    else
+        0.0
+    end        
+end
+
+function psim_cn(args::Vararg{T,2}) where {T<:Real}
+    if all(iszero, args)
+        0.0
+    elseif all(!iszero, args)
+        0.5
+    elseif iszero(args[1]) && !iszero(args[2]) # Fresh
+        0.5
+    elseif !iszero(args[1]) && iszero(args[2]) # Dead
+        0.0
+    else
+        0.0
+    end
+end
+
+
+"""
 function psim_cn(args::Vararg{T,2}) where {T<:Real}
     if all(iszero, args)
         0.0
@@ -38,6 +70,7 @@ function psim_cn(args::Vararg{T,2}) where {T<:Real}
         0.5
     end
 end
+"""
 
 function psip_be(args::Vararg{T,2}) where {T<:Real}
     if all(iszero, args)
