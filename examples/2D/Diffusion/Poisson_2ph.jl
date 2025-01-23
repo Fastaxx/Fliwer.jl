@@ -3,7 +3,7 @@ using IterativeSolvers
 
 ### 2D Test Case : Diphasic Steady Diffusion Equation inside a Disk
 # Define the mesh
-nx, ny = 40, 40
+nx, ny = 320, 320
 lx, ly = 4., 4.
 x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
@@ -29,12 +29,12 @@ operator_c = DiffusionOps(capacity_c.A, capacity_c.B, capacity_c.V, capacity_c.W
 bc = Dirichlet(1.0)
 bc1 = Dirichlet(0.0)
 bc2 = Dirichlet(2.0)
-bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc1, :top => bc, :bottom => bc2))
+bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc1, :right => bc1, :top => bc1, :bottom => bc1))
 
 ic = InterfaceConditions(ScalarJump(1.0, 1.0, 0.0), FluxJump(1.0, 1.0, 0.0))
 
 # Define the source term
-f1 = (x,y,_)->0.0 #cos(x)*sin(10*y)
+f1 = (x,y,_)->1.0 #cos(x)*sin(10*y)
 f2 = (x,y,_)->0.0 #cos(x)*sin(10*y)
 
 # Define the phases
