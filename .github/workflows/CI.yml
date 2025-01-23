@@ -25,7 +25,6 @@ jobs:
           - '1.11'
         os:
           - ubuntu-latest
-          - macOS-latest
         arch:
           - x64
         exclude:
