@@ -5,7 +5,8 @@ makedocs(
     pages = [
         "index.md",
         "Gradient Test" => "gradient.md",
-        "Poisson 2D - 1 Phase" => "poisson.md"
+        "Poisson 2D - 1 Phase" => "poisson.md",
+        "Heat 1D - 2 Phases" => "heat_1D_2ph.md",
     ]
 )
 
