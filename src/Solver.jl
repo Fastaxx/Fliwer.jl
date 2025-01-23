@@ -200,7 +200,8 @@ function build_rhs_diph_stead_diff(operator1::DiffusionOps, operator2::Diffusion
     b = zeros(4N)
 
     jump, flux = ic.scalar, ic.flux
-    Iᵧ1, Iᵧ2 = build_I_g(operator1), build_I_g(operator2) #capacite1.Γ, capacite2.Γ #
+    Iᵧ1, Iᵧ2 = build_I_g(operator1), build_I_g(operator2) 
+    Iᵧ1, Iᵧ2 = capacite1.Γ, capacite2.Γ
     gᵧ, hᵧ = build_g_g(operator1, jump, capacite1), build_g_g(operator2, flux, capacite2)
 
     fₒ1 = build_source(operator1, f1, capacite1)
@@ -306,6 +307,7 @@ function build_rhs_mono_unstead_diff(operator::DiffusionOps, f, capacite::Capaci
     b = zeros(2N)
 
     Iᵧ = build_I_g(operator) #capacite.Γ #
+    #Iᵧ = capacite.Γ
     fₒn, fₒn1 = build_source(operator, f, t, capacite), build_source(operator, f, t+Δt, capacite)
     gᵧ = build_g_g(operator, bc, capacite)
 

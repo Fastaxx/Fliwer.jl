@@ -1,0 +1,132 @@
+using Fliwer
+using IterativeSolvers
+
+### 2D Test Case : Monophasic Unsteady Diffusion Equation inside a Disk
+# Define the mesh
+nx, ny = 40, 40
+lx, ly = 4., 4.
+x0, y0 = 0., 0.
+domain = ((x0, lx), (y0, ly))
+mesh = CartesianMesh((nx, ny), (lx, ly), (x0, y0))
+
+# Define the body
+radius, center = ly/4, (lx/2, ly/2)
+circle = Body((x,y,_=0)->(sqrt((x-center[1])^2 + (y-center[2])^2) - radius), (x,y,_)->(x,y), domain, false)
+
+# Identify cells
+identify!(mesh, circle)
+
+# Define the capacity
+capacity = Capacity(circle, mesh)
+
+# Define the operators
+operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1))
+
+cell_types = capacity.cell_types
+
+# Define the boundary conditions 
+bc = Robin(1.0,1.0,1.0)
+bc0 = Dirichlet(0.0)
+
+bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc0, :right => bc0, :top => bc0, :bottom => bc0))
+
+# Define the source term
+f = (x,y,z,t)->0.0
+
+# Define the phase
+Fluide = Phase(capacity, operator, f, 1.0)
+
+# Initial condition
+u0ₒ = zeros((nx+1)*(ny+1))
+u0ᵧ = zeros((nx+1)*(ny+1))
+u0 = vcat(u0ₒ, u0ᵧ)
+
+# Define the solver
+Δt = 0.01
+Tend = 1.0
+solver = DiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0, "BE") # Start by a backward Euler scheme to prevent oscillation due to CN scheme
+
+# Solve the problem
+Fliwer.solve_DiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, bc_b, bc, "BE"; method=Base.:\)
+#Fliwer.solve_DiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, bc_b, bc; method=IterativeSolvers.bicgstabl, reltol=1e-40, verbose=false)
+
+# Write the solution to a VTK file
+#write_vtk("heat", mesh, solver)
+
+# Plot the solution
+plot_solution(solver, mesh, circle, capacity; state_i=1)
+
+# Animation
+animate_solution(solver, mesh, circle)
+
+"""
+# Analytical solution
+using SpecialFunctions
+using Roots
+
+function radial_heat_(x, y)
+    t=1.0
+    R=1.0
+    k=1.0
+
+    function j0_zeros_robin(N, k, R; guess_shift = 0.25)
+        # Define the function for alpha J1(alpha) - k R J0(alpha) = 0
+        eq(alpha) = alpha * besselj1(alpha) - k * R * besselj0(alpha)
+    
+        zs = zeros(Float64, N)
+        for m in 1:N
+            # Approximate location around (m - guess_shift)*π
+            x_left  = (m - guess_shift - 0.5) * π
+            x_right = (m - guess_shift + 0.5) * π
+            x_left  = max(x_left, 1e-6)  # Ensure bracket is positive
+            zs[m]   = find_zero(eq, (x_left, x_right))
+        end
+        return zs
+    end
+
+    alphas = j0_zeros_robin(1000, k, R)
+    N=length(alphas)
+    r = sqrt((x - center[1])^2 + (y - center[2])^2)
+    if r >= R
+        # Not physically in the domain, so return NaN or handle as you wish.
+        return NaN
+    end
+    
+    # If in the disk: sum the series
+    s = 0.0
+    for m in 1:N
+        αm = alphas[m]
+        An = 2.0 * k * R / ((k^2 * R^2 + αm^2) * besselj0(αm))
+        s += An * exp(-αm^2 * t/R^2) * besselj0(αm * (r / R))
+    end
+    return (1.0 - s) * (2.0 - 1.0) + 1.0
+end
+
+u_ana, u_num, global_err, full_err, cut_err, empty_err = check_convergence(radial_heat_, solver, capacity, 2)
+
+u_ana[capacity.cell_types .== 0] .= NaN
+u_ana = reshape(u_ana, (nx+1, ny+1))
+
+u_num[capacity.cell_types .== 0] .= NaN
+u_num = reshape(u_num, (nx+1, ny+1))
+
+err = u_ana - u_num
+
+using CairoMakie
+fig = Figure()
+ax1 = Axis(fig[1, 1], xlabel = "x", ylabel="y", title="Analytical solution")
+ax2 = Axis(fig[1, 2], xlabel = "x", ylabel="y", title="Numerical solution")
+heatmap!(ax1, u_ana, colormap=:viridis)
+heatmap!(ax2, u_num, colormap=:viridis)
+Colorbar(fig[1, 3], label="u(x)")
+display(fig)
+readline()
+
+# Plot error heatmap
+err = reshape(err, (nx+1, ny+1))
+fig = Figure()
+ax = Axis(fig[1, 1], xlabel = "x", ylabel="y", title="Log error")
+hm = heatmap!(ax, log10.(abs.(err)), colormap=:viridis)
+Colorbar(fig[1, 2], hm, label="log10(|u(x) - u_num(x)|)")
+display(fig)
+"""
