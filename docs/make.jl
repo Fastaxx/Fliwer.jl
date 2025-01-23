@@ -12,5 +12,6 @@ makedocs(
 )
 
 deploydocs(
-    repo="github.com/Fastaxx/Fliwer.jl.git"
+    repo="github.com/Fastaxx/Fliwer.jl.git",
+    versions = nothing
 )
