@@ -276,8 +276,7 @@ end
 function build_mono_unstead_diff_matrix(operator::DiffusionOps, capacite::Capacity, D::Float64, bc_b::BorderConditions, bc::AbstractBoundary, Δt::Float64, scheme::String)
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
-    Iᵧ = build_I_g(operator) # capacite.Γ #
-    Iᵧ = capacite.Γ
+    Iᵧ = capacite.Γ # build_I_g(operator, bc)
 
     Id = build_I_D(operator, D, capacite)
 
@@ -307,7 +306,6 @@ function build_rhs_mono_unstead_diff(operator::DiffusionOps, f, capacite::Capaci
     N = prod(operator.size)
     b = zeros(2N)
 
-    Iᵧ = build_I_g(operator) #capacite.Γ #
     Iᵧ = capacite.Γ
     fₒn, fₒn1 = build_source(operator, f, t, capacite), build_source(operator, f, t+Δt, capacite)
     gᵧ = build_g_g(operator, bc, capacite)
@@ -477,7 +475,7 @@ function build_rhs_diph_unstead_diff(operator1::DiffusionOps, operator2::Diffusi
     b = zeros(4N)
 
     jump, flux = ic.scalar, ic.flux
-    Iᵧ1, Iᵧ2 = build_I_g(operator1), build_I_g(operator2) #capacite1.Γ, capacite2.Γ #
+    Iᵧ1, Iᵧ2 = capacite1.Γ, capacite2.Γ
     gᵧ, hᵧ = build_g_g(operator1, jump,capacite1), build_g_g(operator2, flux, capacite2)
 
     fₒn1, fₒn2 = build_source(operator1, f1, t, capacite1), build_source(operator2, f2, t, capacite2)
@@ -564,7 +562,7 @@ end
 function build_mono_unstead_adv_matrix(operator::ConvectionOps, capacite::Capacity,  bc_b::BorderConditions, bc::AbstractBoundary, Δt::Float64)
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
-    Iᵧ = build_I_g(operator) #capacite.Γ #
+    Iᵧ = capacite.Γ
 
     C = operator.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
     K = operator.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
@@ -585,7 +583,7 @@ function build_rhs_mono_unstead_adv(operator::ConvectionOps, f, capacite::Capaci
     C = operator.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
     K = operator.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
 
-    Iᵧ = build_I_g(operator) #capacite.Γ #
+    Iᵧ = capacite.Γ 
     fₒn, fₒn1 = build_source(operator, f, t, capacite), build_source(operator, f, t+Δt, capacite)
     gᵧ = build_g_g(operator, bc, capacite)
 
@@ -673,7 +671,7 @@ end
 function build_mono_stead_adv_diff_matrix(operator::ConvectionOps, capacite::Capacity, D::Float64, bc_b::BorderConditions, bc::AbstractBoundary)
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
-    Iᵧ = build_I_g(operator) #capacite.Γ #
+    Iᵧ = capacite.Γ 
     Id = build_I_D(operator, D, capacite)
 
     C = operator.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
@@ -692,7 +690,7 @@ function build_rhs_mono_stead_adv_diff(operator::ConvectionOps, f, capacite::Cap
     N = prod(operator.size)
     b = zeros(2N)
 
-    Iᵧ = build_I_g(operator) #capacite.Γ #
+    Iᵧ = capacite.Γ
     fₒ = build_source(operator, f, capacite)
     gᵧ = build_g_g(operator, bc, capacite)
 
@@ -792,7 +790,7 @@ function build_rhs_diph_stead_adv_diff(operator1::ConvectionOps, operator2::Conv
     b = zeros(4N)
 
     jump, flux = ic.scalar, ic.flux
-    Iᵧ1, Iᵧ2 = build_I_g(operator1), build_I_g(operator2) #capacite1.Γ, capacite2.Γ #
+    Iᵧ1, Iᵧ2 = capacite1.Γ, capacite2.Γ
     gᵧ, hᵧ = build_g_g(operator1, jump, capacite1), build_g_g(operator2, flux, capacite2)
 
     fₒ1 = build_source(operator1, f1, capacite1)
@@ -863,7 +861,7 @@ end
 function build_mono_unstead_adv_diff_matrix(operator::ConvectionOps, capacite::Capacity, D::Float64, bc_b::BorderConditions, bc::AbstractBoundary, Δt::Float64)
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
-    Iᵧ = build_I_g(operator) #capacite.Γ #
+    Iᵧ = capacite.Γ
     Id = build_I_D(operator, D, capacite)
 
     C = operator.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
@@ -885,7 +883,7 @@ function build_rhs_mono_unstead_adv_diff(operator::ConvectionOps, f, capacite::C
     C = operator.C # NTuple{N, SparseMatrixCSC{Float64, Int}}
     K = operator.K # NTuple{N, SparseMatrixCSC{Float64, Int}}
 
-    Iᵧ = build_I_g(operator) #capacite.Γ #
+    Iᵧ = capacite.Γ
     fₒn, fₒn1 = build_source(operator, f, t, capacite), build_source(operator, f, t+Δt, capacite)
     gᵧ = build_g_g(operator, bc, capacite)
 
@@ -1028,7 +1026,7 @@ function build_rhs_diph_unstead_adv_diff(operator1::ConvectionOps, operator2::Co
     b = zeros(4N)
 
     jump, flux = ic.scalar, ic.flux
-    Iᵧ1, Iᵧ2 = build_I_g(operator1), build_I_g(operator2) #capacite1.Γ, capacite2.Γ #
+    Iᵧ1, Iᵧ2 = capacite1.Γ, capacite2.Γ 
     gᵧ, hᵧ = build_g_g(operator1, jump,capacite1), build_g_g(operator2, flux, capacite2)
 
     fₒn1, fₒn2 = build_source(operator1, f1, t, capacite1), build_source(operator2, f2, t, capacite2)
