@@ -278,6 +278,8 @@ function build_mono_unstead_diff_matrix(operator::DiffusionOps, capacite::Capaci
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
     Iᵧ = build_I_g(operator) # capacite.Γ #
+    Iᵧ = capacite.Γ
+
     Id = build_I_D(operator, D, capacite)
 
     # Preallocate the sparse matrix A with 2n rows and 2n columns
@@ -307,7 +309,7 @@ function build_rhs_mono_unstead_diff(operator::DiffusionOps, f, capacite::Capaci
     b = zeros(2N)
 
     Iᵧ = build_I_g(operator) #capacite.Γ #
-    #Iᵧ = capacite.Γ
+    Iᵧ = capacite.Γ
     fₒn, fₒn1 = build_source(operator, f, t, capacite), build_source(operator, f, t+Δt, capacite)
     gᵧ = build_g_g(operator, bc, capacite)
 
