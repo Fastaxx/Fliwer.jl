@@ -10,7 +10,8 @@ function run_mesh_convergence(
     u_analytical::Function;
     lx::Float64=4.0,
     ly::Float64=4.0,
-    norm
+    norm,
+    relative::Bool=false
 )
 
     h_vals = Float64[]
@@ -52,7 +53,7 @@ function run_mesh_convergence(
 
         # Compute errors
         u_ana, u_num, global_err, full_err, cut_err, empty_err =
-            check_convergence(u_analytical, solver, capacity, norm)
+            check_convergence(u_analytical, solver, capacity, norm, relative)
 
         # Representative mesh size ~ 1 / min(nx, ny)
         push!(h_vals, 1.0 / min(nx, ny))
@@ -100,12 +101,12 @@ function run_mesh_convergence(
         yscale = log10
     )
 
-    scatter!(ax, h_vals, err_vals,       label="Global error ($p_global)", markersize=12)
-    lines!(ax, h_vals, err_vals,         label="Global error ($p_global)", color=:black)
-    scatter!(ax, h_vals, err_full_vals,  label="Full error ($p_full)",   markersize=12)
-    lines!(ax, h_vals, err_full_vals,    label="Full error ($p_full)",   color=:black)
-    scatter!(ax, h_vals, err_cut_vals,   label="Cut error ($p_cut)",     markersize=12)
-    lines!(ax, h_vals, err_cut_vals,     label="Cut error ($p_cut)",     color=:black)
+    scatter!(ax, h_vals, err_vals,       label="All cells ($p_global)", markersize=12)
+    lines!(ax, h_vals, err_vals,         color=:black)
+    scatter!(ax, h_vals, err_full_vals,  label="Full cells ($p_full)",   markersize=12)
+    lines!(ax, h_vals, err_full_vals,    color=:black)
+    scatter!(ax, h_vals, err_cut_vals,   label="Cut cells ($p_cut)",     markersize=12)
+    lines!(ax, h_vals, err_cut_vals,     color=:black)
 
     lines!(ax, h_vals, 10.0*h_vals.^2.0, label="O(h²)", color=:black, linestyle=:dash)
     lines!(ax, h_vals, 1.0*h_vals.^1.0, label="O(h¹)", color=:black, linestyle=:dashdot)
@@ -125,8 +126,8 @@ function run_mesh_convergence(
 end
 
 # Example usage:
-nx_list = [10, 20, 40, 80, 160, 320]
-ny_list = [10, 20, 40, 80, 160, 320]
-radius, center = 1.0, (2.01, 2.01)
+nx_list = [20, 40, 80, 160, 320, 640]
+ny_list = [20, 40, 80, 160, 320, 640]
+radius, center = 1.0, (2.0, 2.0)
 u_analytical(x,y) = 1.0 - (x-center[1])^2 - (y-center[2])^2
-run_mesh_convergence(nx_list, ny_list, radius, center, u_analytical, norm=2)
+run_mesh_convergence(nx_list, ny_list, radius, center, u_analytical, norm=1, relative=false)

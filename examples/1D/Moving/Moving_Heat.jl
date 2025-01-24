@@ -24,7 +24,7 @@ function create_adaptive_times(Tend::Float64, nsteps::Int, ratio::Float64=1.1)
     return times
 end
 
-Δt = 0.01
+Δt = 0.5 * (lx/nx)^2
 Tend = 1.0
 nt = Int(Tend/Δt)
 t = [i*Δt for i in 0:nt]
@@ -99,4 +99,24 @@ ax = Axis(fig[1, 1], xlabel = "x", ylabel = "u", title = "1D 1 phase Stefan prob
 lines!(ax, x, y, color = :blue, linewidth = 2, label = "Analytical solution")
 scatter!(ax, x, solver.states[end][1:nx+1], color = :red, label = "Numerical solution")
 axislegend(ax)
+display(fig)
+
+u_ana, u_num, global_err, full_err, cut_err, empty_err = check_convergence(stefan_1d_1ph_analytical, solver, capacity_init, mesh, 2)
+
+
+nx = [20, 40, 80, 160, 320]
+dx = 1.0 ./ nx
+L2_err_all = [0.2861309825029104, 0.1517310842473155, 0.08706086415610075, 0.055717806923711165, 0.0405692827948743]
+L2_err_cut = [0.10094309666605161, 0.036899713160507636, 0.017285819564291833, 0.00948225747532321, 0.005782313993268112]
+L2_err_full = [0.2677338797827966, 0.14717585771973002, 0.08532757180183773, 0.054905016178484395, 0.04015509371641087]
+
+fig = Figure()
+ax = Axis(fig[1, 1], xlabel = "dx", ylabel = "L2 error", title = "Convergence of the L2 error - Log scale")
+scatter!(ax, log10.(dx), log10.(L2_err_all), color = :blue, label = "All cells")
+scatter!(ax, log10.(dx), log10.(L2_err_cut), color = :red, label = "Cut cells")
+scatter!(ax, log10.(dx), log10.(L2_err_full), color = :green, label = "Full cells")
+
+lines!(ax, log10.(dx), log10.(dx.^2), color = :black, linestyle = :dash, label = "Order 2")
+lines!(ax, log10.(dx), log10.(dx.^1), color = :black, linestyle = :dashdot, label = "Order 1")
+axislegend(ax, position =:rb)
 display(fig)
