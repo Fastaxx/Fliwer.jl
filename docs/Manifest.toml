@@ -471,7 +471,7 @@ uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
 version = "0.8.5"
 
 [[deps.Fliwer]]
-deps = ["CairoMakie", "CartesianGeometry", "Documenter", "ForwardDiff", "GLMakie", "IterativeSolvers", "LinearAlgebra", "LsqFit", "Makie", "Reexport", "SparseArrays", "SpecialFunctions", "StaticArrays", "Test", "WriteVTK"]
+deps = ["CairoMakie", "CartesianGeometry", "Documenter", "ForwardDiff", "IterativeSolvers", "LinearAlgebra", "LsqFit", "Makie", "Reexport", "SparseArrays", "SpecialFunctions", "StaticArrays", "Test", "WriteVTK"]
 path = "/home/libat/.julia/dev/Fliwer"
 uuid = "7dcd8e42-b57a-4688-8f8e-7027ed0a0b06"
 version = "1.0.0-DEV"
@@ -538,11 +538,7 @@ git-tree-sha1 = "fcb0584ff34e25155876418979d4c8971243bb89"
 uuid = "0656b61e-2033-5cc2-a64a-77c0f6c09b89"
 version = "3.4.0+2"
 
-[[deps.GLMakie]]
-deps = ["ColorTypes", "Colors", "FileIO", "FixedPointNumbers", "FreeTypeAbstraction", "GLFW", "GeometryBasics", "LinearAlgebra", "Makie", "Markdown", "MeshIO", "ModernGL", "Observables", "PrecompileTools", "Printf", "ShaderAbstractions", "StaticArrays"]
-git-tree-sha1 = "8753fba3356131357b5cd02500fe80c3668535d0"
-uuid = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
-version = "0.10.18"
+
 
 [[deps.GeoFormatTypes]]
 git-tree-sha1 = "ce573eab15760315756de2c82df7406c870c7187"
