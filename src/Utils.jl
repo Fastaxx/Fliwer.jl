@@ -387,7 +387,7 @@ function check_convergence(u_analytical::Function, solver, capacity::Capacity{1}
     println("Cut cells L$p norm    = $cut_err")
     println("Empty cells L$p norm  = $empty_err")
 
-    return (err, global_err, full_err, cut_err, empty_err)
+    return (u_ana, u_num, err, global_err, full_err, cut_err, empty_err)
 end
 
 
@@ -432,7 +432,7 @@ function check_convergence(u_analytical::Function, solver, capacity::Capacity{2}
     println("Cut cells L$p norm    = $cut_err")
     println("Empty cells L$p norm  = $empty_err")
 
-    return (u_ana, u_num, global_err, full_err, cut_err, empty_err)
+    return ( global_err, full_err, cut_err, empty_err)
 end
 
 function check_convergence(u_analytical::Function, solver, capacity::Capacity{3}, p::Real=2)

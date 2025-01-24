@@ -4,6 +4,46 @@ using SparseArrays
 using LinearAlgebra
 using CairoMakie
 
+path_cn = "/home/libat/Bureau/CutCell/TestsCases/TranslatingDisk/max_T_log_CN.txt"
+path_be = "/home/libat/Bureau/CutCell/TestsCases/TranslatingDisk/max_T_log_BE.txt"
+
+# Plot the data with CairoMakie
+using CairoMakie
+
+path_cn = "/home/libat/Bureau/CutCell/TestsCases/TranslatingDisk/max_T_log_CN.txt"
+path_be = "/home/libat/Bureau/CutCell/TestsCases/TranslatingDisk/max_T_log_BE.txt"
+
+# Read data from each file
+data_cn = open(path_cn, "r") do io
+    lines = readlines(io)
+    [parse(Float64, line) for line in lines]
+end
+
+data_be = open(path_be, "r") do io
+    lines = readlines(io)
+    [parse(Float64, line) for line in lines]
+end
+
+# Plot on the same figure
+fig = Figure()
+ax = Axis(fig[1, 1], xlabel = "Index", ylabel = "max(|T|)", title="CN vs BE")
+
+lines!(ax, 1:length(data_cn), data_cn, color=:blue, label="CN")
+lines!(ax, 1:length(data_be), data_be, color=:red, label="BE")
+
+axislegend(ax, position=:rb)
+display(fig)
+
+readline()
+
+
+
+
+
+
+
+
+
 ### 2D Test Case : Monophasic Steady Diffusion Equation inside a Disk
 # Define the mesh
 nx, ny = 80, 80
