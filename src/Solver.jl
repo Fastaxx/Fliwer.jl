@@ -74,7 +74,7 @@ end
 function build_mono_stead_diff_matrix(operator::DiffusionOps, capacity::Capacity, D, bc_b::BorderConditions, bc::AbstractBoundary)
     n = prod(operator.size)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
-    Iᵧ =  build_I_g(operator) #capacity.Γ
+    Iᵧ =  capacity.Γ
     Id = build_I_D(operator, D, capacity)
 
     A = vcat(hcat(Id * operator.G' * operator.Wꜝ * operator.G, Id * operator.G' * operator.Wꜝ * operator.H), hcat(Iᵦ * operator.H' * operator.Wꜝ * operator.G, Iᵦ * operator.H' * operator.Wꜝ * operator.H + Iₐ * Iᵧ))
@@ -86,7 +86,7 @@ function build_rhs_mono_stead_diff(operator::DiffusionOps, f, capacite::Capacity
     N = prod(operator.size)
     b = zeros(2N)
 
-    Iᵧ = build_I_g(operator) #capacite.Γ 
+    Iᵧ = capacite.Γ 
     fₒ = build_source(operator, f, capacite)
     gᵧ = build_g_g(operator, bc, capacite)
 
@@ -200,7 +200,6 @@ function build_rhs_diph_stead_diff(operator1::DiffusionOps, operator2::Diffusion
     b = zeros(4N)
 
     jump, flux = ic.scalar, ic.flux
-    Iᵧ1, Iᵧ2 = build_I_g(operator1), build_I_g(operator2) 
     Iᵧ1, Iᵧ2 = capacite1.Γ, capacite2.Γ
     gᵧ, hᵧ = build_g_g(operator1, jump, capacite1), build_g_g(operator2, flux, capacite2)
 
