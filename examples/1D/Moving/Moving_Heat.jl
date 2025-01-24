@@ -100,22 +100,3 @@ lines!(ax, x, y, color = :blue, linewidth = 2, label = "Analytical solution")
 scatter!(ax, x, solver.states[end][1:nx+1], color = :red, label = "Numerical solution")
 axislegend(ax)
 display(fig)
-
-u_ana, u_num, global_err, full_err, cut_err, empty_err = check_convergence(stefan_1d_1ph_analytical, solver, capacity_init, mesh, 2)
-
-nx = [10, 20, 40, 80, 160]
-dx = 1.0 ./ nx
-L2_err_all = [0.28, 0.09, 0.03, 0.01, 0.003]
-L2_err_cut = [0.10, 0.05, 0.025, 0.0125, 0.00625]
-L2_err_full = [0.22, 0.05, 0.014, 0.004, 0.001]
-
-fig = Figure()
-ax = Axis(fig[1, 1], xlabel = "dx", ylabel = "L2 error", title = "Convergence of the L2 error - Log scale")
-scatter!(ax, log10.(dx), log10.(L2_err_all), color = :blue, label = "All cells")
-scatter!(ax, log10.(dx), log10.(L2_err_cut), color = :red, label = "Cut cells")
-scatter!(ax, log10.(dx), log10.(L2_err_full), color = :green, label = "Full cells")
-
-lines!(ax, log10.(dx), log10.(dx.^2), color = :black, linestyle = :dash, label = "Order 2")
-lines!(ax, log10.(dx), log10.(dx.^1), color = :black, linestyle = :dashdot, label = "Order 1")
-axislegend(ax, position =:rb)
-display(fig)

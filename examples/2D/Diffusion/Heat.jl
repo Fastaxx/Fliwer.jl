@@ -3,7 +3,7 @@ using IterativeSolvers
 
 ### 2D Test Case : Monophasic Unsteady Diffusion Equation inside a Disk
 # Define the mesh
-nx, ny = 40, 40
+nx, ny = 20, 20
 lx, ly = 4., 4.
 x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
@@ -42,8 +42,8 @@ u0ᵧ = ones((nx+1)*(ny+1))
 u0 = vcat(u0ₒ, u0ᵧ)
 
 # Define the solver
-Δt = 0.01
-Tend = 0.1
+Δt = 0.00001
+Tend = 0.01
 solver = DiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0, "BE") # Start by a backward Euler scheme to prevent oscillation due to CN scheme
 
 # Solve the problem
@@ -54,7 +54,7 @@ Fliwer.solve_DiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, bc_b, bc, "BE
 #write_vtk("heat", mesh, solver)
 
 # Plot the solution
-plot_solution(solver, mesh, circle, capacity; state_i=1)
+#plot_solution(solver, mesh, circle, capacity; state_i=1)
 
 # Animation
 #animate_solution(solver, mesh, circle)
@@ -64,7 +64,7 @@ using SpecialFunctions
 using Roots
 
 function radial_heat_xy(x, y)
-    t=0.12
+    t=Tend
     R=1.0
 
     function j0_zeros(N; guess_shift=0.25)
@@ -116,9 +116,10 @@ using CairoMakie
 fig = Figure()
 ax1 = Axis(fig[1, 1], xlabel = "x", ylabel="y", title="Analytical solution")
 ax2 = Axis(fig[1, 2], xlabel = "x", ylabel="y", title="Numerical solution")
-heatmap!(ax1, u_ana, colormap=:viridis)
-heatmap!(ax2, u_num, colormap=:viridis)
-Colorbar(fig[1, 3], label="u(x)")
+hm1 = heatmap!(ax1, u_ana, colormap=:viridis)
+hm2 = heatmap!(ax2, u_num, colormap=:viridis)
+Colorbar(fig[1, 3], hm1, label="u(x)")
+Colorbar(fig[1, 4], hm2, label="u(x)")
 display(fig)
 readline()
 
@@ -128,4 +129,22 @@ fig = Figure()
 ax = Axis(fig[1, 1], xlabel = "x", ylabel="y", title="Log error")
 hm = heatmap!(ax, log10.(abs.(err)), colormap=:viridis)
 Colorbar(fig[1, 2], hm, label="log10(|u(x) - u_num(x)|)")
+display(fig)
+
+readline()
+
+
+using CairoMakie
+fig = Figure()
+ax = Axis(fig[1, 1], xlabel = "1/h", ylabel="L2 error", title="Convergence")
+
+fig = Figure()
+ax = Axis(fig[1, 1], xlabel = "dx", ylabel = "L2 error", title = "Convergence of the L2 error - Log scale")
+scatter!(ax, log10.(dx), log10.(L2_err_all), color = :blue, label = "All cells")
+scatter!(ax, log10.(dx), log10.(L2_err_cut), color = :red, label = "Cut cells")
+scatter!(ax, log10.(dx), log10.(L2_err_full), color = :green, label = "Full cells")
+
+lines!(ax, log10.(dx), log10.(dx.^2), color = :black, linestyle = :dash, label = "Order 2")
+lines!(ax, log10.(dx), log10.(dx.^1), color = :black, linestyle = :dashdot, label = "Order 1")
+axislegend(ax, position =:rb)
 display(fig)
