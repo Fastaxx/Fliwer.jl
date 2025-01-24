@@ -3,7 +3,7 @@ using IterativeSolvers
 
 ### 2D Test Case : Monophasic Unsteady Diffusion Equation inside a Disk
 # Define the mesh
-nx, ny = 20, 20
+nx, ny = 80, 80
 lx, ly = 4., 4.
 x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
@@ -42,7 +42,7 @@ u0ᵧ = ones((nx+1)*(ny+1))
 u0 = vcat(u0ₒ, u0ᵧ)
 
 # Define the solver
-Δt = 0.00001
+Δt = 0.5*(lx/nx)^2
 Tend = 0.01
 solver = DiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0, "BE") # Start by a backward Euler scheme to prevent oscillation due to CN scheme
 
