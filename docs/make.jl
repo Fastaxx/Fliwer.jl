@@ -16,6 +16,7 @@ makedocs(
                 "Heat 2D - 1 Phase - Robin" => "heat_2D_Robin.md",
             ],
             "3D Examples" => [
+                "Poisson 3D - 1 Phase" => "poisson_3d_1phase.md"
             ],
             "Others Examples" => [
                 "Gradient Test" => "gradient.md"
