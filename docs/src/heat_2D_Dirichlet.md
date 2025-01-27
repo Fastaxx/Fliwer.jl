@@ -106,4 +106,9 @@ end
 ```
 
 ![](assests/heat_2D_1ph_dir/comp_ana_num.png)
+
+L2 Norm Error
 ![](assests/heat_2D_1ph_dir/conv-BE.png)
+
+Linf Norm Error
+![](assests/heat_2D_1ph_dir/conv_max_BE.png)

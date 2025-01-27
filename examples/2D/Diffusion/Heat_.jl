@@ -105,7 +105,7 @@ function run_mesh_convergence(
     ax = Axis(
         fig[1, 1],
         xlabel = "h",
-        ylabel = "Error",
+        ylabel = "L$norm error",
         title  = "Convergence plot",
         xscale = log10,
         yscale = log10
@@ -136,8 +136,8 @@ function run_mesh_convergence(
 end
 
 # Example usage:
-nx_list = [20, 40, 80, 160, 320]
-ny_list = [20, 40, 80, 160, 320]
+nx_list = [40, 80, 160, 320]
+ny_list = [40, 80, 160, 320]
 radius, center = 1.0, (2.01, 2.01)
 function radial_heat_xy(x, y)
     t=0.01
@@ -178,4 +178,4 @@ function radial_heat_xy(x, y)
     return 1.0 - 2.0*s
 end
 
-run_mesh_convergence(nx_list, ny_list, radius, center, radial_heat_xy, norm=2)
+run_mesh_convergence(nx_list, ny_list, radius, center, radial_heat_xy, norm=Inf)
