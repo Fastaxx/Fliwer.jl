@@ -347,6 +347,35 @@ function remove_zero_rows_cols!(A::SparseMatrixCSC{Float64, Int}, b::Vector{Floa
 end
 
 # Check Convergence
+# Weighted Lp or L∞ norm helper
+function lp_norm(errors, indices, pval, capacity)
+    if pval == Inf
+        return maximum(abs.(errors[indices]))
+    else
+        part_sum = 0.0
+        for i in indices
+            Vi = capacity.V[i,i]
+            part_sum += (abs(errors[i])^pval) * Vi
+        end
+        return (part_sum / sum(capacity.V))^(1/pval)
+    end
+end
+
+# Relative Lp norm helper
+function relative_lp_norm(errors, indices, pval, capacity, u_ana)
+    if pval == Inf
+        return maximum(abs.(errors[indices])) / maximum(abs.(u_ana[indices]))
+    else
+        part_sum = 0.0
+        part_analytical = 0.0
+        for i in indices
+            Vi = capacity.V[i,i]
+            part_sum += (abs(errors[i])^pval) * Vi
+            part_analytical += (abs(u_ana[i])^pval) * Vi
+        end
+        return (part_sum / sum(capacity.V))^(1/pval) / (part_analytical / sum(capacity.V))^(1/pval)
+    end
+end
 
 function check_convergence(u_analytical::Function, solver, capacity::Capacity{1}, mesh::CartesianMesh{1}, p::Real, relative::Bool)
     # 1) Compute pointwise error
@@ -362,33 +391,17 @@ function check_convergence(u_analytical::Function, solver, capacity::Capacity{1}
     idx_cut    = findall(cell_types .== -1)
     idx_empty  = findall(cell_types .== 0)
 
-    # 3b) Relative Lp norm helper
-    function relative_lp_norm(errors, indices, pval)
-        if pval == Inf
-            return maximum(abs.(errors[indices])) / maximum(abs.(u_ana[indices]))
-        else
-            part_sum = 0.0
-            part_analytical = 0.0
-            for i in indices
-                Vi = capacity.V[i,i]
-                part_sum += (abs(errors[i])^pval) * Vi
-                part_analytical += (abs(u_ana[i])^pval) * Vi
-            end
-            return (part_sum / sum(capacity.V))^(1/pval) / (part_analytical / sum(capacity.V))^(1/pval)
-        end
-    end
-
     # 4) Compute norms (relative or not)
     if relative
-        global_err = relative_lp_norm(err, idx_all, p)
-        full_err   = relative_lp_norm(err, idx_full,  p)
-        cut_err    = relative_lp_norm(err, idx_cut,   p)
-        empty_err  = relative_lp_norm(err, idx_empty, p)
+        global_err = relative_lp_norm(err, idx_all, p, capacity, u_ana)
+        full_err   = relative_lp_norm(err, idx_full,  p, capacity, u_ana)
+        cut_err    = relative_lp_norm(err, idx_cut,   p, capacity, u_ana)
+        empty_err  = relative_lp_norm(err, idx_empty, p, capacity, u_ana)
     else
-        global_err = lp_norm(err, idx_all, p)
-        full_err   = lp_norm(err, idx_full,  p)
-        cut_err    = lp_norm(err, idx_cut,   p)
-        empty_err  = lp_norm(err, idx_empty, p)
+        global_err = lp_norm(err, idx_all, p, capacity)
+        full_err   = lp_norm(err, idx_full,  p, capacity)
+        cut_err    = lp_norm(err, idx_cut,   p, capacity)
+        empty_err  = lp_norm(err, idx_empty, p, capacity)
     end
 
     println("All cells L$p norm        = $global_err")
@@ -416,47 +429,17 @@ function check_convergence(u_analytical::Function, solver, capacity::Capacity{2}
     idx_cut    = findall(cell_types .== -1)
     idx_empty  = findall(cell_types .== 0)
 
-    # 3) Weighted Lp or L∞ norm helper
-    function lp_norm(errors, indices, pval)
-        if pval == Inf
-            return maximum(abs.(errors[indices]))
-        else
-            part_sum = 0.0
-            for i in indices
-                Vi = capacity.V[i,i]
-                part_sum += (abs(errors[i])^pval) * Vi
-            end
-            return (part_sum / sum(capacity.V))^(1/pval)
-        end
-    end
-
-    # 3b) Relative Lp norm helper
-    function relative_lp_norm(errors, indices, pval)
-        if pval == Inf
-            return maximum(abs.(errors[indices])) / maximum(abs.(u_ana[indices]))
-        else
-            part_sum = 0.0
-            part_analytical = 0.0
-            for i in indices
-                Vi = capacity.V[i,i]
-                part_sum += (abs(errors[i])^pval) * Vi
-                part_analytical += (abs(u_ana[i])^pval) * Vi
-            end
-            return (part_sum / sum(capacity.V))^(1/pval) / (part_analytical / sum(capacity.V))^(1/pval)
-        end
-    end
-
     # 4) Compute norms (relative or not)
     if relative
-        global_err = relative_lp_norm(err, idx_all, p)
-        full_err   = relative_lp_norm(err, idx_full,  p)
-        cut_err    = relative_lp_norm(err, idx_cut,   p)
-        empty_err  = relative_lp_norm(err, idx_empty, p)
+        global_err = relative_lp_norm(err, idx_all, p, capacity, u_ana)
+        full_err   = relative_lp_norm(err, idx_full,  p, capacity, u_ana)
+        cut_err    = relative_lp_norm(err, idx_cut,   p, capacity, u_ana)
+        empty_err  = relative_lp_norm(err, idx_empty, p, capacity, u_ana)
     else
-        global_err = lp_norm(err, idx_all, p)
-        full_err   = lp_norm(err, idx_full,  p)
-        cut_err    = lp_norm(err, idx_cut,   p)
-        empty_err  = lp_norm(err, idx_empty, p)
+        global_err = lp_norm(err, idx_all, p, capacity)
+        full_err   = lp_norm(err, idx_full,  p, capacity)
+        cut_err    = lp_norm(err, idx_cut,   p, capacity)
+        empty_err  = lp_norm(err, idx_empty, p, capacity)
     end
 
     println("All cells L$p norm        = $global_err")
@@ -482,47 +465,17 @@ function check_convergence(u_analytical::Function, solver, capacity::Capacity{3}
     idx_cut    = findall(cell_types .== -1)
     idx_empty  = findall(cell_types .== 0)
 
-    # 3) Weighted Lp or L∞ norm helper
-    function lp_norm(errors, indices, pval)
-        if pval == Inf
-            return maximum(abs.(errors[indices]))
-        else
-            part_sum = 0.0
-            for i in indices
-                Vi = capacity.V[i,i]
-                part_sum += (abs(errors[i])^pval) * Vi
-            end
-            return (part_sum / sum(capacity.V))^(1/pval)
-        end
-    end
-
-    # 3b) Relative Lp norm helper
-    function relative_lp_norm(errors, indices, pval)
-        if pval == Inf
-            return maximum(abs.(errors[indices])) / maximum(abs.(u_ana[indices]))
-        else
-            part_sum = 0.0
-            part_analytical = 0.0
-            for i in indices
-                Vi = capacity.V[i,i]
-                part_sum += (abs(errors[i])^pval) * Vi
-                part_analytical += (abs(u_ana[i])^pval) * Vi
-            end
-            return (part_sum / sum(capacity.V))^(1/pval) / (part_analytical / sum(capacity.V))^(1/pval)
-        end
-    end
-
     # 4) Compute norms (relative or not)
     if relative
-        global_err = relative_lp_norm(err, idx_all, p)
-        full_err   = relative_lp_norm(err, idx_full,  p)
-        cut_err    = relative_lp_norm(err, idx_cut,   p)
-        empty_err  = relative_lp_norm(err, idx_empty, p)
+        global_err = relative_lp_norm(err, idx_all, p, capacity, u_ana)
+        full_err   = relative_lp_norm(err, idx_full,  p, capacity, u_ana)
+        cut_err    = relative_lp_norm(err, idx_cut,   p, capacity, u_ana)
+        empty_err  = relative_lp_norm(err, idx_empty, p, capacity, u_ana)
     else
-        global_err = lp_norm(err, idx_all, p)
-        full_err   = lp_norm(err, idx_full,  p)
-        cut_err    = lp_norm(err, idx_cut,   p)
-        empty_err  = lp_norm(err, idx_empty, p)
+        global_err = lp_norm(err, idx_all, p, capacity)
+        full_err   = lp_norm(err, idx_full,  p, capacity)
+        cut_err    = lp_norm(err, idx_cut,   p, capacity)
+        empty_err  = lp_norm(err, idx_empty, p, capacity)
     end
 
     println("All cells L$p norm        = $global_err")

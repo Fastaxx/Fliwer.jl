@@ -4,6 +4,47 @@ using SparseArrays
 using LinearAlgebra
 using CairoMakie
 
+using CairoMakie
+using DelimitedFiles
+
+# Suppose we have 4 files, each representing a different mesh size.
+# For example:
+files = [
+    "//home/libat/github/Fliwer.jl/max_T_log30.txt"
+    "/home/libat/github/Fliwer.jl/max_T_log60.txt"
+    "/home/libat/github/Fliwer.jl/max_T_log80.txt"
+    "/home/libat/github/Fliwer.jl/max_T_log100.txt"
+]
+
+mesh_labels = ["Mesh 30", "Mesh 60", "Mesh 80", "Mesh 100"]
+colors = [:blue, :red, :green, :orange]
+
+fig = Figure()
+ax = Axis(fig[1, 1], xlabel="Time Step", ylabel="Max(T)", title="Mesh Influence on Oscillations")
+max_norm = []
+L2_err = []
+for (i, file) in enumerate(files)
+    data = readdlm(file) |> vec  # Each row is a single Float64 value
+    push!(max_norm, maximum(data .- 1.0))
+    push!(L2_err, norm(data .- 1.0,2))
+    steps = 1:length(data)
+    lines!(ax, steps, data, color=colors[i], label=mesh_labels[i])
+end
+
+axislegend(ax, position=:rb)
+display(fig)
+
+fig = Figure()
+ax = Axis(fig[1, 1], xlabel="Mesh Size", ylabel="Max(T)", title="Mesh Influence on Oscillations")
+scatter!(ax, [30, 60, 80, 100], max_norm, color=:blue, label="Max(T)")
+scatter!(ax, [30, 60, 80, 100], L2_err, color=:red, label="L2 error")
+axislegend(ax, position=:rb)
+display(fig)
+
+
+readline()
+
+
 path_cn = "/home/libat/Bureau/CutCell/TestsCases/TranslatingDisk/max_T_log_CN.txt"
 path_be = "/home/libat/Bureau/CutCell/TestsCases/TranslatingDisk/max_T_log_BE.txt"
 
