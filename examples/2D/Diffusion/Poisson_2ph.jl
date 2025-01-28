@@ -34,8 +34,8 @@ bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc1, :right => b
 ic = InterfaceConditions(ScalarJump(1.0, 1.0, 0.0), FluxJump(1.0, 1.0, 0.0))
 
 # Define the source term
-f1 = (x,y,_)->1.0 #cos(x)*sin(10*y)
-f2 = (x,y,_)->0.0 #cos(x)*sin(10*y)
+f1 = (x,y,_)->4.0 #cos(x)*sin(10*y)
+f2 = (x,y,_)->16/10 * (sqrt((x-center[1])^2 + (y-center[2])^2))
 
 # Define the phases
 Fluide_1 = Phase(capacity, operator, f1, 1.0)
@@ -52,4 +52,49 @@ Fliwer.solve_DiffusionSteadyDiph!(solver, Fluide_1, Fluide_2; method=Base.:\)
 plot_solution(solver, mesh, circle, capacity)
 
 # Write the solution to a VTK file
-write_vtk("poisson_2d", mesh, solver)
+#write_vtk("poisson_2d", mesh, solver)
+
+# Analytical solution
+u_analytical(x,y) = 1 - (x-center[1])^2 - (y-center[2])^2
+
+cell_centroids = capacity.C_ω
+cell_centroids_c = capacity_c.C_ω
+u_ana = map(c -> u_analytical(c[1], c[2]), cell_centroids)
+u_ana_c = map(c -> u_analytical(c[1], c[2]), cell_centroids_c)
+
+u_num1 = solver.x[1:end÷2]
+u_num2 = solver.x[end÷2+1:end]
+
+u_num1ₒ = u_num1[1:end÷2]
+u_num1ᵧ = u_num1[end÷2+1:end]
+u_num2ₒ = u_num2[1:end÷2]
+u_num2ᵧ = u_num2[end÷2+1:end]
+
+u_ana[capacity.cell_types .== 0] .= NaN
+u_ana_c[capacity_c.cell_types .== 0] .= NaN
+u_ana = reshape(u_ana, (nx+1, ny+1))
+u_ana_c = reshape(u_ana_c, (nx+1, ny+1))
+
+u_num1ₒ[capacity.cell_types .== 0] .= NaN
+u_num1ₒ = reshape(u_num1ₒ, (nx+1, ny+1))
+
+u_num2ₒ[capacity_c.cell_types .== 0] .= NaN
+u_num2ₒ = reshape(u_num2ₒ, (nx+1, ny+1))
+
+using CairoMakie
+
+fig = Figure()
+ax = Axis(fig[1, 1], xlabel="x", ylabel="y", title="Phase 1")
+ax1 = Axis(fig[1, 2], xlabel="x", ylabel="y", title="Phase 2")
+ax2 = Axis(fig[2, 1], xlabel="x", ylabel="y", title="Analytical solution - Phase 1")
+ax3 = Axis(fig[2, 2], xlabel="x", ylabel="y", title="Analytical solution - Phase 2")
+hm = heatmap!(ax, u_num1ₒ, colormap=:viridis)
+hm1 = heatmap!(ax1, u_num2ₒ, colormap=:viridis)
+hm2 = heatmap!(ax2, u_ana, colormap=:viridis)
+hm3 = heatmap!(ax3, u_ana_c, colormap=:viridis)
+Colorbar(fig[1, 3], hm, label="uₙ(x) - Phase 1")
+Colorbar(fig[1, 4], hm1, label="uₙ(x) - Phase 2")
+Colorbar(fig[2, 3], hm2, label="uₐ(x) - Phase 1")
+Colorbar(fig[2, 4], hm3, label="uₐ(x) - Phase 2")
+display(fig)
+

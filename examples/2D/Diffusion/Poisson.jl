@@ -65,6 +65,8 @@ println(maximum(solver.x))
 
 # Analytical solution
 u_analytical(x,y) = 1.0 - (x-center[1])^2 - (y-center[2])^2
+∇x_analytical(x,y) = -2*(x-center[1])
+∇y_analytical(x,y) = -2*(y-center[2])
 
 u_ana, u_num, global_err, full_err, cut_err, empty_err = check_convergence(u_analytical, solver, capacity, 2)
 
@@ -91,4 +93,43 @@ fig = Figure()
 ax = Axis(fig[1, 1], xlabel = "x", ylabel="y", title="Log error")
 hm = heatmap!(ax, log10.(abs.(err)), colormap=:viridis)
 Colorbar(fig[1, 2], hm, label="log10(|u(x) - u_num(x)|)")
+display(fig)
+
+# Gradient error
+∇_num = ∇(operator, solver.x)
+∇_numx = ∇_num[1:end÷2]
+∇_numy = ∇_num[end÷2+1:end]
+
+∇x_ana = [∇x_analytical(x,y) for x in range(x0, stop=lx, length=nx+1), y in range(y0, stop=ly, length=ny+1)]
+∇y_ana = [∇y_analytical(x,y) for x in range(x0, stop=lx, length=nx+1), y in range(y0, stop=ly, length=ny+1)]
+
+∇x_ana[capacity.cell_types .== 0] .= NaN
+∇x_ana = reshape(∇x_ana, (nx+1, ny+1))
+
+∇y_ana[capacity.cell_types .== 0] .= NaN
+∇y_ana = reshape(∇y_ana, (nx+1, ny+1))
+
+∇_numx[capacity.cell_types .== 0] .= NaN
+∇_numx = reshape(∇_numx, (nx+1, ny+1))
+
+∇_numy[capacity.cell_types .== 0] .= NaN
+∇_numy = reshape(∇_numy, (nx+1, ny+1))
+
+∇x_num = reshape(∇_numx, (nx+1, ny+1))
+∇y_num = reshape(∇_numy, (nx+1, ny+1))
+
+∇x_err = ∇x_ana .- ∇x_num
+∇y_err = ∇y_ana .- ∇y_num
+
+using CairoMakie
+fig = Figure()
+ax1 = Axis(fig[1, 1], xlabel = "x", ylabel="y", title="Analytical gradient in x")
+ax2 = Axis(fig[1, 2], xlabel = "x", ylabel="y", title="Numerical gradient in x")
+ax3 = Axis(fig[1, 3], xlabel = "x", ylabel="y", title="Error in gradient in x")
+hm1 = heatmap!(ax1, ∇x_ana, colormap=:viridis)
+hm2 = heatmap!(ax2, ∇x_num, colormap=:viridis)
+hm3 = heatmap!(ax3, ∇x_err, colormap=:viridis)
+Colorbar(fig[1, 4], hm1, label="∇x(x)")
+Colorbar(fig[1, 5], hm2, label="∇x(x)")
+Colorbar(fig[1, 6], hm3, label="∇x(x)")
 display(fig)
