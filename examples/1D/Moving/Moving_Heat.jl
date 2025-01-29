@@ -2,11 +2,11 @@ using Fliwer
 using IterativeSolvers
 using LinearAlgebra
 using SparseArrays
-using SpecialFunctions
+using SpecialFunctions, LsqFit
 
 ### 1D Test Case : Monophasic Unsteady Diffusion Equation inside a moving body
 # Define the spatial mesh
-nx = 160
+nx = 20
 lx = 10.
 x0 = 0.
 domain = ((x0, lx),)
@@ -31,7 +31,7 @@ t = [i*Δt for i in 0:nt]
 
 # Define the body
 xf = 0.1*lx   # Interface position
-c = 1.0     # Interface velocity
+c = 3.0     # Interface velocity
 initial_body = Body((x,_=0)->(x - xf), (x,_)->(x), domain, false)  # Initial body
 body = Body((x,t, _=0)->(x - xf - c*sqrt(t)), (x,)->(x,), domain, false)  # Body moving to the right
 final_body = Body((x,_=0)->(x - xf - c*sqrt(Tend)), (x,_)->(x), domain, false)  # Final body
@@ -52,10 +52,6 @@ capacity_final = Capacity(final_body, mesh)
 operator = SpaceTimeOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, 2))
 operator_init = DiffusionOps(capacity_init.A, capacity_init.B, capacity_init.V, capacity_init.W, (nx+1,))
 operator_final = DiffusionOps(capacity_final.A, capacity_final.B, capacity_final.V, capacity_final.W, (nx+1,))
-
-@show operator.H
-
-readline()
 
 # Define the boundary conditions
 bc = Dirichlet(0.0)
@@ -104,8 +100,9 @@ end
 using CairoMakie
 
 x=range(x0, stop=lx, length=nx+1)
+xfaces = x[1:end-1] .+ 0.5*diff(x)
 y=[stefan_1d_1ph_analytical(x[i]) for i in 1:nx+1]
-y_p=[grad_stefan_1d_1ph_analytical(x[i]) for i in 1:nx+1]
+y_p=[grad_stefan_1d_1ph_analytical(xfaces[i]) for i in 1:nx]
 y[x .>= xf + c*Tend] .= 0.0
 
 ∇_num = ∇(operator_final, solver.x)
@@ -123,10 +120,50 @@ u_ana, u_num, global_err, full_err, cut_err, empty_err = check_convergence(stefa
 # Plot gradient
 fig = Figure()
 ax = Axis(fig[1, 1], xlabel = "x", ylabel = "∇u", title = "1D 1 phase Stefan problem - Gradient")
-lines!(ax, x, y_p, color = :blue, linewidth = 2, label = "Analytical gradient")
+lines!(ax, xfaces, y_p, color = :blue, linewidth = 2, label = "Analytical gradient")
 scatter!(ax, x, ∇_num, color = :red, label = "Numerical gradient")
 axislegend(ax)
 display(fig)
+
+# Get the last-non zero value of ∇_num
+last_non_zero = findlast(x->x!=0.0, ∇_num)
+println("Last non zero value of ∇_num: ", ∇_num[last_non_zero])
+
+# Plot Convergence of the L2 error Nusselt number
+nx = [20, 40, 80, 160, 320]
+dx = 1.0 ./ nx
+pseudo_nusselt = [-0.03769354742054475, -0.022132766314183348, -0.017994590389922946, -0.015462342312831003, -0.014356966070581472]
+L2_err = [abs(pseudo_nusselt[i] - pseudo_nusselt[end])/abs(pseudo_nusselt[end]) for i in 1:length(pseudo_nusselt)]
+
+fig = Figure()
+ax = Axis(fig[1, 1], xlabel = "h", ylabel = "L2 error", title = "Convergence of the L2 error Pseudo Nusselt number - Log scale")
+scatter!(ax, log10.(dx), log10.(L2_err), color = :blue, label = "Pseudo Nusselt number (1.43)")
+lines!(ax, log10.(dx), log10.(L2_err), color = :black)
+lines!(ax, log10.(dx), log10.(dx.^2), color = :black, linestyle = :dash, label = "O(h²)")
+lines!(ax, log10.(dx), log10.(dx.^1), color = :black, linestyle = :dashdot, label = "O(h)")
+axislegend(ax, position =:rb)
+display(fig)
+
+# Model for curve_fit
+function fit_model(x, p)
+    p[1] .* x .+ p[2]
+end
+
+# Fit each on log scale: log(err) = p*log(h) + c
+log_h = log.(dx[1:end-1])
+
+function do_fit(log_err)
+    fit_result = curve_fit(fit_model, log_h, log_err, [-1.0, 0.0])
+    return fit_result.param[1], fit_result.param[2]  # (p_est, c_est)
+end
+
+p_global, _ = do_fit(log.(L2_err[1:end-1]))
+
+# Round
+p_global = round(p_global, digits=2)
+
+println("Estimated order of convergence (global) = ", p_global)
+
 
 """
 nx = [20, 40, 80, 160, 320]
