@@ -20,6 +20,16 @@ jobs:
       - uses: julia-actions/setup-julia@v2
         with:
           version: '1.11'
+      - name: Install binary dependencies
+        run: sudo apt-get update && sudo apt-get install -y xorg-dev mesa-utils xvfb libgl1 freeglut3-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev
       - uses: julia-actions/cache@v2
       - name: Install dependencies
-        run: julia --project=docs/ -e 'using Pkg; Pkg.instantiate(); include("docs/make.jl")'
+        run: |
+          xvfb-run -s '-screen 0 1024x768x24' julia --project=docs -e '
+            using Pkg
+            Pkg.develop(PackageSpec(path=pwd()))
+            Pkg.instantiate()'
+        env:
+          DISPLAY: ':0'
+      - name: Build documentation
+        run: xvfb-run -s '-screen 0 1024x768x24' julia --project=docs/ docs/make.jl
