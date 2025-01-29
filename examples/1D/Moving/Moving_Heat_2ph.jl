@@ -18,13 +18,13 @@ nt = Int(Tend/Δt)
 t = [i*Δt for i in 0:nt]
 
 # Define the body
-xf = 0.51*lx   # Interface position
-c = 0.2    # Interface velocity
+xf = 0.5*lx   # Interface position
+c = 0.1    # Interface velocity
 initial_body = Body((x,_=0)->(x - xf), (x,_)->(x), domain, false)  # Initial body
 initial_body_c = Body((x,_=0)->-(x - xf), (x,_)->(x), domain, false)  # Initial body complement
 
-body = Body((x,t, _=0) -> (x - xf - c*sqrt(t)), (x,)->(x,), domain, false)  # Body moving to the right
-body_c = Body((x,t, _=0) -> -(x - xf - c*sqrt(t)), (x,)->(x,), domain, false)  # Body moving to the left
+body = Body((x,t, _=0) -> (x - xf - c*sqrt(t)), (x,)->(x,), domain, false)  
+body_c = Body((x,t, _=0) -> -(x - xf - c*sqrt(t)), (x,)->(x,), domain, false)  
 
 # Define the space-time mesh
 spaceTimeMesh = CartesianSpaceTimeMesh(mesh, t[1:2])
