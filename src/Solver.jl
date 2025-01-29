@@ -269,7 +269,8 @@ function DiffusionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::Abstr
         s.A = build_mono_unstead_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i, Δt, "BE")
         s.b = build_rhs_mono_unstead_diff(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0, "BE")
     end
-    
+    BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
+
     return s
 end
 
@@ -406,21 +407,27 @@ Creates a solver for an unsteady two-phase diffusion problem.
 - `Tₑ::Float64`: The final time.
 - `Tᵢ::Vector{Float64}`: The vector of initial temperatures.
 """
-function DiffusionUnsteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderConditions, ic::InterfaceConditions, Δt::Float64, Tₑ::Float64, Tᵢ::Vector{Float64})
+function DiffusionUnsteadyDiph(phase1::Phase, phase2::Phase, bc_b::BorderConditions, ic::InterfaceConditions, Δt::Float64, Tₑ::Float64, Tᵢ::Vector{Float64}, scheme::String)
     println("Création du solveur:")
     println("- Diphasic problem")
     println("- Unsteady problem")
     println("- Diffusion problem")
     
     s = Solver(Unsteady, Diphasic, Diffusion, nothing, nothing, nothing, ConvergenceHistory(), [])
-    
-    s.A = build_diph_unstead_diff_matrix(phase1.operator, phase2.operator, phase1.capacity, phase2.capacity, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic, Δt)
-    s.b = build_rhs_diph_unstead_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, 0.0)
 
+    if scheme == "CN"
+        s.A = build_diph_unstead_diff_matrix(phase1.operator, phase2.operator, phase1.capacity, phase2.capacity, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic, Δt, "CN")
+        s.b = build_rhs_diph_unstead_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, 0.0, "CN")
+    else
+        s.A = build_diph_unstead_diff_matrix(phase1.operator, phase2.operator, phase1.capacity, phase2.capacity, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic, Δt, "BE")
+        s.b = build_rhs_diph_unstead_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, 0.0, "BE")
+    end
+
+    BC_border_diph!(s.A, s.b, bc_b, phase2.capacity.mesh)
     return s
 end
 
-function build_diph_unstead_diff_matrix(operator1::DiffusionOps, operator2::DiffusionOps, capacite1::Capacity, capacite2::Capacity, D1::Float64, D2::Float64, bc_b::BorderConditions, ic::InterfaceConditions, Δt::Float64)
+function build_diph_unstead_diff_matrix(operator1::DiffusionOps, operator2::DiffusionOps, capacite1::Capacity, capacite2::Capacity, D1::Float64, D2::Float64, bc_b::BorderConditions, ic::InterfaceConditions, Δt::Float64, scheme::String)
     n = prod(operator1.size)
 
     jump, flux = ic.scalar, ic.flux
@@ -434,10 +441,17 @@ function build_diph_unstead_diff_matrix(operator1::DiffusionOps, operator2::Diff
     WG_G2 = operator2.Wꜝ * operator2.G
     WG_H2 = operator2.Wꜝ * operator2.H
 
-    block1 = operator1.V + Δt / 2 * Id1 * operator1.G' * WG_G1
-    block2 = Δt / 2 * Id1 * operator1.G' * WG_H1
-    block3 = operator2.V + Δt / 2 * Id2 * operator2.G' * WG_G2
-    block4 = Δt / 2 * Id2 * operator2.G' * WG_H2
+    if scheme == "CN"
+        block1 = operator1.V + Δt / 2 * Id1 * operator1.G' * WG_G1
+        block2 = Δt / 2 * Id1 * operator1.G' * WG_H1
+        block3 = operator2.V + Δt / 2 * Id2 * operator2.G' * WG_G2
+        block4 = Δt / 2 * Id2 * operator2.G' * WG_H2
+    else
+        block1 = operator1.V + Δt * Id1 * operator1.G' * WG_G1
+        block2 = Δt * Id1 * operator1.G' * WG_H1
+        block3 = operator2.V + Δt * Id2 * operator2.G' * WG_G2
+        block4 = Δt * Id2 * operator2.G' * WG_H2
+    end
     block5 = Iᵦ1 * operator1.H' * WG_G1
     block6 = Iᵦ1 * operator1.H' * WG_H1
     block7 = Iᵦ2 * operator2.H' * WG_G2
@@ -470,7 +484,7 @@ function build_diph_unstead_diff_matrix(operator1::DiffusionOps, operator2::Diff
     return A
 end
 
-function build_rhs_diph_unstead_diff(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, capacite1::Capacity, capacite2::Capacity, bc_b::BorderConditions, ic::InterfaceConditions, Tᵢ, Δt::Float64, t::Float64)
+function build_rhs_diph_unstead_diff(operator1::DiffusionOps, operator2::DiffusionOps, f1, f2, capacite1::Capacity, capacite2::Capacity, bc_b::BorderConditions, ic::InterfaceConditions, Tᵢ, Δt::Float64, t::Float64, scheme::String)
     N = prod(operator1.size)
     b = zeros(4N)
 
@@ -485,12 +499,21 @@ function build_rhs_diph_unstead_diff(operator1::DiffusionOps, operator2::Diffusi
     Tₒ2, Tᵧ2 = Tᵢ[2N+1:3N], Tᵢ[3N+1:end]
 
     # Build the right-hand side
-    b = vcat((operator1.V - Δt/2 * operator1.G' * operator1.Wꜝ * operator1.G)*Tₒ1 - Δt/2 * operator1.G' * operator1.Wꜝ * operator1.H * Tᵧ1 + Δt/2 * operator1.V * (fₒn1 + fₒn1p1), gᵧ, (operator2.V - Δt/2 * operator2.G' * operator2.Wꜝ * operator2.G)*Tₒ2 - Δt/2 * operator2.G' * operator2.Wꜝ * operator2.H * Tᵧ2 + Δt/2 * operator2.V * (fₒn2 + fₒn2p1), Iᵧ2*hᵧ)
+    if scheme == "CN"
+        b1 = (operator1.V - Δt/2 * operator1.G' * operator1.Wꜝ * operator1.G)*Tₒ1 - Δt/2 * operator1.G' * operator1.Wꜝ * operator1.H * Tᵧ1 + Δt/2 * operator1.V * (fₒn1 + fₒn1p1)
+        b3 = (operator2.V - Δt/2 * operator2.G' * operator2.Wꜝ * operator2.G)*Tₒ2 - Δt/2 * operator2.G' * operator2.Wꜝ * operator2.H * Tᵧ2 + Δt/2 * operator2.V * (fₒn2 + fₒn2p1)
+    else
+        b1 = (operator1.V)*Tₒ1 + Δt * operator1.V * (fₒn1p1)
+        b3 = (operator2.V)*Tₒ2 + Δt * operator2.V * (fₒn2p1)
+    end
+    b2 = gᵧ
+    b4 = Iᵧ2*hᵧ
+    b = vcat(b1, b2, b3, b4)
 
     return b
 end
 
-function solve_DiffusionUnsteadyDiph!(s::Solver, phase1::Phase, phase2::Phase, Tᵢ, Δt::Float64, Tₑ::Float64, bc_b::BorderConditions, ic::InterfaceConditions; method::Function = gmres, kwargs...)
+function solve_DiffusionUnsteadyDiph!(s::Solver, phase1::Phase, phase2::Phase, Tᵢ, Δt::Float64, Tₑ::Float64, bc_b::BorderConditions, ic::InterfaceConditions, scheme::String; method::Function = gmres, kwargs...)
     if s.A === nothing
         error("Solver is not initialized. Call a solver constructor first.")
     end
@@ -498,10 +521,37 @@ function solve_DiffusionUnsteadyDiph!(s::Solver, phase1::Phase, phase2::Phase, T
     n = Int(size(s.A, 1) / 4)  # For diphasic problem, the system size is 4n
 
     t = 0.0
+    # Solve for the initial condition
+    if method == \
+        # Remove zero rows and columns for direct solver
+        A_reduced, b_reduced, _, cols_idx = remove_zero_rows_cols!(s.A, s.b)
+        # Solve the reduced system
+        x_reduced = A_reduced \ b_reduced
+        # Reconstruct the full solution vector
+        s.x = zeros(4n)
+        s.x[cols_idx] = x_reduced
+    else
+        kwargs_nt = (; kwargs...)
+        log = get(kwargs_nt, :log, false)
+        if log
+            s.x, s.ch = method(s.A, s.b; kwargs...)
+        else
+            s.x = method(s.A, s.b; kwargs...)
+        end
+    end
+
+    push!(s.states, s.x)
+    @show maximum(abs.(s.x))
+    Tᵢ = s.x
+
     while t < Tₑ
         t += Δt
         println("Time: ", t)
-        s.b = build_rhs_diph_unstead_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, t)
+        if scheme == "CN"
+            s.b = build_rhs_diph_unstead_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, t, "CN")
+        else
+            s.b = build_rhs_diph_unstead_diff(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, t, "BE")
+        end
         BC_border_diph!(s.A, s.b, bc_b, phase2.capacity.mesh)
         
         if method == \
@@ -523,6 +573,7 @@ function solve_DiffusionUnsteadyDiph!(s::Solver, phase1::Phase, phase2::Phase, T
         end
 
         push!(s.states, s.x)
+        @show maximum(abs.(s.x))
         Tᵢ = s.x
     end
 end
