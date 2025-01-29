@@ -51,10 +51,10 @@ u0 = vcat(u0ₒ1, u0ᵧ1, u0ₒ2, u0ᵧ2)
 # Define the solver
 Δt = 0.01
 Tend = 1.0
-solver = DiffusionUnsteadyDiph(Fluide_1, Fluide_2, bc_b, ic, Δt, Tend, u0)
+solver = DiffusionUnsteadyDiph(Fluide_1, Fluide_2, bc_b, ic, Δt, Tend, u0, "BE")
 
 # Solve the problem
-solve_DiffusionUnsteadyDiph!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic; method=Base.:\)
+solve_DiffusionUnsteadyDiph!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, bc_b, ic, "BE"; method=Base.:\)
 
 # Write the solution to a VTK file
 #write_vtk("solution", mesh, solver)

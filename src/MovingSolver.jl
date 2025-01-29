@@ -777,6 +777,7 @@ function solve_MovingDiffusionUnsteadyDiph!(
     bc_b::BorderConditions,
     ic::InterfaceConditions,
     body::Body,
+    body_c::Body,
     mesh::CartesianMesh,
     t::Vector{Float64},
     scheme::String;
@@ -844,7 +845,7 @@ function solve_MovingDiffusionUnsteadyDiph!(
             (nx1, 2)
         )
 
-        capacity2 = Capacity(body, spaceTimeMesh)
+        capacity2 = Capacity(body_c, spaceTimeMesh)
         operator2 = SpaceTimeOps(
             capacity2.A, capacity2.B,
             capacity2.V, capacity2.W,

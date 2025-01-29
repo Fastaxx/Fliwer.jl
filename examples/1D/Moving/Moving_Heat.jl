@@ -6,7 +6,7 @@ using SpecialFunctions
 
 ### 1D Test Case : Monophasic Unsteady Diffusion Equation inside a moving body
 # Define the spatial mesh
-nx = 20
+nx = 160
 lx = 10.
 x0 = 0.
 domain = ((x0, lx),)
@@ -34,6 +34,7 @@ xf = 0.1*lx   # Interface position
 c = 1.0     # Interface velocity
 initial_body = Body((x,_=0)->(x - xf), (x,_)->(x), domain, false)  # Initial body
 body = Body((x,t, _=0)->(x - xf - c*sqrt(t)), (x,)->(x,), domain, false)  # Body moving to the right
+final_body = Body((x,_=0)->(x - xf - c*sqrt(Tend)), (x,_)->(x), domain, false)  # Final body
 
 # Define the space-time mesh
 spaceTimeMesh = CartesianSpaceTimeMesh(mesh, t[1:2])
@@ -45,10 +46,16 @@ spaceTimeMesh.tag = mesh.tag
 # Define the capacity
 capacity = Capacity(body, spaceTimeMesh)
 capacity_init = Capacity(initial_body, mesh)
+capacity_final = Capacity(final_body, mesh)
 
 # Define the operators
 operator = SpaceTimeOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, 2))
 operator_init = DiffusionOps(capacity_init.A, capacity_init.B, capacity_init.V, capacity_init.W, (nx+1,))
+operator_final = DiffusionOps(capacity_final.A, capacity_final.B, capacity_final.V, capacity_final.W, (nx+1,))
+
+@show operator.H
+
+readline()
 
 # Define the boundary conditions
 bc = Dirichlet(0.0)
@@ -88,11 +95,20 @@ function stefan_1d_1ph_analytical(x::Float64)
     return 1.0 - 1.0/erf(2λ) * erf(x/(2*sqrt(t)))
 end
 
+function grad_stefan_1d_1ph_analytical(x::Float64)
+    t = Tend
+    λ = c/2
+    return -1.0/(sqrt(t)) * exp(-x^2/(4*t)) / (sqrt(pi) * erf(2λ))
+end
+
 using CairoMakie
 
 x=range(x0, stop=lx, length=nx+1)
-y = [stefan_1d_1ph_analytical(x[i]) for i in 1:nx+1]
+y=[stefan_1d_1ph_analytical(x[i]) for i in 1:nx+1]
+y_p=[grad_stefan_1d_1ph_analytical(x[i]) for i in 1:nx+1]
 y[x .>= xf + c*Tend] .= 0.0
+
+∇_num = ∇(operator_final, solver.x)
 
 fig = Figure()
 ax = Axis(fig[1, 1], xlabel = "x", ylabel = "u", title = "1D 1 phase Stefan problem")
@@ -100,10 +116,19 @@ lines!(ax, x, y, color = :blue, linewidth = 2, label = "Analytical solution")
 scatter!(ax, x, solver.states[end][1:nx+1], color = :red, label = "Numerical solution")
 axislegend(ax)
 display(fig)
+readline()
 
-u_ana, u_num, global_err, full_err, cut_err, empty_err = check_convergence(stefan_1d_1ph_analytical, solver, capacity_init, mesh, 2)
+u_ana, u_num, global_err, full_err, cut_err, empty_err = check_convergence(stefan_1d_1ph_analytical, solver, capacity_init, mesh, 2, false)
 
+# Plot gradient
+fig = Figure()
+ax = Axis(fig[1, 1], xlabel = "x", ylabel = "∇u", title = "1D 1 phase Stefan problem - Gradient")
+lines!(ax, x, y_p, color = :blue, linewidth = 2, label = "Analytical gradient")
+scatter!(ax, x, ∇_num, color = :red, label = "Numerical gradient")
+axislegend(ax)
+display(fig)
 
+"""
 nx = [20, 40, 80, 160, 320]
 dx = 1.0 ./ nx
 L2_err_all = [0.2861309825029104, 0.1517310842473155, 0.08706086415610075, 0.055717806923711165, 0.0405692827948743]
@@ -120,3 +145,4 @@ lines!(ax, log10.(dx), log10.(dx.^2), color = :black, linestyle = :dash, label =
 lines!(ax, log10.(dx), log10.(dx.^1), color = :black, linestyle = :dashdot, label = "Order 1")
 axislegend(ax, position =:rb)
 display(fig)
+"""
