@@ -666,10 +666,10 @@ function build_diph_unstead_diff_moving_matrix(operator1::SpaceTimeOps, operator
     block2 = -(Vn1_1 - Vn1) + G1' * W!1 * H1 * Ψn1
     block3 = Vn2_1 + G2' * W!2 * G2 * Ψn2
     block4 = -(Vn2_1 - Vn2) + G2' * W!2 * H2 * Ψn2
-    block5 = Iᵦ1 * H1' * W!1 * G1
-    block6 = Iᵦ1 * H1' * W!1 * H1
-    block7 = Iᵦ2 * H2' * W!2 * G2
-    block8 = Iᵦ2 * H2' * W!2 * H2
+    block5 = Iᵦ1 * H1' * W!1 * G1 * Ψn1
+    block6 = Iᵦ1 * H1' * W!1 * H1 * Ψn1
+    block7 = Iᵦ2 * H2' * W!2 * G2 * Ψn2
+    block8 = Iᵦ2 * H2' * W!2 * H2 * Ψn2
 
     n=nx1
     # Preallocate the sparse matrix
@@ -865,6 +865,330 @@ function solve_MovingDiffusionUnsteadyDiph!(
             scheme
         )
         s.b = build_rhs_diph_unstead_moving_diff(
+            operator1,
+            operator2,
+            phase1.source,
+            phase2.source,
+            capacity1,
+            capacity2,
+            bc_b,
+            ic,
+            Tᵢ,
+            Δt,
+            t[i],
+            scheme
+        )
+        BC_border_diph!(s.A, s.b, bc_b, mesh)
+
+        # Solve system
+        if method == \
+            A_reduced, b_reduced, rows_idx, cols_idx = remove_zero_rows_cols!(s.A, s.b)
+            # Compute condition number
+            #cnum = cond(Array(A_reduced), 2)
+            cnum = 0.0
+            push!(cond_log, cnum)
+            push!(minV_log, minimum(x for x in capacity1.V if x != 0))
+            push!(maxV_log, maximum(capacity1.V))
+            push!(minW_log, minimum(x for x in capacity1.W[1] if x != 0))
+            push!(maxW_log, maximum(capacity1.W[1]))
+            x_reduced = A_reduced \ b_reduced
+            s.x = zeros(size(s.A, 1))
+            s.x[cols_idx] .= x_reduced
+        else
+            log = get(kwargs, :log, false)
+            if log
+                s.x, s.ch = method(s.A, s.b; kwargs...)
+            else
+                s.x = method(s.A, s.b; kwargs...)
+            end
+        end
+
+        push!(s.states, s.x)
+        @show maximum(abs.(s.x))
+        push!(maxT_log, maximum(abs.(s.x)))
+        Tᵢ = s.x
+    end
+
+    # Store condition numbers & min/max in a file
+    open("condition_numbers.txt", "w") do f
+        for j in 1:length(cond_log)
+            println(f, join((
+                cond_log[j],
+                minV_log[j],
+                maxV_log[j],
+                minW_log[j],
+                maxW_log[j]
+            ), " "))
+        end
+    end
+
+    # Store maxT in a file
+    open("max_T_log.txt", "w") do f
+        for j in 1:length(maxT_log)
+            println(f, maxT_log[j])
+        end
+    end
+end
+
+function MovingDiffusionUnsteadyDiph2(phase1::Phase, phase2::Phase, bc_b::BorderConditions, ic::InterfaceConditions, Δt::Float64, Tₑ::Float64, Tᵢ::Vector{Float64}, scheme::String)
+    println("Création du solveur:")
+    println("- Moving problem")
+    println("- Diphasic problem")
+    println("- Unsteady problem")
+    println("- Diffusion problem")
+    
+    s = Solver(Unsteady, Diphasic, Diffusion, nothing, nothing, nothing, ConvergenceHistory(), [])
+    
+    if scheme == "CN"
+        s.A = build_diph_unstead_diff_moving_matrix2(phase1.operator, phase2.operator, phase1.capacity, phase2.capacity, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic, Δt, "CN")
+        s.b = build_rhs_diph_unstead_moving_diff2(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, 0.0, "CN")
+    else 
+        s.A = build_diph_unstead_diff_moving_matrix2(phase1.operator, phase2.operator, phase1.capacity, phase2.capacity, phase1.Diffusion_coeff, phase2.Diffusion_coeff, bc_b, ic, Δt, "BE")
+        s.b = build_rhs_diph_unstead_moving_diff2(phase1.operator, phase2.operator, phase1.source, phase2.source, phase1.capacity, phase2.capacity, bc_b, ic, Tᵢ, Δt, 0.0, "BE")
+    end
+
+    return s
+end
+
+function build_diph_unstead_diff_moving_matrix2(operator1::SpaceTimeOps, operator2::SpaceTimeOps, capacite1::Capacity, capacite2::Capacity, D1::Float64, D2::Float64, bc_b::BorderConditions, ic::InterfaceConditions, Δt::Float64, scheme::String)
+    n1, n2 = prod(operator1.size), prod(operator2.size)
+    nx1, ny1, nt1 = operator1.size
+    nx2, ny2, nt2 = operator2.size
+
+    n = nx1*ny1
+
+    jump, flux = ic.scalar, ic.flux
+    Iₐ1, Iₐ2 = jump.α₁ * I(n), jump.α₂ * I(n)
+    Iᵦ1, Iᵦ2 = flux.β₁ * I(n), flux.β₂ * I(n)
+    Id1, Id2 = build_I_D(operator1, D1, capacite1), build_I_D(operator2, D2, capacite2)
+
+    Vn1_1 = capacite1.A[3][1:end÷2, 1:end÷2]
+    Vn1 = capacite1.A[3][end÷2+1:end, end÷2+1:end]
+    Vn2_1 = capacite2.A[3][1:end÷2, 1:end÷2]
+    Vn2 = capacite2.A[3][end÷2+1:end, end÷2+1:end]
+
+    if scheme == "CN"
+        psip, psim = psip_cn, psim_cn
+    else
+        psip, psim = psip_be, psim_be
+    end
+
+    Ψn1 = Diagonal(psip.(Vn1,Vn1_1))
+    Ψn2 = Diagonal(psip.(Vn2,Vn2_1))
+
+    W!1 = operator1.Wꜝ[1:n, 1:n]
+    G1 = operator1.G[1:n, 1:n]
+    H1 = operator1.H[1:n, 1:n]
+    W!2 = operator2.Wꜝ[1:n, 1:n]
+    G2 = operator2.G[1:n, 1:n]
+    H2 = operator2.H[1:n, 1:n]
+    Iᵦ1 = Iᵦ1[1:n, 1:n]
+    Iᵦ2 = Iᵦ2[1:n, 1:n]
+    Iₐ1 = Iₐ1[1:n, 1:n]
+    Iₐ2 = Iₐ2[1:n, 1:n]
+
+    block1 = Vn1_1 + G1' * W!1 * G1 * Ψn1
+    block2 = -(Vn1_1 - Vn1) + G1' * W!1 * H1 * Ψn1
+    block3 = Vn2_1 + G2' * W!2 * G2 * Ψn2
+    block4 = -(Vn2_1 - Vn2) + G2' * W!2 * H2 * Ψn2
+    block5 = Iᵦ1 * H1' * W!1 * G1 * Ψn1
+    block6 = Iᵦ1 * H1' * W!1 * H1 * Ψn1
+    block7 = Iᵦ2 * H2' * W!2 * G2 * Ψn2
+    block8 = Iᵦ2 * H2' * W!2 * H2 * Ψn2
+
+    # Preallocate the sparse matrix
+    A = spzeros(Float64, 4n, 4n)
+    
+    # Assign blocks to the matrix
+    A[1:n, 1:n] = block1
+    A[1:n, n+1:2n] = block2
+    A[1:n, 2n+1:3n] = spzeros(n, n)
+    A[1:n, 3n+1:4n] = spzeros(n, n)
+
+    A[n+1:2n, 1:n] = spzeros(n, n)
+    A[n+1:2n, n+1:2n] = Iₐ1
+    A[n+1:2n, 2n+1:3n] = spzeros(n, n)
+    A[n+1:2n, 3n+1:4n] = -Iₐ2
+
+    A[2n+1:3n, 1:n] = spzeros(n, n)
+    A[2n+1:3n, n+1:2n] = spzeros(n, n)
+    A[2n+1:3n, 2n+1:3n] = block3
+    A[2n+1:3n, 3n+1:4n] = block4
+
+    A[3n+1:4n, 1:n] = block5
+    A[3n+1:4n, n+1:2n] = block6
+    A[3n+1:4n, 2n+1:3n] = block7
+    A[3n+1:4n, 3n+1:4n] = block8
+    return A
+end
+
+function build_rhs_diph_unstead_moving_diff2(operator1::SpaceTimeOps, operator2::SpaceTimeOps, f1::Function, f2::Function, capacite1::Capacity, capacite2::Capacity, bc_b::BorderConditions, ic::InterfaceConditions, Tᵢ::Vector{Float64}, Δt::Float64, t::Float64, scheme::String)
+    n1, n2 = prod(operator1.size), prod(operator2.size)
+    nx1, ny1, nt1 = operator1.size
+    nx2, ny2, nt2 = operator2.size
+
+    n = nx1*ny1
+
+    jump, flux = ic.scalar, ic.flux
+    Iₐ1, Iₐ2 = jump.α₁ * I(n), jump.α₂ * I(n)
+    Iᵦ1, Iᵦ2 = flux.β₁ * I(n), flux.β₂ * I(n)
+
+    f1ₒn, f1ₒn1 = build_source(operator1, f1, t, capacite1), build_source(operator1, f1, t+Δt, capacite1)
+    f2ₒn, f2ₒn1 = build_source(operator2, f2, t, capacite2), build_source(operator2, f2, t+Δt, capacite2)
+
+    Iᵧ1, Iᵧ2 = build_I_g(operator1), build_I_g(operator2)
+    gᵧ, hᵧ = build_g_g(operator1, jump, capacite1), build_g_g(operator2, flux, capacite2)
+
+    Vn1_1 = capacite1.A[3][1:end÷2, 1:end÷2]
+    Vn1 = capacite1.A[3][end÷2+1:end, end÷2+1:end]
+    Vn2_1 = capacite2.A[3][1:end÷2, 1:end÷2]
+    Vn2 = capacite2.A[3][end÷2+1:end, end÷2+1:end]
+
+    if scheme == "CN"
+        psip, psim = psip_cn, psim_cn
+    else
+        psip, psim = psip_be, psim_be
+    end
+
+    Ψn1 = Diagonal(psim.(Vn1,Vn1_1))
+    Ψn2 = Diagonal(psim.(Vn2,Vn2_1))
+
+    W!1 = operator1.Wꜝ[1:n, 1:n]
+    G1 = operator1.G[1:n, 1:n]
+    H1 = operator1.H[1:n, 1:n]
+    W!2 = operator2.Wꜝ[1:n, 1:n]
+    G2 = operator2.G[1:n, 1:n]
+    H2 = operator2.H[1:n, 1:n]
+    V1 = operator1.V[1:n, 1:n]
+    V2 = operator2.V[1:n, 1:n]
+    Iᵦ1 = Iᵦ1[1:n, 1:n]
+    Iᵦ2 = Iᵦ2[1:n, 1:n]
+    Iₐ1 = Iₐ1[1:n, 1:n]
+    Iₐ2 = Iₐ2[1:n, 1:n]
+
+    Tₒ1, Tᵧ1 = Tᵢ[1:n], Tᵢ[n+1:2n]
+    Tₒ2, Tᵧ2 = Tᵢ[2n+1:2n+n], Tᵢ[2n+n+1:end]
+
+    f1ₒn, f1ₒn1 = f1ₒn[1:n], f1ₒn1[1:n]
+    f2ₒn, f2ₒn1 = f2ₒn[1:n], f2ₒn1[1:n]
+    gᵧ, hᵧ = gᵧ[1:n], hᵧ[1:n]
+    Iᵧ1, Iᵧ2 = Iᵧ1[1:n, 1:n], Iᵧ2[1:n, 1:n]
+
+    # Build the right-hand side
+    if scheme == "CN"
+        b1 = (Vn1 - G1' * W!1 * G1 * Ψn1)*Tₒ1 - 0.5 * G1' * W!1 * H1 * Tᵧ1 + 0.5 * V1 * (f1ₒn + f1ₒn1)
+        b3 = (Vn2 - G2' * W!2 * G2 * Ψn2)*Tₒ2 - 0.5 * G2' * W!2 * H2 * Tᵧ2 + 0.5 * V2 * (f2ₒn + f2ₒn1)
+    else
+        b1 = (Vn1)*Tₒ1 + V1 * (f1ₒn1)
+        b3 = (Vn2)*Tₒ2 + V2 * (f2ₒn1)
+    end
+    b2 = gᵧ
+    b4 = Iᵧ2 * hᵧ
+
+    b = [b1; b2; b3; b4]
+
+    return b
+end
+
+function solve_MovingDiffusionUnsteadyDiph2!(
+    s::Solver,
+    phase1::Phase,
+    phase2::Phase,
+    Tᵢ::Vector{Float64},
+    Δt::Float64,
+    Tₑ::Float64,
+    nt::Int,
+    bc_b::BorderConditions,
+    ic::InterfaceConditions,
+    body::Body,
+    body_c::Body,
+    mesh::CartesianMesh,
+    t::Vector{Float64},
+    scheme::String;
+    method = IterativeSolvers.gmres,
+    kwargs...
+)
+
+    if s.A === nothing
+        error("Solver is not initialized. Call a solver constructor first.")
+    end
+
+    println("Solving the problem:")
+    println("- Moving problem")
+    println("- Diphasic problem")
+    println("- Unsteady problem")
+    println("- Diffusion problem")
+
+    nx1, ny1, _ = phase1.operator.size
+    nx2, ny2, _ = phase2.operator.size
+    cond_log = Float64[]
+    minV_log = Float64[]
+    maxV_log = Float64[]
+    minW_log = Float64[]
+    maxW_log = Float64[]
+    maxT_log = Float64[]
+
+    # Solve for the initial condition
+    BC_border_diph!(s.A, s.b, bc_b, phase1.capacity.mesh)
+
+    # Solve system
+    if method == \
+        A_reduced, b_reduced, rows_idx, cols_idx = remove_zero_rows_cols!(s.A, s.b)
+        # Compute condition number
+        #cnum = cond(Array(A_reduced), 2)
+        cnum = 0.0
+        push!(cond_log, cnum)
+        push!(minV_log, minimum(x for x in phase1.capacity.V if x != 0))
+        push!(maxV_log, maximum(phase1.capacity.V))
+        push!(minW_log, minimum(x for x in phase1.capacity.W[1] if x != 0))
+        push!(maxW_log, maximum(phase1.capacity.W[1]))
+        x_reduced = A_reduced \ b_reduced
+        s.x = zeros(size(s.A, 1))
+        s.x[cols_idx] .= x_reduced
+    else
+        log = get(kwargs, :log, false)
+        if log
+            s.x, s.ch = method(s.A, s.b; kwargs...)
+        else
+            s.x = method(s.A, s.b; kwargs...)
+        end
+    end
+
+    push!(s.states, s.x)
+    @show maximum(abs.(s.x))
+    push!(maxT_log, maximum(abs.(s.x)))
+    Tᵢ = s.x
+
+    for i in 2:nt
+        println("Time : $(t[i])")
+        spaceTimeMesh = CartesianSpaceTimeMesh(mesh, t[i:i+1];tag=mesh.tag)
+        capacity1 = Capacity(body, spaceTimeMesh)
+        operator1 = SpaceTimeOps(
+            capacity1.A, capacity1.B,
+            capacity1.V, capacity1.W,
+            (nx1, ny1, 2)
+        )
+
+        capacity2 = Capacity(body_c, spaceTimeMesh)
+        operator2 = SpaceTimeOps(
+            capacity2.A, capacity2.B,
+            capacity2.V, capacity2.W,
+            (nx2, ny2, 2)
+        )
+
+        s.A = build_diph_unstead_diff_moving_matrix2(
+            operator1,
+            operator2,
+            capacity1,
+            capacity2,
+            phase1.Diffusion_coeff,
+            phase2.Diffusion_coeff,
+            bc_b,
+            ic,
+            Δt,
+            scheme
+        )
+        s.b = build_rhs_diph_unstead_moving_diff2(
             operator1,
             operator2,
             phase1.source,

@@ -12,16 +12,17 @@ domain = ((x0, lx), (y0, ly))
 mesh = CartesianMesh((nx, ny), (lx, ly), (x0, y0))
 
 # Define the time mesh
-Δt = 0.5 * (lx/nx)^2
+Δt = 0.25 * (lx/nx)^2
 Tend = 0.01
 nt = Int(round(Tend/Δt))
 t = [i*Δt for i in 0:nt]
 
 # Define the body : Translating disk : radius = 0.5, center = (lx/2 + 0.1*t, ly/2)
 radius, center = ly/4, (lx/2, ly/2) .+ (0.01, 0.01)
-c = 0.2
+c = 0.0
 initial_body = Body((x, y,_=0) -> sqrt((x - center[1])^2 + (y - center[2])^2) - radius, (x,y,_)->(x,y), domain, false)
 body = Body((x, y, t) -> sqrt((x - center[1] - c*t)^2 + (y - center[2])^2) - radius, (x,y,_)->(x,y), domain, false)
+final_body = Body((x, y,_=0) -> sqrt((x - center[1] - c*Tend)^2 + (y - center[2])^2) - radius, (x,y,_)->(x,y), domain, false)
 
 # Define the space-time mesh
 spaceTimeMesh = CartesianSpaceTimeMesh(mesh, t[1:2])
@@ -35,6 +36,8 @@ capacity = Capacity(body, spaceTimeMesh)
 capacity_init = Capacity(initial_body, mesh)
 capacity.cell_types = capacity_init.cell_types
 
+capacity_final = Capacity(final_body, mesh)
+
 # CFL log
 Vn_1 = capacity.A[2][1:end÷2, 1:end÷2]
 Vn = capacity.A[2][end÷2+1:end, end÷2+1:end]
@@ -47,6 +50,7 @@ println("CFL number min : ", cflmin)
 # Define the operators
 operator = SpaceTimeOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1, 2))
 operator_init = DiffusionOps(capacity_init.A, capacity_init.B, capacity_init.V, capacity_init.W, (nx+1, ny+1))
+operator_final = DiffusionOps(capacity_final.A, capacity_final.B, capacity_final.V, capacity_final.W, (nx+1, ny+1))
 
 # Define the boundary conditions
 bc = Dirichlet(0.0)
@@ -117,12 +121,12 @@ function radial_heat_xy(x, y)
     return 1.0 - 2.0*s
 end
 
-u_ana, u_num, global_err, full_err, cut_err, empty_err = check_convergence(radial_heat_xy, solver, capacity_init, 2)
+u_ana, u_num, global_err, full_err, cut_err, empty_err = check_convergence(radial_heat_xy, solver, capacity_final, 2)
 
-u_ana[capacity.cell_types .== 0] .= NaN
+u_ana[capacity_final.cell_types .== 0] .= NaN
 u_ana = reshape(u_ana, (nx+1, ny+1))
 
-u_num[capacity.cell_types .== 0] .= NaN
+u_num[capacity_final.cell_types .== 0] .= NaN
 u_num = reshape(u_num, (nx+1, ny+1))
 
 err = u_ana - u_num

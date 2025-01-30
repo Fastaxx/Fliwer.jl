@@ -13,7 +13,7 @@ mesh = CartesianMesh((nx,), (lx,), (x0,))
 
 # Define the time mesh
 Δt = 0.01
-Tend = 1.0
+Tend = 2.0
 nt = Int(Tend/Δt)
 t = [i*Δt for i in 0:nt]
 
