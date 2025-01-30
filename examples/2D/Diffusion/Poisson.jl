@@ -26,7 +26,7 @@ capacity = Capacity(circle, mesh)
 operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1))
 
 # Define the boundary conditions 
-bc = Dirichlet(0.0)
+bc = Dirichlet((x,y,z) -> (x-center[1]))
 bc1 = Dirichlet(0.0)
 bc_neumann = Neumann(1.0)
 bc_periodic = Periodic()
@@ -34,7 +34,7 @@ bc_periodic = Periodic()
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc1, :right => bc1, :top => bc1, :bottom => bc1))
 
 # Define the source term
-f = (x,y,_)-> 4.0 #sin(x)*cos(10*y)
+f = (x,y,_)-> 0.0 #sin(x)*cos(10*y)
 K = (x,y,_) -> begin
     r = sqrt((x - lx/2)^2 + (y - lx/3)^2)
     if r <= 1.0
@@ -57,6 +57,7 @@ Fliwer.solve_DiffusionSteadyMono!(solver, Fluide; method=Base.:\)
 # Plot the solution
 plot_solution(solver, mesh, circle, capacity)
 
+readline()
 # Write the solution to a VTK file
 #write_vtk("poisson_2d", mesh, solver)
 

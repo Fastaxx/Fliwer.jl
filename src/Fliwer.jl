@@ -15,6 +15,7 @@ using StaticArrays
 using ForwardDiff
 using CartesianGeometry
 using WriteVTK
+using ImplicitIntegration
 
 include("Mesh.jl")
 export CartesianMesh, nC, MeshTag
