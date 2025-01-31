@@ -26,7 +26,7 @@ capacity = Capacity(circle, mesh)
 operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1))
 
 # Define the boundary conditions 
-bc = Dirichlet((x,y,z) -> (x-center[1]))
+bc = Dirichlet((x,y,z) -> 0)
 bc1 = Dirichlet(0.0)
 bc_neumann = Neumann(1.0)
 bc_periodic = Periodic()
@@ -34,7 +34,7 @@ bc_periodic = Periodic()
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc1, :right => bc1, :top => bc1, :bottom => bc1))
 
 # Define the source term
-f = (x,y,_)-> 0.0 #sin(x)*cos(10*y)
+f = (x,y,_)-> 4.0 #sin(x)*cos(10*y)
 K = (x,y,_) -> begin
     r = sqrt((x - lx/2)^2 + (y - lx/3)^2)
     if r <= 1.0
@@ -69,7 +69,7 @@ u_analytical(x,y) = 1.0 - (x-center[1])^2 - (y-center[2])^2
 ∇x_analytical(x,y) = -2*(x-center[1])
 ∇y_analytical(x,y) = -2*(y-center[2])
 
-u_ana, u_num, global_err, full_err, cut_err, empty_err = check_convergence(u_analytical, solver, capacity, 2)
+u_ana, u_num, global_err, full_err, cut_err, empty_err = check_convergence(u_analytical, solver, capacity, 2, false)
 
 u_ana[capacity.cell_types .== 0] .= NaN
 u_ana = reshape(u_ana, (nx+1, ny+1))
@@ -95,6 +95,8 @@ ax = Axis(fig[1, 1], xlabel = "x", ylabel="y", title="Log error")
 hm = heatmap!(ax, log10.(abs.(err)), colormap=:viridis)
 Colorbar(fig[1, 2], hm, label="log10(|u(x) - u_num(x)|)")
 display(fig)
+
+readline()
 
 # Gradient error
 ∇_num = ∇(operator, solver.x)

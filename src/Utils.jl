@@ -377,7 +377,7 @@ function relative_lp_norm(errors, indices, pval, capacity, u_ana)
     end
 end
 
-function check_convergence(u_analytical::Function, solver, capacity::Capacity{1}, mesh::CartesianMesh{1}, p::Real, relative::Bool)
+function check_convergence(u_analytical::Function, solver, capacity::Capacity{1}, p::Real, relative::Bool=false)
     # 1) Compute pointwise error
     cell_centroids = capacity.C_ω
     u_ana = map(c -> u_analytical(c[1]), cell_centroids)
