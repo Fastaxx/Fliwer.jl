@@ -66,25 +66,27 @@ function VOFI(body::AbstractBody, mesh::AbstractMesh)
     Bs = CartesianGeometry.integrate(Tuple{1}, body.sdf, mesh.nodes, Float64, zero, bary)
 
     C_ω = bary
-    C_γ = computeInterfaceCentroids(mesh, body)
     if N == 1
         V = spdiagm(0 => Vs)
         A = (spdiagm(0 => As[1]),)
         B = (spdiagm(0 => Bs[1]),)
         W = (spdiagm(0 => Ws[1]),)
         Γ = spdiagm(0 => interface_length)
+        C_γ = computeInterfaceCentroids1(mesh, body)
     elseif N == 2
         V = spdiagm(0 => Vs)
         A = (spdiagm(0 => As[1]), spdiagm(0 => As[2]))
         B = (spdiagm(0 => Bs[1]), spdiagm(0 => Bs[2]))
         W = (spdiagm(0 => Ws[1]), spdiagm(0 => Ws[2]))
         Γ = spdiagm(0 => interface_length)
+        C_γ = computeInterfaceCentroids2(mesh, body)
     elseif N == 3
         V = spdiagm(0 => Vs)
         A = (spdiagm(0 => As[1]), spdiagm(0 => As[2]), spdiagm(0 => As[3]))
         B = (spdiagm(0 => Bs[1]), spdiagm(0 => Bs[2]), spdiagm(0 => Bs[3]))
         W = (spdiagm(0 => Ws[1]), spdiagm(0 => Ws[2]), spdiagm(0 => Ws[3]))
         Γ = spdiagm(0 => interface_length)
+        C_γ = computeInterfaceCentroids3(mesh, body)
     end
 
     return A, B, V, W, C_ω, C_γ, Γ, cell_types
@@ -121,7 +123,7 @@ function measure!(capacity::AbstractCapacity, body::AbstractBody; t=0)
 end
 
 # Compute the interface centroid
-function computeInterfaceCentroids(mesh::CartesianMesh{1}, body)
+function computeInterfaceCentroids1(mesh, body)
     x_coords = mesh.nodes[1]
     nx = length(x_coords) - 1
     Φ = (r) -> body.sdf(r[1])
@@ -145,7 +147,7 @@ function computeInterfaceCentroids(mesh::CartesianMesh{1}, body)
     return C_γ
 end
 
-function computeInterfaceCentroids(mesh::CartesianMesh{2}, body)
+function computeInterfaceCentroids2(mesh, body)
     x_coords, y_coords = mesh.nodes
     nx, ny = length(x_coords) - 1, length(y_coords) - 1
     Φ = (r) -> body.sdf(r[1], r[2], 0.0)
@@ -175,7 +177,7 @@ function computeInterfaceCentroids(mesh::CartesianMesh{2}, body)
 end
 
 
-function computeInterfaceCentroids(mesh::CartesianMesh{3}, body)
+function computeInterfaceCentroids3(mesh, body)
     x_coords, y_coords, z_coords = mesh.nodes
     nx, ny, nz = length(x_coords)-1, length(y_coords)-1, length(z_coords)-1
     Φ = (r) -> body.sdf(r[1], r[2], r[3])

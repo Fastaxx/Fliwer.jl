@@ -30,7 +30,7 @@ export AbstractCapacity,Capacity,measure!
 include("Operators.jl")
 export AbstractOperators, DiffusionOps, ConvectionOps, ẟ_m, δ_p, Σ_m, Σ_p, I
 export AdvectionVecOps
-export ∇ 
+export ∇, ∇_
 export SpaceTimeOps
 
 include("Boundary.jl")

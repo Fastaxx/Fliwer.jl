@@ -19,10 +19,10 @@ t = [i*Δt for i in 0:nt]
 
 # Define the body : Translating disk : radius = 0.5, center = (lx/2 + 0.1*t, ly/2)
 radius, center = ly/4, (lx/2, ly/2) .+ (0.01, 0.01)
-c = 0.0
-initial_body = Body((x, y,_=0) -> sqrt((x - center[1])^2 + (y - center[2])^2) - radius, (x,y,_)->(x,y), domain, false)
-body = Body((x, y, t) -> sqrt((x - center[1] - c*t)^2 + (y - center[2])^2) - radius, (x,y,_)->(x,y), domain, false)
-final_body = Body((x, y,_=0) -> sqrt((x - center[1] - c*Tend)^2 + (y - center[2])^2) - radius, (x,y,_)->(x,y), domain, false)
+c = 1.0
+initial_body = Body((x, y,_=0) -> -(sqrt((x - center[1])^2 + (y - center[2])^2) - radius), (x,y,_)->(x,y), domain, false)
+body = Body((x, y, t) -> -(sqrt((x - center[1] - c*t)^2 + (y - center[2])^2) - radius), (x,y,_)->(x,y), domain, false)
+final_body = Body((x, y,_=0) -> -(sqrt((x - center[1] - c*Tend)^2 + (y - center[2])^2) - radius), (x,y,_)->(x,y), domain, false)
 
 # Define the space-time mesh
 spaceTimeMesh = CartesianSpaceTimeMesh(mesh, t[1:2])
@@ -77,9 +77,8 @@ solve_MovingDiffusionUnsteadyMono2!(solver, Fluide, u0, Δt, Tend, nt, bc_b, bc1
 # Plot the solution
 plot_solution(solver, mesh, body, capacity; state_i=1)
 
-readline()
 # Animation
-#animate_solution(solver, mesh, body)
+animate_solution(solver, mesh, body)
 
 # Analytical solution
 function radial_heat_xy(x, y)

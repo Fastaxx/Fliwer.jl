@@ -16,6 +16,17 @@ function ∇(operator::AbstractOperators, p::Vector{Float64})
 end
 
 """
+    ∇_(operator::AbstractOperators, qω::Vector{Float64}, qγ::Vector{Float64})
+
+Compute the divergence of a vector field.
+"""
+function ∇_(operator::AbstractOperators, qω::Vector{Float64}, qγ::Vector{Float64})
+    GT = operator.G'
+    HT = operator.H'
+    return -(GT + HT)*qω + HT * qγ
+end
+
+"""
     struct DiffusionOps{N} <: AbstractOperators where N
 
 Struct representing diffusion operators.
