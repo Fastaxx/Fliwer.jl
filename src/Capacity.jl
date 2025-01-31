@@ -124,7 +124,7 @@ end
 function computeInterfaceCentroids(mesh::CartesianMesh{1}, body)
     x_coords = mesh.nodes[1]
     nx = length(x_coords) - 1
-    Φ = (r) -> body.sdf(r[1], 0.0, 0.0)
+    Φ = (r) -> body.sdf(r[1])
 
     # Create a *vector* of SVector{1,Float64}
     C_γ = Vector{SVector{1,Float64}}(undef, nx+1)
