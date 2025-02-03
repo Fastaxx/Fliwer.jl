@@ -32,6 +32,7 @@ export AbstractOperators, DiffusionOps, ConvectionOps, ẟ_m, δ_p, Σ_m, Σ_p, 
 export AdvectionVecOps
 export ∇, ∇_
 export SpaceTimeOps
+export volume_redefinition!
 
 include("Boundary.jl")
 export AbstractBoundary, Dirichlet, Neumann, Robin, Periodic, AbstractInterfaceBC, ScalarJump, FluxJump, BorderConditions, InterfaceConditions

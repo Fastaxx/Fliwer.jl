@@ -295,3 +295,28 @@ function SpaceTimeOps(A, B, V, W, size)
     return SpaceTimeOps{N}(G, H, Wꜝ, V, size)
 end
 
+
+# Volume redefinition
+function volume_redefinition!(capacity::Capacity{1}, operator::DiffusionOps)
+    pₒ = [capacity.C_ω[i][1] for i in 1:length(capacity.C_ω)]
+    pᵧ = [capacity.C_γ[i][1] for i in 1:length(capacity.C_ω)]
+    p = vcat(pₒ, pᵧ)
+    grad = ∇(operator, p)
+    W_new = [grad[i] * capacity.W[1][i,i] for i in 1:length(grad)]
+    W_new = spdiagm(0 => W_new)
+
+    pₒ = [(capacity.C_ω[i][1]^2)/2 for i in 1:length(capacity.C_ω)]
+    pᵧ = [(capacity.C_γ[i][1]^2)/2 for i in 1:length(capacity.C_ω)]
+
+    p = vcat(pₒ, pᵧ)
+    grad = ∇(operator, p)
+
+    qω = vcat(grad)
+    qγ = vcat(grad)
+
+    div = ∇_(operator, qω, qγ)
+    V_new = spdiagm(0 => div)
+
+    capacity.W = (W_new,)
+    capacity.V = V_new
+end

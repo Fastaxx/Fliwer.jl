@@ -20,33 +20,11 @@ identify!(mesh, body)
 # Define the capacity
 capacity = Capacity(body, mesh)
 
-
-@show capacity.V
-# Redefine W and V
-pₒ = [capacity.C_ω[i][1] for i in 1:length(capacity.C_ω)]
-pᵧ = [capacity.C_γ[i][1] for i in 1:length(capacity.C_ω)]
-p = vcat(pₒ, pᵧ)
-grad = ∇(operator, p)
-W_new = [grad[i] * capacity.W[1][i,i] for i in 1:length(grad)]
-W_new = spdiagm(0 => W_new)
-
-pₒ = [(capacity.C_ω[i][1]^2)/2 for i in 1:length(capacity.C_ω)]
-pᵧ = [(capacity.C_γ[i][1]^2)/2 for i in 1:length(capacity.C_ω)]
-
-p = vcat(pₒ, pᵧ)
-grad = ∇(operator, p)
-
-qω = vcat(grad)
-qγ = vcat(grad)
-
-div = ∇_(operator, qω, qγ)
-V_new = spdiagm(0 => div)
-
-capacity.W = (W_new,)
-capacity.V = V_new
-
-@show capacity.V
 # Define the operators
+operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1,))
+
+# Redefine W and V : Rebuild the operator
+volume_redefinition!(capacity, operator)
 operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1,))
 
 # Define the boundary conditions
