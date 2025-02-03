@@ -4,7 +4,7 @@ using LinearAlgebra, SparseArrays
 
 ### 1D Test Case : Monophasic Steady Diffusion Equation
 # Define the mesh
-nx = 640
+nx = 320
 lx = 1.
 x0 = 0.
 domain = ((x0, lx),)
@@ -34,7 +34,7 @@ bc1 = Dirichlet(0.0)
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:top => bc1, :bottom => bc1))
 
 # Define the source term
-f = (x, y, _=0) -> 1.0
+f = (x, y, _=0) -> x
 
 Fluide = Phase(capacity, operator, f, 1.0)
 
@@ -46,10 +46,10 @@ solve_DiffusionSteadyMono!(solver, Fluide; method=Base.:\)
 
 # Plot the solution
 plot_solution(solver, mesh, body, capacity)
-
+readline()
 # Analytical solution
 a, b = center - radius, center + radius
-u_analytical = (x) -> -1/2 * (x-a)*(x-b)
+u_analytical = (x) -> - (x-center)^3/6 - (center*(x-center)^2)/2 + radius^2/6 * (x-center) + center*radius^2/2
 
 u_ana, u_num, err, global_err, full_err, cut_err, empty_err = check_convergence(u_analytical, solver, capacity, 2)
 
