@@ -7,6 +7,62 @@ using CairoMakie
 using CairoMakie
 using DelimitedFiles
 
+
+# Divergence operator
+# Define the mesh
+nx, ny = 40, 40
+lx, ly = 4., 4.
+x0, y0 = 0., 0.
+domain = ((x0, lx), (y0, ly))
+mesh = CartesianMesh((nx, ny), (lx, ly), (x0, y0))
+
+# Define the body
+radius, center = ly/4.0, (lx/2, ly/2) #.+ (0.01, 0.01)
+circle = Body((x,y,_=0)->(sqrt((x-center[1])^2 + (y-center[2])^2) - radius), (x,y,_)->(x,y), domain, false)
+
+# Identify cells
+identify!(mesh, circle)
+
+# Define the capacity
+capacity = Capacity(circle, mesh)
+
+# Define the operators
+operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1))
+
+# Build Divergence Operators
+x=range(x0, stop=lx, length=nx+1)
+y=range(y0, stop=ly, length=ny+1)
+
+x_faces = (x[1:end-1] .+ x[2:end]) ./ 2
+y_faces = (y[1:end-1] .+ y[2:end]) ./ 2
+
+Coord_facesx = [(x_faces[i], y[j]) for i in 1:length(x_faces), j in 1:length(y)]
+Coord_facesy = [(x[i], y_faces[j]) for i in 1:length(x), j in 1:length(y_faces)]
+
+qxω = [capacity.C_ω[i][1] for i in 1:length(capacity.C_ω)]
+qyω = [capacity.C_ω[i][2] for i in 1:length(capacity.C_ω)]
+qxγ = [capacity.C_γ[i][1] for i in 1:length(capacity.C_γ)]
+qyγ = [capacity.C_γ[i][2] for i in 1:length(capacity.C_γ)]
+qω = vcat(qxω, qyω)
+qγ = vcat(qxγ, qyγ)
+
+Divergence = ∇_(operator, qω, qγ)
+Divergence = [Divergence[i] * capacity.V[i,i] for i in 1:length(Divergence)]
+Divergence = reshape(Divergence, (nx+1, ny+1))
+Divergence[capacity.cell_types .== 0] .= NaN
+
+println(Divergence)
+
+using CairoMakie
+
+fig = Figure()
+ax = Axis(fig[1, 1], aspect = DataAspect(), xlabel = "x", ylabel = "y", title="Divergence")
+hm = heatmap!(ax, Divergence, colormap = :viridis)
+Colorbar(fig[1, 2], hm)
+display(fig)
+
+readline()
+
 # Volume Redefinition
 # Define the mesh
 nx = 20
@@ -77,71 +133,6 @@ display(fig)
 """
 
 readline()
-
-
-
-# Divergence operator
-# Define the mesh
-nx, ny = 20, 20
-lx, ly = 4., 4.
-x0, y0 = 0., 0.
-domain = ((x0, lx), (y0, ly))
-mesh = CartesianMesh((nx, ny), (lx, ly), (x0, y0))
-
-# Define the body
-radius, center = ly/4.0, (lx/2, ly/2) #.+ (0.01, 0.01)
-circle = Body((x,y,_=0)->(sqrt((x-center[1])^2 + (y-center[2])^2) - radius), (x,y,_)->(x,y), domain, false)
-
-# Identify cells
-identify!(mesh, circle)
-
-# Define the capacity
-capacity = Capacity(circle, mesh)
-
-# Define the operators
-operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1))
-
-# Build Divergence Operators
-function div(operator::AbstractOperators, qω::Vector{Float64}, qγ::Vector{Float64})
-    GT = operator.G'
-    HT = operator.H'
-    return -(GT + HT)*qω + HT * qγ
-end
-
-x=range(x0, stop=lx, length=nx+1)
-y=range(y0, stop=ly, length=ny+1)
-
-x_faces = (x[1:end-1] .+ x[2:end]) ./ 2
-y_faces = (y[1:end-1] .+ y[2:end]) ./ 2
-
-Coord_facesx = [(x_faces[i], y[j]) for i in 1:length(x_faces), j in 1:length(y)]
-Coord_facesy = [(x[i], y_faces[j]) for i in 1:length(x), j in 1:length(y_faces)]
-
-qxω = [capacity.C_ω[i][1] for i in 1:length(capacity.C_ω)]
-qyω = [capacity.C_ω[i][2] for i in 1:length(capacity.C_ω)]
-qxγ = [capacity.C_γ[i][1] for i in 1:length(capacity.C_γ)]
-qyγ = [capacity.C_γ[i][2] for i in 1:length(capacity.C_γ)]
-qω = vcat(qxω, qyω)
-qγ = vcat(qxγ, qyγ)
-
-Divergence = div(operator, qω, qγ)
-#Divergence = [Divergence[i] * capacity.V[i,i] for i in 1:length(Divergence)]
-Divergence = reshape(Divergence, (nx+1, ny+1))
-Divergence[capacity.cell_types .== 0] .= NaN
-
-println(Divergence)
-
-using CairoMakie
-
-fig = Figure()
-ax = Axis(fig[1, 1], aspect = DataAspect(), xlabel = "x", ylabel = "y", title="Divergence")
-hm = heatmap!(ax, Divergence, colormap = :viridis)
-Colorbar(fig[1, 2], hm)
-display(fig)
-
-readline()
-
-
 
 
 # Moving 2D Analytical Solution

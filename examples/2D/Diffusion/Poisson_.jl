@@ -130,4 +130,4 @@ nx_list = [20, 40, 80, 160, 320, 640]
 ny_list = [20, 40, 80, 160, 320, 640]
 radius, center = 1.0, (2.0, 2.0)
 u_analytical(x,y) = 1.0 - (x-center[1])^2 - (y-center[2])^2
-run_mesh_convergence(nx_list, ny_list, radius, center, u_analytical, norm=1, relative=false)
+run_mesh_convergence(nx_list, ny_list, radius, center, u_analytical, norm=Inf, relative=false)

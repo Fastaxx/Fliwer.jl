@@ -25,48 +25,8 @@ capacity = Capacity(circle, mesh)
 # Define the operators
 operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1))
 
-function volume_redefinitio!(capacity::Capacity{2}, operator::DiffusionOps)
-    pₒ = [capacity.C_ω[i][1] for i in 1:length(capacity.C_ω)]
-    pᵧ = [capacity.C_γ[i][1] for i in 1:length(capacity.C_ω)]
-    p = vcat(pₒ, pᵧ)
-    grad = ∇(operator, p)
-    grad_x, grad_y = grad[1:end÷2], grad[end÷2+1:end]
-    W_x_new = [grad_x[i] * capacity.W[1][i,i] for i in 1:length(grad_x)]
-    W_y_new = [grad_y[i] * capacity.W[2][i,i] for i in 1:length(grad_y)]
-    W_new = (spdiagm(0 => W_x_new), spdiagm(0 => W_y_new))
-
-
-    pₒx = [(capacity.C_ω[i][1]^2)/2 for i in 1:length(capacity.C_ω)]
-    pᵧx = [(capacity.C_γ[i][1]^2)/2 for i in 1:length(capacity.C_ω)]
-
-    pₒy = [(capacity.C_ω[i][2]^2)/2 for i in 1:length(capacity.C_ω)]
-    pᵧy = [(capacity.C_γ[i][2]^2)/2 for i in 1:length(capacity.C_ω)]
-
-    px = vcat(pₒx, pᵧx)
-    py = vcat(pₒy, pᵧy)
-    gradx = ∇(operator, px)
-    grady = ∇(operator, py)
-    gradx_x, gradx_y = gradx[1:end÷2], gradx[end÷2+1:end]
-    grady_x, grady_y = grady[1:end÷2], grady[end÷2+1:end]
-
-    qωx = vcat(gradx_x, gradx_y)
-    qγx = vcat(grady_x, grady_y)
-
-    div_x = ∇_(operator, qωx, qγx)
-    div_y = ∇_(operator, qωx, qγx)
-
-    V_new = min.(div_x, div_y)
-    V_new = spdiagm(0 => V_new)
-
-    capacity.W = W_new
-    capacity.V = V_new
-end
-
-#volume_redefinitio!(capacity, operator)
-operator=DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1))
-
 # Define the boundary conditions 
-bc = Dirichlet((x,y,z) -> 0)
+bc = Robin(1.0,1.0,1.0)
 bc1 = Dirichlet(0.0)
 bc_neumann = Neumann(1.0)
 bc_periodic = Periodic()
@@ -74,7 +34,7 @@ bc_periodic = Periodic()
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc1, :right => bc1, :top => bc1, :bottom => bc1))
 
 # Define the source term
-f = (x,y,_)-> 4.0 #sin(x)*cos(10*y)
+f = (x,y,_)-> 1.0 #sin(x)*cos(10*y)
 K = (x,y,_) -> begin
     r = sqrt((x - lx/2)^2 + (y - lx/3)^2)
     if r <= 1.0
@@ -105,9 +65,9 @@ readline()
 println(maximum(solver.x))
 
 # Analytical solution
-u_analytical(x,y) = 1.0 - (x-center[1])^2 - (y-center[2])^2
-∇x_analytical(x,y) = -2*(x-center[1])
-∇y_analytical(x,y) = -2*(y-center[2])
+u_analytical(x,y) = 7/4 - ((x-center[1])^2 + (y-center[2])^2)/4
+∇x_analytical(x,y) = - (x-center[1])/2
+∇y_analytical(x,y) = - (y-center[2])/2
 
 u_ana, u_num, global_err, full_err, cut_err, empty_err = check_convergence(u_analytical, solver, capacity, 2, false)
 
