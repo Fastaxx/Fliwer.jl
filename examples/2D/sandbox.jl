@@ -7,6 +7,39 @@ using CairoMakie
 using CairoMakie
 using DelimitedFiles
 
+# Poisson Equation inside a square
+x0, y0 = 0.0, 0.0
+lx, ly = 4.0, 4.0
+nx, ny = 40, 40
+x=range(x0, stop=lx, length=nx+1)
+y=range(y0, stop=ly, length=ny+1)
+
+radius, center = ly/4.0, (lx/2, ly/2)
+
+# Analytical solution
+function u_analytical(x,y)
+    # Sum from m,n=1 to 100 m,n odd of 16 L²/((π^4 mn) * (m² + n²)) * sin(mπx/L) * sin(nπy/L)
+    x = x #- center[1]
+    y = y #- center[2]
+    sum = 0.0
+    for m in 1:2:200
+        for n in 1:2:200
+            sum += 16 * lx^2 / (π^4 * m * n * (m^2 + n^2)) * sin(m*π*x/lx) * sin(n*π*y/ly)
+        end
+    end
+    return sum
+end
+
+u_ana = [u_analytical(x_, y_) for x_ in x, y_ in y]
+
+fig = Figure()
+ax = Axis(fig[1, 1], aspect = DataAspect(), xlabel = "x", ylabel = "y", title="Analytical Solution")
+hm = heatmap!(ax, u_ana, colormap = :viridis)
+Colorbar(fig[1, 2], hm)
+display(fig)
+
+readline()
+
 
 # Divergence operator
 # Define the mesh
