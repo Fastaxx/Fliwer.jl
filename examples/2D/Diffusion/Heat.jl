@@ -42,7 +42,7 @@ u0ᵧ = ones((nx+1)*(ny+1))
 u0 = vcat(u0ₒ, u0ᵧ)
 
 # Define the solver
-Δt = 0.5*(lx/nx)^2
+Δt = 0.25 * (lx/nx)^2
 Tend = 0.01
 solver = DiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0, "BE") # Start by a backward Euler scheme to prevent oscillation due to CN scheme
 
