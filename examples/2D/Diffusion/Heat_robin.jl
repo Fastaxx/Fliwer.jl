@@ -3,7 +3,7 @@ using IterativeSolvers
 
 ### 2D Test Case : Monophasic Unsteady Diffusion Equation inside a Disk
 # Define the mesh
-nx, ny = 64, 64
+nx, ny = 80, 80
 lx, ly = 4.0, 4.0
 x0, y0 = 0.0, 0.0
 domain = ((x0, lx), (y0, ly))
@@ -44,11 +44,11 @@ u0 = vcat(u0ₒ, u0ᵧ)
 
 # Define the solver
 Δt = 0.5*(lx/nx)^2
-Tend = 1.0
+Tend = 0.1
 solver = DiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0, "BE") # Start by a backward Euler scheme to prevent oscillation due to CN scheme
 
 # Solve the problem
-Fliwer.solve_DiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, bc_b, bc, "BE"; method=Base.:\)
+Fliwer.solve_DiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, bc_b, bc, "CN"; method=Base.:\)
 #Fliwer.solve_DiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, bc_b, bc; method=IterativeSolvers.bicgstabl, reltol=1e-40, verbose=false)
 
 # Write the solution to a VTK file
@@ -80,7 +80,7 @@ using SpecialFunctions
 using Roots
 
 function radial_heat_(x, y)
-    t=1.0
+    t=0.1
     R=1.0
     k=3.0
 

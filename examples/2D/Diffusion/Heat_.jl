@@ -40,26 +40,26 @@ function run_mesh_convergence(
         operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1))
 
         # BC + solver
-        bc_boundary = Dirichlet(1.0)
-        bc0 = Dirichlet(0.0)
+        bc_boundary = Robin(3.0,1.0,3.0*400)
+        bc0 = Dirichlet(400.0)
         bc_b = BorderConditions(Dict(
             :left   => bc0,
             :right  => bc0,
             :top    => bc0,
             :bottom => bc0
         ))
-        phase = Phase(capacity, operator, (x,y,z,t)->0.0, 1.0)
+        phase = Phase(capacity, operator, (x,y,z,t)->0.0, 0.5)
 
-        u0ₒ = zeros((nx+1)*(ny+1))
-        u0ᵧ = ones((nx+1)*(ny+1))
+        u0ₒ = ones((nx+1)*(ny+1)) * 270.0
+        u0ᵧ = zeros((nx+1)*(ny+1)) * 270.0
         u0 = vcat(u0ₒ, u0ᵧ)
 
         Δt = 0.5*(lx/nx)^2
-        Tend = 0.01
+        Tend = 0.1
 
         solver = DiffusionUnsteadyMono(phase, bc_b, bc_boundary, Δt, Tend, u0, "BE") # Start by a backward Euler scheme to prevent oscillation due to CN scheme
 
-        Fliwer.solve_DiffusionUnsteadyMono!(solver, phase, u0, Δt, Tend, bc_b, bc_boundary, "BE"; method=Base.:\)
+        Fliwer.solve_DiffusionUnsteadyMono!(solver, phase, u0, Δt, Tend, bc_b, bc_boundary, "CN"; method=Base.:\)
 
         # Compute errors
         u_ana, u_num, global_err, full_err, cut_err, empty_err =
@@ -136,32 +136,31 @@ function run_mesh_convergence(
 end
 
 # Example usage:
-nx_list = [40, 80, 160, 320]
-ny_list = [40, 80, 160, 320]
+nx_list = [20, 40, 80, 160, 320]
+ny_list = [20, 40, 80, 160, 320]
 radius, center = 1.0, (2.01, 2.01)
-function radial_heat_xy(x, y)
-    t=0.01
+function radial_heat_(x, y)
+    t=0.1
     R=1.0
+    k=3.0
+    a=0.5
 
-    function j0_zeros(N; guess_shift=0.25)
+    function j0_zeros_robin(N, k, R; guess_shift = 0.25)
+        # Define the function for alpha J1(alpha) - k R J0(alpha) = 0
+        eq(alpha) = alpha * besselj1(alpha) - k * R * besselj0(alpha)
+    
         zs = zeros(Float64, N)
-        # The m-th zero of J₀ is *roughly* near (m - guess_shift)*π for large m.
-        # We'll bracket around that approximate location and refine via find_zero.
         for m in 1:N
-            # approximate location
-            x_left  = (m - guess_shift - 0.5)*pi
-            x_right = (m - guess_shift + 0.5)*pi
-            # ensure left>0
-            x_left = max(x_left, 1e-6)
-            
-            # We'll use bisection or Brent's method from Roots.jl
-            αm = find_zero(besselj0, (x_left, x_right))
-            zs[m] = αm
+            # Approximate location around (m - guess_shift)*π
+            x_left  = (m - guess_shift - 0.5) * π
+            x_right = (m - guess_shift + 0.5) * π
+            x_left  = max(x_left, 1e-6)  # Ensure bracket is positive
+            zs[m]   = find_zero(eq, (x_left, x_right))
         end
         return zs
     end
 
-    alphas = j0_zeros(100)
+    alphas = j0_zeros_robin(1000, k, R)
     N=length(alphas)
     r = sqrt((x - center[1])^2 + (y - center[2])^2)
     if r >= R
@@ -173,9 +172,10 @@ function radial_heat_xy(x, y)
     s = 0.0
     for m in 1:N
         αm = alphas[m]
-        s += exp(-αm^2 * t) * besselj0(αm * (r / R)) / (αm * besselj1(αm))
+        An = 2.0 * k * R / ((k^2 * R^2 + αm^2) * besselj0(αm))
+        s += An * exp(- a * αm^2 * t/R^2) * besselj0(αm * (r / R))
     end
-    return 1.0 - 2.0*s
+    return (1.0 - s) * (400 - 270) + 270
 end
 
-run_mesh_convergence(nx_list, ny_list, radius, center, radial_heat_xy, norm=Inf)
+run_mesh_convergence(nx_list, ny_list, radius, center, radial_heat_, norm=2)

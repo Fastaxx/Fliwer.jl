@@ -297,7 +297,7 @@ end
 
 
 # Volume redefinition
-function volume_redefinition!(capacity::Capacity{1}, operator::DiffusionOps)
+function volume_redefinition!(capacity::Capacity{1}, operator::AbstractOperators)
     pₒ = [capacity.C_ω[i][1] for i in 1:length(capacity.C_ω)]
     pᵧ = [capacity.C_γ[i][1] for i in 1:length(capacity.C_ω)]
     p = vcat(pₒ, pᵧ)

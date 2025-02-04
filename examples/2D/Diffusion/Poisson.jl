@@ -55,14 +55,17 @@ function volume_redefinitio!(capacity::Capacity{2}, operator::DiffusionOps)
     div_x = ∇_(operator, qωx, qγx)
     div_y = ∇_(operator, qωx, qγx)
 
-    V_new = min.(div_x, div_y)
+    @show minimum(div_x), minimum(div_y)
+    @show maximum(div_x), maximum(div_y)
+
+    V_new = max.(div_x, div_y)
     V_new = spdiagm(0 => V_new)
 
     capacity.W = W_new
     capacity.V = V_new
 end
 
-#volume_redefinitio!(capacity, operator)
+volume_redefinitio!(capacity, operator)
 operator=DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1))
 
 # Define the boundary conditions 
