@@ -43,8 +43,8 @@ u0ᵧ = zeros((nx+1)*(ny+1)) * 270.0
 u0 = vcat(u0ₒ, u0ᵧ)
 
 # Define the solver
-Δt = 0.5*(lx/nx)^2
-Tend = 0.1
+Δt = 0.25*(lx/nx)^2
+Tend = 1.0
 solver = DiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0, "BE") # Start by a backward Euler scheme to prevent oscillation due to CN scheme
 
 # Solve the problem
@@ -80,9 +80,10 @@ using SpecialFunctions
 using Roots
 
 function radial_heat_(x, y)
-    t=0.1
+    t=1.0006249999999814
     R=1.0
     k=3.0
+    a=0.5
 
     function j0_zeros_robin(N, k, R; guess_shift = 0.25)
         # Define the function for alpha J1(alpha) - k R J0(alpha) = 0
@@ -116,6 +117,7 @@ function radial_heat_(x, y)
     end
     return (1.0 - s) * (400 - 270) + 270
 end
+
 
 # 
 

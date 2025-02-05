@@ -288,13 +288,15 @@ function build_mono_unstead_diff_matrix(operator::DiffusionOps, capacite::Capaci
     if scheme=="CN"
         block1 = operator.V + Δt / 2 * (Id * operator.G' * operator.Wꜝ * operator.G)
         block2 = Δt / 2 * (Id * operator.G' * operator.Wꜝ * operator.H)
+        block3 = Δt/2 * Iᵦ * operator.H' * operator.Wꜝ * operator.G
+        block4 = Δt/2 * Iᵦ * operator.H' * operator.Wꜝ * operator.H + Δt/2 * (Iₐ * Iᵧ)
     else
         block1 = operator.V + Δt * (Id * operator.G' * operator.Wꜝ * operator.G)
         block2 = Δt * (Id * operator.G' * operator.Wꜝ * operator.H)
+        block3 = Iᵦ * operator.H' * operator.Wꜝ * operator.G
+        block4 = Iᵦ * operator.H' * operator.Wꜝ * operator.H + (Iₐ * Iᵧ)
     end
-    block3 = Iᵦ * operator.H' * operator.Wꜝ * operator.G
-    block4 = Iᵦ * operator.H' * operator.Wꜝ * operator.H + (Iₐ * Iᵧ)
-
+    
     A[1:n, 1:n] = block1
     A[1:n, n+1:2n] = block2
     A[n+1:2n, 1:n] = block3
@@ -307,19 +309,21 @@ function build_rhs_mono_unstead_diff(operator::DiffusionOps, f, capacite::Capaci
     N = prod(operator.size)
     b = zeros(2N)
 
-    Iᵧ = capacite.Γ
+    Iᵧ = capacite.Γ # build_I_g(operator, bc)
     fₒn, fₒn1 = build_source(operator, f, t, capacite), build_source(operator, f, t+Δt, capacite)
     gᵧ = build_g_g(operator, bc, capacite)
+    Iₐ, Iᵦ = build_I_bc(operator, bc)
 
     Tₒ, Tᵧ = Tᵢ[1:N], Tᵢ[N+1:end]
 
     # Build the right-hand side
     if scheme=="CN"
         b1 = (operator.V - Δt/2 * operator.G' * operator.Wꜝ * operator.G)*Tₒ - Δt/2 * operator.G' * operator.Wꜝ * operator.H * Tᵧ + Δt/2 * operator.V * (fₒn + fₒn1)
+        b2 = Δt * Iᵧ * gᵧ - Δt/2 * Iᵦ * operator.H' * operator.Wꜝ * operator.G * Tₒ - Δt/2 * Iᵦ * operator.H' * operator.Wꜝ * operator.H * Tᵧ - Δt/2 * Iₐ * Iᵧ * Tᵧ
     else
         b1 = (operator.V)*Tₒ + Δt * operator.V * (fₒn1)
+        b2 = Iᵧ * gᵧ
     end
-    b2 = Iᵧ * gᵧ
     b = vcat(b1, b2)
    return b
 end
