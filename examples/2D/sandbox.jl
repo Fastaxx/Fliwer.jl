@@ -7,6 +7,93 @@ using CairoMakie
 using CairoMakie
 using DelimitedFiles
 
+# Analytical Solution : 2d Heat Equation inside a disk 2ph Henry
+# Analytical solution
+using QuadGK
+using SpecialFunctions
+
+Dg,Dl = 1.0, 1.0
+R0 = 1.0
+cg0, cl0 = 1.0, 0.0
+He = 0.5
+
+D = sqrt(Dg/Dl)
+
+function Phi(u)
+    term1 = Dg*sqrt(Dl)*besselj1(u*R0)*bessely0(D*u*R0)
+    term2 = He*Dl*sqrt(Dg)*besselj0(u*R0)*bessely1(D*u*R0)
+    return term1 - term2
+end
+
+function Psi(u)
+    term1 = Dg*sqrt(Dl)*besselj1(u*R0)*besselj0(D*u*R0)
+    term2 = He*Dl*sqrt(Dg)*besselj0(u*R0)*besselj1(D*u*R0)
+    return term1 - term2
+end
+
+function cg_integrand(u, r, t)
+    Φu = Phi(u)
+    Ψu = Psi(u)
+    denom = u^2*(Φu^2 + Ψu^2)
+    num   = exp(-Dg*u^2*t)*besselj0(u*r)*besselj1(u*R0)
+    return iszero(denom) ? 0.0 : num/denom
+end
+
+function cl_integrand(u, r, t)
+    Φu = Phi(u)
+    Ψu = Psi(u)
+    denom = u*(Φu^2 + Ψu^2)
+    term1 = besselj0(D*u*r)*Φu
+    term2 = bessely0(D*u*r)*Ψu
+    num   = exp(-Dg*u^2*t)*besselj1(u*R0)*(term1 - term2)
+    return iszero(denom) ? 0.0 : num/denom
+end
+
+function compute_cg(r_values, t_values)
+    prefactor = (4*cg0*Dg*Dl*Dl*He)/(π^2*R0)
+    cg_results = Matrix{Float64}(undef, length(t_values), length(r_values))
+    for (i, t) in pairs(t_values)
+        Umax = 5.0/sqrt(Dg*t)
+        for (j, r) in pairs(r_values)
+            val, _ = quadgk(u->cg_integrand(u, r, t), 0, Umax; atol=1e-6, rtol=1e-6)
+            cg_results[i, j] = prefactor*val
+        end
+    end
+    return cg_results
+end
+
+function compute_cl(r_values, t_values)
+    prefactor = (2*cg0*Dg*sqrt(Dl)*He)/π
+    cl_results = Matrix{Float64}(undef, length(t_values), length(r_values))
+    for (i, t) in pairs(t_values)
+        Umax = 5.0/sqrt(Dg*t)
+        for (j, r) in pairs(r_values)
+            val, _ = quadgk(u->cl_integrand(u, r, t), 0, Umax; atol=1e-6, rtol=1e-6)
+            cl_results[i, j] = prefactor*val
+        end
+    end
+    return cl_results
+end
+
+r_values_inside = range(1e-6, stop=R0, length=100)
+r_values_outside = range(R0, stop=4*R0, length=100)
+t_values = [0.1, 0.5, 1.0]
+
+cg_vals = compute_cg(collect(r_values_inside), t_values)
+cl_vals = compute_cl(collect(r_values_outside), t_values)
+
+# Plot the analytical solution
+using CairoMakie
+
+fig = Figure()
+ax = Axis(fig[1, 1], xlabel="r", ylabel="c", title="Analytical solution")
+lines!(ax, r_values_inside, cg_vals[1, :], color=:blue, linewidth=2, label="Analytical solution - Phase 1")
+lines!(ax, r_values_outside, cl_vals[1, :], color=:red, linewidth=2, label="Analytical solution - Phase 2")
+axislegend(ax)
+display(fig)
+
+readline()
+
 # Poisson Equation inside a square
 x0, y0 = 0.0, 0.0
 lx, ly = 4.0, 4.0
@@ -22,8 +109,8 @@ function u_analytical(x,y)
     x = x #- center[1]
     y = y #- center[2]
     sum = 0.0
-    for m in 1:2:200
-        for n in 1:2:200
+    for m in 1:2:500
+        for n in 1:2:500
             sum += 16 * lx^2 / (π^4 * m * n * (m^2 + n^2)) * sin(m*π*x/lx) * sin(n*π*y/ly)
         end
     end
@@ -37,6 +124,8 @@ ax = Axis(fig[1, 1], aspect = DataAspect(), xlabel = "x", ylabel = "y", title="A
 hm = heatmap!(ax, u_ana, colormap = :viridis)
 Colorbar(fig[1, 2], hm)
 display(fig)
+
+println(maximum(u_ana))
 
 readline()
 

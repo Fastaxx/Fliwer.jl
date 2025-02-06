@@ -3,14 +3,14 @@ using IterativeSolvers, LinearAlgebra
 
 ### 2D Test Case : Diphasic Steady Diffusion Equation inside a Disk
 # Define the mesh
-nx, ny = 40, 40
+nx, ny = 80, 80
 lx, ly = 4., 4.
 x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
 mesh = CartesianMesh((nx, ny), (lx, ly), (x0, y0))
 
 # Define the body
-radius, center = ly/4, (lx/2, ly/2)
+radius, center = ly/4, (lx/2, ly/2) #.+ (0.01, 0.01)
 circle = Body((x,y,_=0)->sqrt((x-center[1])^2 + (y-center[2])^2) - radius, (x,y,_)->(x,y), domain, false)
 circle_c = Body((x,y,_=0)->-(sqrt((x-center[1])^2 + (y-center[2])^2) - radius), (x,y,_)->(x,y), domain, false)
 
@@ -48,9 +48,12 @@ solver = DiffusionSteadyDiph(Fluide_1, Fluide_2, bc_b, ic)
 Fliwer.solve_DiffusionSteadyDiph!(solver, Fluide_1, Fluide_2; method=Base.:\)
 #solve_DiffusionSteadyDiph!(solver, Fluide_1, Fluide_2; method=IterativeSolvers.gmres, verbose=false)
 
+println(maximum(abs.(solver.x)))
+
 # Plot the solution usign Makie
 plot_solution(solver, mesh, circle, capacity)
 
+readline()
 # Write the solution to a VTK file
 #write_vtk("poisson_2d", mesh, solver)
 
