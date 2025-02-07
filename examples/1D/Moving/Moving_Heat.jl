@@ -6,7 +6,7 @@ using SpecialFunctions, LsqFit
 
 ### 1D Test Case : Monophasic Unsteady Diffusion Equation inside a moving body
 # Define the spatial mesh
-nx = 20
+nx = 320
 lx = 10.
 x0 = 0.
 domain = ((x0, lx),)
@@ -30,7 +30,7 @@ nt = Int(Tend/Δt)
 t = [i*Δt for i in 0:nt]
 
 # Define the body
-xf = 0.1*lx   # Interface position
+xf = 0.11*lx   # Interface position
 c = 3.0     # Interface velocity
 initial_body = Body((x,_=0)->(x - xf), (x,_)->(x), domain, false)  # Initial body
 body = Body((x,t, _=0)->(x - xf - c*sqrt(t)), (x,)->(x,), domain, false)  # Body moving to the right
@@ -100,10 +100,11 @@ end
 using CairoMakie
 
 x=range(x0, stop=lx, length=nx+1)
+ls = [final_body.sdf(x[i]) for i in 1:nx+1]
 xfaces = x[1:end-1] .+ 0.5*diff(x)
 y=[stefan_1d_1ph_analytical(x[i]) for i in 1:nx+1]
 y_p=[grad_stefan_1d_1ph_analytical(xfaces[i]) for i in 1:nx]
-y[x .>= xf + c*Tend] .= 0.0
+y[x .> xf + c*Tend] .= 0.0
 
 ∇_num = ∇(operator_final, solver.x)
 
@@ -111,20 +112,24 @@ fig = Figure()
 ax = Axis(fig[1, 1], xlabel = "x", ylabel = "u", title = "1D 1 phase Stefan problem")
 lines!(ax, x, y, color = :blue, linewidth = 2, label = "Analytical solution")
 scatter!(ax, x, solver.states[end][1:nx+1], color = :red, label = "Numerical solution")
+# add a vertical line to show the interface position
+vlines!(ax, xf + c*Tend, color = :black, linestyle = :dash, label = "Interface position")
 axislegend(ax)
 display(fig)
-readline()
 
-u_ana, u_num, global_err, full_err, cut_err, empty_err = check_convergence(stefan_1d_1ph_analytical, solver, capacity_init, mesh, 2, false)
+#u_ana, u_num, global_err, full_err, cut_err, empty_err = check_convergence(stefan_1d_1ph_analytical, solver, capacity_init, mesh, 2, false)
 
 # Plot gradient
 fig = Figure()
 ax = Axis(fig[1, 1], xlabel = "x", ylabel = "∇u", title = "1D 1 phase Stefan problem - Gradient")
 lines!(ax, xfaces, y_p, color = :blue, linewidth = 2, label = "Analytical gradient")
 scatter!(ax, x, ∇_num, color = :red, label = "Numerical gradient")
+# add a vertical line to show the interface position
+vlines!(ax, xf + c*Tend, color = :black, linestyle = :dash, label = "Interface position")
 axislegend(ax)
 display(fig)
 
+readline()
 # Get the last-non zero value of ∇_num
 last_non_zero = findlast(x->x!=0.0, ∇_num)
 println("Last non zero value of ∇_num: ", ∇_num[last_non_zero])

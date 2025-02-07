@@ -18,11 +18,12 @@ nt = Int(round(Tend/Δt))
 t = [i*Δt for i in 0:nt]
 
 # Define the body : Translating disk : radius = 0.5, center = (lx/2 + 0.1*t, ly/2)
+# Expanding disk : radius = radius0 + 0.1*t, center = (lx/2, ly/2)
 radius, center = ly/4, (lx/2, ly/2) .+ (0.01, 0.01)
 c = 0.1
 initial_body = Body((x, y,_=0) -> (sqrt((x - center[1])^2 + (y - center[2])^2) - radius), (x,y,_)->(x,y), domain, false)
-body = Body((x, y, t) -> (sqrt((x - center[1] - c*t)^2 + (y - center[2])^2) - radius), (x,y,_)->(x,y), domain, false)
-final_body = Body((x, y,_=0) -> (sqrt((x - center[1] - c*Tend)^2 + (y - center[2])^2) - radius), (x,y,_)->(x,y), domain, false)
+body = Body((x, y, t) -> (sqrt((x - center[1])^2 + (y - center[2])^2) - radius + c*t), (x,y,_)->(x,y), domain, false)
+final_body = Body((x, y,_=0) -> (sqrt((x - center[1])^2 + (y - center[2])^2) - radius + c*Tend), (x,y,_)->(x,y), domain, false)
 
 # Define the space-time mesh
 spaceTimeMesh = CartesianSpaceTimeMesh(mesh, t[1:2])
@@ -83,7 +84,7 @@ animate_solution(solver, mesh, body)
 # Analytical solution
 function radial_heat_xy(x, y)
     t=nt*Δt
-    R=1.0
+    R=radius - c*t
 
     function j0_zeros(N; guess_shift=0.25)
         zs = zeros(Float64, N)
