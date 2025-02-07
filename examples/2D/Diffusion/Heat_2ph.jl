@@ -4,7 +4,7 @@ using WriteVTK
 
 ### 2D Test Case : Diphasic Unsteady Diffusion Equation with a Disk
 # Define the mesh
-nx, ny = 120, 120
+nx, ny = 320, 320
 lx, ly = 8., 8.
 x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
@@ -60,13 +60,14 @@ Fliwer.solve_DiffusionUnsteadyDiph!(solver, Fluide_1, Fluide_2, u0, Δt, Tend, b
 #write_vtk("solution", mesh, solver)
 
 # Plot the solution
-plot_solution(solver, mesh, circle, capacity)
+plot_solution(solver, mesh, circle, capacity, state_i=101)
 
+readline()
 # Plot the Profile
 #plot_profile(solver, mesh; x=lx/2.01)
 
 # Animation
-#animate_solution(solver, mesh, circle)
+animate_solution(solver, mesh, circle)
 
 # Analytical solution
 using QuadGK
@@ -138,7 +139,7 @@ end
 r_values_inside = range(1e-6, stop=R0, length=100)
 r_values_outside = range(R0, stop=4*R0, length=100)
 r_values = range(1e-6, stop=4*R0, length=nx+1)
-t_values = [0.1, 0.5, 1.0]
+t_values = [1.0]
 
 cg_vals = compute_cg(collect(r_values), t_values)
 cl_vals = compute_cl(collect(r_values), t_values)

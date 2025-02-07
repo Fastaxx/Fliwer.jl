@@ -15,7 +15,7 @@ using SpecialFunctions
 Dg,Dl = 1.0, 1.0
 R0 = 1.0
 cg0, cl0 = 1.0, 0.0
-He = 0.5
+He = 1.0
 
 D = sqrt(Dg/Dl)
 
@@ -75,21 +75,53 @@ function compute_cl(r_values, t_values)
     return cl_results
 end
 
-r_values_inside = range(1e-6, stop=R0, length=100)
-r_values_outside = range(R0, stop=4*R0, length=100)
-t_values = [0.1, 0.5, 1.0]
+function cg_once(r, t)
+    prefactor = (4*cg0*Dg*Dl*Dl*He)/(π^2*R0)
+    Umax = 5.0 / sqrt(Dg * t)
+    val, _ = quadgk(u -> cg_integrand(u, r, t), 0, Umax; atol=1e-6, rtol=1e-6)
+    return prefactor * val
+end
 
-cg_vals = compute_cg(collect(r_values_inside), t_values)
-cl_vals = compute_cl(collect(r_values_outside), t_values)
+function cl_once(r, t)
+    prefactor = (2*cg0*Dg*sqrt(Dl)*He)/π
+    Umax = 5.0 / sqrt(Dg * t)
+    val, _ = quadgk(u -> cl_integrand(u, r, t), 0, Umax; atol=1e-6, rtol=1e-6)
+    return prefactor * val
+end
+
+xvals = range(-2, 2, length=200)
+yvals = range(-2, 2, length=200)
+t     = 1.0999999999999999  # pick a single time for visualization
+
+cg_2d = [cg_once(sqrt(x^2 + y^2), t) for y in yvals, x in xvals]
+cl_2d = [cl_once(sqrt(x^2 + y^2), t) for y in yvals, x in xvals]
+
+# After computing cg_2d and cl_2d, do:
+for (j, y) in enumerate(yvals)
+    for (i, x) in enumerate(xvals)
+        r = sqrt(x^2 + y^2)
+        if r > R0
+            # Outside
+            cg_2d[j, i] = NaN
+        else
+            # Inside
+            cl_2d[j, i] = NaN
+        end
+    end
+end
 
 # Plot the analytical solution
 using CairoMakie
 
 fig = Figure()
-ax = Axis(fig[1, 1], xlabel="r", ylabel="c", title="Analytical solution")
-lines!(ax, r_values_inside, cg_vals[1, :], color=:blue, linewidth=2, label="Analytical solution - Phase 1")
-lines!(ax, r_values_outside, cl_vals[1, :], color=:red, linewidth=2, label="Analytical solution - Phase 2")
-axislegend(ax)
+ax1 = Axis(fig[1,1], aspect=DataAspect(), xlabel="x", ylabel="y", title="Phase 1: cg(x,y)")
+hm1 = heatmap!(ax1, xvals, yvals, cg_2d, colormap=:viridis)
+Colorbar(fig[1,2], hm1, label="cg")
+
+ax2 = Axis(fig[2,1], aspect=DataAspect(), xlabel="x", ylabel="y", title="Phase 2: cl(x,y)")
+hm2 = heatmap!(ax2, xvals, yvals, cl_2d, colormap=:plasma)
+Colorbar(fig[2,2], hm2, label="cl")
+
 display(fig)
 
 readline()
