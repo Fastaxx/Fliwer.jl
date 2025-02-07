@@ -311,7 +311,7 @@ function build_rhs_mono_unstead_diff(operator::DiffusionOps, f, capacite::Capaci
 
     Iᵧ = capacite.Γ # build_I_g(operator, bc)
     fₒn, fₒn1 = build_source(operator, f, t, capacite), build_source(operator, f, t+Δt, capacite)
-    gᵧ = build_g_g(operator, bc, capacite)
+    gᵧn, gᵧn1 = build_g_g(operator, bc, capacite, t), build_g_g(operator, bc, capacite, t+Δt)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
 
     Tₒ, Tᵧ = Tᵢ[1:N], Tᵢ[N+1:end]
@@ -319,10 +319,10 @@ function build_rhs_mono_unstead_diff(operator::DiffusionOps, f, capacite::Capaci
     # Build the right-hand side
     if scheme=="CN"
         b1 = (operator.V - Δt/2 * operator.G' * operator.Wꜝ * operator.G)*Tₒ - Δt/2 * operator.G' * operator.Wꜝ * operator.H * Tᵧ + Δt/2 * operator.V * (fₒn + fₒn1)
-        b2 = Δt * Iᵧ * gᵧ - Δt/2 * Iᵦ * operator.H' * operator.Wꜝ * operator.G * Tₒ - Δt/2 * Iᵦ * operator.H' * operator.Wꜝ * operator.H * Tᵧ - Δt/2 * Iₐ * Iᵧ * Tᵧ
+        b2 = Δt/2 * Iᵧ * (gᵧn+gᵧn1) - Δt/2 * Iᵦ * operator.H' * operator.Wꜝ * operator.G * Tₒ - Δt/2 * Iᵦ * operator.H' * operator.Wꜝ * operator.H * Tᵧ - Δt/2 * Iₐ * Iᵧ * Tᵧ
     else
         b1 = (operator.V)*Tₒ + Δt * operator.V * (fₒn1)
-        b2 = Iᵧ * gᵧ
+        b2 = Iᵧ * gᵧn1
     end
     b = vcat(b1, b2)
    return b
@@ -1378,6 +1378,21 @@ function build_g_g(operator::AbstractOperators, bc::Union{AbstractBoundary, Abst
         for i in 1:n
             x, y, z = get_coordinates(i, capacite.C_γ)
             gᵧ[i] = bc.value(x, y, z)
+        end
+    else
+        gᵧ = bc.value * gᵧ
+    end
+    return gᵧ
+end
+
+function build_g_g(operator::AbstractOperators, bc::Union{AbstractBoundary, AbstractInterfaceBC}, capacite::Capacity, t::Float64)
+    n = prod(operator.size)
+    gᵧ = ones(n)
+
+    if bc.value isa Function
+        for i in 1:n
+            x, y, z = get_coordinates(i, capacite.C_γ)
+            gᵧ[i] = bc.value(x, y, z, t)
         end
     else
         gᵧ = bc.value * gᵧ

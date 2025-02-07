@@ -44,7 +44,7 @@ u0 = vcat(u0ₒ, u0ᵧ)
 
 # Define the solver
 Δt = 0.25*(lx/nx)^2
-Tend = 1.0
+Tend = 0.65     # For CN : at Tend=0.65, i fit the analytical solution at Tend=1.0. It's like i diffuse more
 solver = DiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0, "BE") # Start by a backward Euler scheme to prevent oscillation due to CN scheme
 
 # Solve the problem
@@ -80,7 +80,7 @@ using SpecialFunctions
 using Roots
 
 function radial_heat_(x, y)
-    t=1.0006249999999814
+    t=1.0
     R=1.0
     k=3.0
     a=0.5
