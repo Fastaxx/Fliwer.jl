@@ -22,7 +22,7 @@ capacity = Capacity(circle, mesh)
 operator = DiffusionOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, ny+1))
 
 # Define the boundary conditions 
-bc = Dirichlet(10.0)
+bc = Dirichlet(0.0)
 
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc, :right => bc, :top => bc, :bottom => bc))
 
@@ -40,10 +40,10 @@ u0 = vcat(u0ₒ, u0ᵧ)
 # Define the solver
 Δt = 0.01
 Tend = 1.0
-solver = DiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0)
+solver = DiffusionSteadyMono(Fluide, bc_b, bc, Δt, Tend, u0, "CN")
 
 # Solve the problem
-solve_DiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, bc_b, bc; method=IterativeSolvers.gmres, reltol=1e-40, verbose=false)
+solve_DiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, bc_b, bc, "CN"; method=Base.:\)
 
 # Write the solution to a VTK file
 write_vtk("heat", mesh, solver)
