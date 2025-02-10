@@ -33,14 +33,6 @@ function solve_MotionDiffusionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ::Vecto
     # Solve system for the initial condition
     if method == \
         A_reduced, b_reduced, rows_idx, cols_idx = remove_zero_rows_cols!(s.A, s.b)
-        # Compute condition number
-        #cnum = cond(Array(A_reduced), 2)
-        cnum = 0.0
-        push!(cond_log, cnum)
-        push!(minV_log, minimum(x for x in phase.capacity.V if x != 0))
-        push!(maxV_log, maximum(phase.capacity.V))
-        push!(minW_log, minimum(x for x in phase.capacity.W[1] if x != 0))
-        push!(maxW_log, maximum(phase.capacity.W[1]))
         x_reduced = A_reduced \ b_reduced
         s.x = zeros(size(s.A, 1))
         s.x[cols_idx] .= x_reduced
