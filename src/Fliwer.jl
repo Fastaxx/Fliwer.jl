@@ -67,6 +67,9 @@ export MovingDiffusionUnsteadyMono2, solve_MovingDiffusionUnsteadyMono2!
 export MovingDiffusionUnsteadyDiph, solve_MovingDiffusionUnsteadyDiph!
 export MovingDiffusionUnsteadyDiph2, solve_MovingDiffusionUnsteadyDiph2!
 
+include("NonPrescribedMovingSolver.jl")
+export MotionDiffusionUnsteadyMono, solve_MotionDiffusionUnsteadyMono!
+
 include("Solve.jl")
 export solve!
 
