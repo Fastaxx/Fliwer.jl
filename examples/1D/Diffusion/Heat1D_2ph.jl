@@ -36,7 +36,7 @@ bc0 = Dirichlet(1.0)
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:top => bc0, :bottom => bc1))
 
 ic = InterfaceConditions(ScalarJump(1.0, 0.5, 0.0), FluxJump(1.0, 1.0, 0.0))
-
+He = 0.5
 # Define the source term
 f1 = (x,y,z,t)->0.0
 f2 = (x,y,z,t)->0.0
@@ -69,6 +69,7 @@ plot_solution(solver, mesh, body, capacity)
 
 # Animation
 #animate_solution(solver, mesh, body)
+
 
 # Plot the solution
 state_i = 10
@@ -139,4 +140,66 @@ scatter!(ax, x, u1_num, color=:red, label="Bulk Field - Phase 1 - Numerical")
 scatter!(ax, x, u2, color=:green, label="Bulk Field - Phase 2")
 scatter!(ax, x, u2_num, color=:orange, label="Bulk Field - Phase 2 - Numerical")
 axislegend(ax, position=:rb)
+display(fig)
+
+# Compute Sherwood number : 1) compute average concentration inside and outside the body : ̅cl = 1/V ∫ cl dV, ̅cg = 1/V ∫ cg dV
+# 2) compute the mass transfer rate : k = (cg(n+1) - cg(n))/(Γ * Δt * (He*cg(n+1) - cl(n+1))) with Γ the area of the interface
+# 3) compute the Sherwood number : Sh = k * L/D with L the characteristic length and D the diffusion coefficient
+
+function compute_sherwood_all(solver, capacity, capacity_c, Δt, He, L, D)
+    nx = size(capacity.V, 1) - 1
+
+    # Precompute volumes
+    Vg   = sum(capacity.V)
+    Vl   = sum(capacity_c.V)
+    Vg_i = [capacity.V[i, i] for i in 1:nx+1]
+    Vl_i = [capacity_c.V[i, i] for i in 1:nx+1]
+    Γ    = sum(capacity.Γ)
+
+    # Store Sherwood numbers
+    Sh_values = Float64[]
+
+    # Loop over consecutive states
+    for i in 2:length(solver.states)
+        u_nm1 = solver.states[i-1]
+        u_n   = solver.states[i]
+
+        cgω_nm1 = u_nm1[1:nx+1]                  # gas in ω at t_{n-1}
+        clω_nm1 = u_nm1[2*(nx+1)+1:3*(nx+1)]     # liquid in ω at t_{n-1}
+
+        cgω_n   = u_n[1:nx+1]                    # gas in ω at t_n
+        clω_n   = u_n[2*(nx+1)+1:3*(nx+1)]       # liquid in ω at t_n
+
+        # Average concentrations
+        cgω̅_nm1 = sum(cgω_nm1 .* Vg_i) / Vg
+        clω̅_nm1 = sum(clω_nm1 .* Vl_i) / Vl
+        cgω̅_n   = sum(cgω_n   .* Vg_i) / Vg
+        clω̅_n   = sum(clω_n   .* Vl_i) / Vl
+
+        # Average concentrations at t_{n+1/2}
+        cgω̅_n2 = 0.5 * (cgω̅_n + cgω̅_nm1)
+        clω̅_n2 = 0.5 * (clω̅_n + clω̅_nm1)
+
+        # Mass transfer rate
+        # (Difference between latest and previous step) / (Γ * Δt * (He * cgω̅_{n+1/2} - clω̅_{n+1/2}))
+        numerator   = (cgω̅_n - cgω̅_nm1)
+        denominator = Γ * Δt * (He*cgω̅_n2 - clω̅_n2)
+        k = numerator / denominator
+
+        # Sherwood
+        Sh = k * L / D
+        push!(Sh_values, Sh)
+    end
+
+    return abs.(Sh_values)
+end
+
+# Compute Sherwood number
+Sh_val = compute_sherwood_all(solver, capacity, capacity_c, Δt, He, lx, 1.0)
+
+# Plot Sherwood number
+fig = Figure()
+ax = Axis(fig[1, 1], xlabel="t", ylabel="Sh", title="Sherwood number")
+scatter!(ax,0:Δt:Tend+Δt/2,Sh_val, color=:blue, label="Sherwood number")
+axislegend(ax, position=:rt)
 display(fig)

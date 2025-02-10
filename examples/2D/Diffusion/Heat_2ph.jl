@@ -4,7 +4,7 @@ using WriteVTK
 
 ### 2D Test Case : Diphasic Unsteady Diffusion Equation with a Disk
 # Define the mesh
-nx, ny = 320, 320
+nx, ny = 160, 160
 lx, ly = 8., 8.
 x0, y0 = 0., 0.
 domain = ((x0, lx), (y0, ly))
@@ -67,8 +67,9 @@ readline()
 #plot_profile(solver, mesh; x=lx/2.01)
 
 # Animation
-animate_solution(solver, mesh, circle)
+#animate_solution(solver, mesh, circle)
 
+"""
 # Analytical solution
 using QuadGK
 using SpecialFunctions
@@ -161,4 +162,64 @@ scatter!(ax, r_values, u1ₒ, color=:red, label="Numerical solution - Phase 1")
 lines!(ax, r_values, cl_vals[1, :], color=:red, linewidth=2, label="Analytical solution - Phase 2")
 scatter!(ax, r_values,u2ₒ, color=:blue, label="Numerical solution - Phase 2")
 axislegend(ax)
+display(fig)
+"""
+
+
+function compute_sherwood_all(solver, capacity, capacity_c, Δt, He, L, D)
+    nx = size(capacity.V, 1) - 1
+
+    # Precompute volumes
+    Vg   = sum(capacity.V)
+    Vl   = sum(capacity_c.V)
+    Vg_i = [capacity.V[i, i] for i in 1:nx+1]
+    Vl_i = [capacity_c.V[i, i] for i in 1:nx+1]
+    Γ    = sum(capacity.Γ)
+
+    # Store Sherwood numbers
+    Sh_values = Float64[]
+
+    # Loop over consecutive states
+    for i in 2:length(solver.states)
+        u_nm1 = solver.states[i-1]
+        u_n   = solver.states[i]
+
+        cgω_nm1 = u_nm1[1:nx+1]                  # gas in ω at t_{n-1}
+        clω_nm1 = u_nm1[2*(nx+1)+1:3*(nx+1)]     # liquid in ω at t_{n-1}
+
+        cgω_n   = u_n[1:nx+1]                    # gas in ω at t_n
+        clω_n   = u_n[2*(nx+1)+1:3*(nx+1)]       # liquid in ω at t_n
+
+        # Average concentrations
+        cgω̅_nm1 = sum(cgω_nm1 .* Vg_i) / Vg
+        clω̅_nm1 = sum(clω_nm1 .* Vl_i) / Vl
+        cgω̅_n   = sum(cgω_n   .* Vg_i) / Vg
+        clω̅_n   = sum(clω_n   .* Vl_i) / Vl
+
+        # Average concentrations at t_{n+1/2}
+        cgω̅_n2 = 0.5 * (cgω̅_n + cgω̅_nm1)
+        clω̅_n2 = 0.5 * (clω̅_n + clω̅_nm1)
+
+        # Mass transfer rate
+        # (Difference between latest and previous step) / (Γ * Δt * (He * cgω̅_{n+1/2} - clω̅_{n+1/2}))
+        numerator   = (cgω̅_n - cgω̅_nm1)
+        denominator = Γ * Δt * (He*cgω̅_n2 - clω̅_n2)
+        k = numerator / denominator
+
+        # Sherwood
+        Sh = k * L / D
+        push!(Sh_values, Sh)
+    end
+
+    return abs.(Sh_values)
+end
+
+# Compute Sherwood number
+Sh_val = compute_sherwood_all(solver, capacity, capacity_c, Δt, 2.0, lx, 1.0)
+
+# Plot Sherwood number
+fig = Figure()
+ax = Axis(fig[1, 1], xlabel="t", ylabel="Sh", title="Sherwood number")
+scatter!(ax, Sh_val, color=:blue, label="Sherwood number")
+axislegend(ax, position=:rt)
 display(fig)
