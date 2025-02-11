@@ -20,7 +20,7 @@ nt = 2
 t = [i*Δt for i in 0:nt]
 
 # Define the body
-xf = 0.2*lx   # Interface position
+xf = 0.02*lx   # Interface position
 initial_body = Body((x,_=0)->(x - xf), (x,_)->(x), domain, false)  # Initial body
 body = Body((x,t, _=0)->(x - xf), (x,)->(x,), domain, false)
 
@@ -50,18 +50,19 @@ L = 1.0
 Fluide = Phase(capacity, operator, f, 1.0)
 
 # Initial condition
-u0ₒ = ones((nx+1))
+u0ₒ = zeros((nx+1))
 u0ᵧ = zeros((nx+1))
 u0 = vcat(u0ₒ, u0ᵧ)
 
 @show u0
 # Define the solver
 s = MotionDiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0, "BE")
-#solve_MotionDiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, nt, bc_b, bc, body, mesh, t, "CN")
+solve_MotionDiffusionUnsteadyMono!(s, Fluide, u0, Δt, Tend, nt, bc_b, bc, body, mesh, t, "BE", xf)
 
-# Set iteration parameters
-max_iter = 200
-tol      = 1e-6
+readline()
+# Set iteration parameters 
+max_iter = 100
+tol = 1e-20
 
 old_xf = xf
 iter   = 0
@@ -87,6 +88,7 @@ function run_stefan_iteration!(
     Tend::Float64,
     xf::Float64
 )
+    residuals = Float64[]  # Store residual at each iteration
     err::Float64 = Inf
     old_xf::Float64 = xf
     iter::Int = 0
@@ -116,23 +118,33 @@ function run_stefan_iteration!(
         V = operator.V[1:nx, 1:nx]
         Tₒ, Tᵧ = Tᵢ[1:nx], Tᵢ[nx+1:end]
         Interface_term = H' * W! * G * Tₒ + H' * W! * H * Tᵧ
-        Interface_term = 1/(ρ*L) * sum(Interface_term)
-
+        Interface_term = -1/(ρ*L) * sum(Interface_term)
+        @show Interface_term
         # New interface position
+        res = Hₙ₊₁ - Hₙ - Interface_term
+        @show -diag(Vn_1 - Vn) * ρ * L - H' * W! * G * Tₒ + H' * W! * H * Tᵧ
+        @show res
+        @show Hₙ₊₁ - Hₙ
         xf_new = Hₙ + Interface_term
+        
         err = abs(xf_new - old_xf)
         println("Iteration $iter | xf = $xf_new | error = $err")
+
+        # Store residuals
+        push!(residuals, err)
 
         # 3) Update geometry if not converged
         if err <= tol
             break
         end
         old_xf = xf_new
-        xf = xf_new
-        ΔH = xf - Hₙ
 
-        # Rebuild domain
-        body = Body((xx,t, _=0)->(xx - xf), (xx,)->(xx,), domain, false)
+        # Store tn+1 and tn
+        tn1 = t[2]
+        tn  = t[1]
+
+        # Rebuild domain : # Add t interpolation : x - (xf*(tn1 - t)/(\Delta t) + xff*(t - tn)/(\Delta t))
+        body = Body((xx,t, _=0)->(xx - (xf*(tn1 - t)/Δt + xf_new*(t - tn)/Δt)), (xx,)->(xx,), domain, false)
         #identify!(mesh, body)
         spaceTimeMesh.tag = mesh.tag
 
@@ -140,7 +152,14 @@ function run_stefan_iteration!(
         operator = SpaceTimeOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx, 2))
         Fluide   = Phase(capacity, operator, (x,y,z,t)->0.0, 1.0)
 
-        s = MotionDiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0, "BE")
+        s = MotionDiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, Tᵢ, "BE")
+
+        # recompute the linear system
+        A_reduced, b_reduced, rows_idx, cols_idx = remove_zero_rows_cols!(s.A, s.b)
+        x_reduced = A_reduced \ b_reduced
+        s.x = zeros(size(s.A, 1))
+        s.x[cols_idx] .= x_reduced
+        Tᵢ = s.x
     end
 
     if err <= tol
@@ -149,14 +168,22 @@ function run_stefan_iteration!(
         println("Reached max_iter = $max_iter with xf = $xf, error = $err")
     end
 
-    return xf
+    return xf,residuals
 end
 
-xf_final = run_stefan_iteration!(
+xf_final, residuals = run_stefan_iteration!(
      s, body, mesh, spaceTimeMesh, capacity,
      operator, Fluide, bc_b, bc, u0, domain,
      ρ, L, max_iter, tol, Δt, Tend, xf )
 
+
+
+using CairoMakie
+
+fig = Figure()
+ax  = Axis(fig[1,1], xlabel = "Iteration", ylabel = "Residual", title = "Residuals vs. Iteration")
+lines!(ax, 1:length(residuals), log10.(residuals), color=:blue)
+display(fig)
 """
 Vin = [Vn[i, i] for i in 1:size(Vn, 1)]
 Vin1 = [Vn_1[i, i] for i in 1:size(Vn_1, 1)]
