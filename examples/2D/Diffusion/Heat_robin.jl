@@ -34,21 +34,21 @@ bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:left => bc0, :right => b
 f = (x,y,z,t)->0.0
 
 # Define the phase
-a=0.5
+a=1.0
 Fluide = Phase(capacity, operator, f, a)
 
 # Initial condition
 u0ₒ = ones((nx+1)*(ny+1)) * 270.0
-u0ᵧ = zeros((nx+1)*(ny+1)) * 270.0
+u0ᵧ = zeros((nx+1)*(ny+1)) * 400.0
 u0 = vcat(u0ₒ, u0ᵧ)
 
 # Define the solver
 Δt = 0.25*(lx/nx)^2
-Tend = 0.65     # For CN : at Tend=0.65, i fit the analytical solution at Tend=1.0. It's like i diffuse more
+Tend = 0.1     # For CN : at Tend=0.65, i fit the analytical solution at Tend=1.0. It's like i diffuse more
 solver = DiffusionUnsteadyMono(Fluide, bc_b, bc, Δt, Tend, u0, "BE") # Start by a backward Euler scheme to prevent oscillation due to CN scheme
 
 # Solve the problem
-Fliwer.solve_DiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, bc_b, bc, "CN"; method=Base.:\)
+Fliwer.solve_DiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, bc_b, bc, "BE"; method=Base.:\)
 #Fliwer.solve_DiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, bc_b, bc; method=IterativeSolvers.bicgstabl, reltol=1e-40, verbose=false)
 
 # Write the solution to a VTK file
@@ -80,10 +80,10 @@ using SpecialFunctions
 using Roots
 
 function radial_heat_(x, y)
-    t=1.0
+    t=0.1
     R=1.0
     k=3.0
-    a=0.5
+    a=1.0
 
     function j0_zeros_robin(N, k, R; guess_shift = 0.25)
         # Define the function for alpha J1(alpha) - k R J0(alpha) = 0

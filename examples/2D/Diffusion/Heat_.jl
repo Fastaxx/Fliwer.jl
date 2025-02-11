@@ -48,7 +48,7 @@ function run_mesh_convergence(
             :top    => bc0,
             :bottom => bc0
         ))
-        phase = Phase(capacity, operator, (x,y,z,t)->0.0, 0.5)
+        phase = Phase(capacity, operator, (x,y,z,t)->0.0, 1.0)
 
         u0ₒ = ones((nx+1)*(ny+1)) * 270.0
         u0ᵧ = zeros((nx+1)*(ny+1)) * 270.0
@@ -143,7 +143,7 @@ function radial_heat_(x, y)
     t=0.1
     R=1.0
     k=3.0
-    a=0.5
+    a=1.0
 
     function j0_zeros_robin(N, k, R; guess_shift = 0.25)
         # Define the function for alpha J1(alpha) - k R J0(alpha) = 0
