@@ -6,32 +6,21 @@ using SpecialFunctions, LsqFit
 
 ### 1D Test Case : Monophasic Unsteady Diffusion Equation inside a moving body
 # Define the spatial mesh
-nx = 320
+nx = 80
 lx = 10.
 x0 = 0.
 domain = ((x0, lx),)
 mesh = CartesianMesh((nx,), (lx,), (x0,))
 
 # Define the time mesh
-# Example of adaptive time stepping
-function create_adaptive_times(Tend::Float64, nsteps::Int, ratio::Float64=1.1)
-    times = zeros(Float64, nsteps+1)
-    times[1] = 0.0
-    dt = Tend * (1 - ratio) / (1 - ratio^nsteps)
-    for i in 2:nsteps+1
-        times[i] = times[i-1] + dt * ratio^(i-2)
-    end
-    return times
-end
-
 Δt = 0.5 * (lx/nx)^2
 Tend = 1.0
 nt = Int(Tend/Δt)
 t = [i*Δt for i in 0:nt]
 
 # Define the body
-xf = 0.11*lx   # Interface position
-c = 3.0     # Interface velocity
+xf = 0.5*lx   # Interface position
+c = 0.001     # Interface velocity
 initial_body = Body((x,_=0)->(x - xf), (x,_)->(x), domain, false)  # Initial body
 body = Body((x,t, _=0)->(x - xf - c*sqrt(t)), (x,)->(x,), domain, false)  # Body moving to the right
 final_body = Body((x,_=0)->(x - xf - c*sqrt(Tend)), (x,_)->(x), domain, false)  # Final body
@@ -48,13 +37,27 @@ capacity = Capacity(body, spaceTimeMesh)
 capacity_init = Capacity(initial_body, mesh)
 capacity_final = Capacity(final_body, mesh)
 
+Vn_1 = capacity.A[2][1:end÷2, 1:end÷2]
+Vn = capacity.A[2][end÷2+1:end, end÷2+1:end]
+δt = capacity.A[1][1:end÷2, 1:end÷2]
+V = diag(capacity.V[1:end÷2, 1:end÷2])
+
+ΔV = -diag(Vn_1 - Vn)
+w_int_δt = ΔV
+# if ΔV has one non-zero value : stay in the same cell
+# if ΔV has two non-zero values : move to the right or to the left and cross the cell
+# if ΔV has more than two non-zero values : impossible to solve the problem
+cfl = w_int_δt ./ V
+@show w_int_δt
+@show cfl
+readline()
 # Define the operators
 operator = SpaceTimeOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, 2))
 operator_init = DiffusionOps(capacity_init.A, capacity_init.B, capacity_init.V, capacity_init.W, (nx+1,))
 operator_final = DiffusionOps(capacity_final.A, capacity_final.B, capacity_final.V, capacity_final.W, (nx+1,))
 
 # Define the boundary conditions
-bc = Dirichlet(0.0)
+bc = Dirichlet(1.0)
 bc1 = Dirichlet(0.0)
 
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:top => Dirichlet(0.0), :bottom => Dirichlet(1.0)))
@@ -82,7 +85,7 @@ solve_MovingDiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, nt, bc_b, bc, 
 plot_solution(solver, mesh, body, capacity; state_i=1)
 
 # Animation
-#animate_solution(solver, mesh, body)
+animate_solution(solver, mesh, body)
 
 # Analytical solution
 function stefan_1d_1ph_analytical(x::Float64)
@@ -134,6 +137,7 @@ readline()
 last_non_zero = findlast(x->x!=0.0, ∇_num)
 println("Last non zero value of ∇_num: ", ∇_num[last_non_zero])
 
+"""
 # Plot Convergence of the L2 error Nusselt number
 nx = [20, 40, 80, 160, 320]
 dx = 1.0 ./ nx
@@ -170,7 +174,7 @@ p_global = round(p_global, digits=2)
 println("Estimated order of convergence (global) = ", p_global)
 
 
-"""
+
 nx = [20, 40, 80, 160, 320]
 dx = 1.0 ./ nx
 L2_err_all = [0.2861309825029104, 0.1517310842473155, 0.08706086415610075, 0.055717806923711165, 0.0405692827948743]

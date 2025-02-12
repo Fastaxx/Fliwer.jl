@@ -33,11 +33,11 @@ function solve_MotionDiffusionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ::Vecto
     # Params
     nx, _ = phase.operator.size
     ρ, L = 1.0, 1.0
-    max_iter, tol = 100, 1e-10
+    max_iter, tol = 1000, 1e-15
     err = Inf
     old_xf = xf
     iter = 0
-    residuals = Float64[]
+    residuals1 = Float64[]
 
     # First time step : Newton to compute the interface position xf1
     while (iter < max_iter) && (err > tol)
@@ -81,7 +81,7 @@ function solve_MotionDiffusionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ::Vecto
         println("Iteration $iter | xf = $xf_new | error = $err")
 
         # Store residuals
-        push!(residuals, err)
+        push!(residuals1, err)
 
         # 3) Update geometry if not converged
         if err <= tol
@@ -137,6 +137,7 @@ function solve_MotionDiffusionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ::Vecto
     err = Inf
     old_xf = xf_new
     iter = 0
+    residuals2 = Float64[]
 
     # Second time step : Newton to compute the interface position xf2
     while (iter < max_iter) && (err > tol)
@@ -180,7 +181,7 @@ function solve_MotionDiffusionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ::Vecto
         println("Iteration $iter | xf = $xf_new | error = $err")
 
         # Store residuals
-        push!(residuals, err)
+        push!(residuals2, err)
 
         # 3) Update geometry if not converged
         if err <= tol
@@ -222,48 +223,5 @@ function solve_MotionDiffusionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ::Vecto
     println("Time : $(t[2])")
     println("Max value : $(maximum(abs.(s.x)))")
 
-    readline()
-
-
-
-
-
-
-
-
-
-    for i in 2:nt
-        println("Time : $(t[i])")
-        spaceTimeMesh = CartesianSpaceTimeMesh(mesh, t[i:i+1];tag=mesh.tag)
-        capacity = Capacity(body, spaceTimeMesh)
-        operator = SpaceTimeOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx, 2))
-
-        s.A = build_mono_unstead_diff_moving_matrix(operator, capacity, phase.Diffusion_coeff, bc_b, bc, Δt, scheme)
-        s.b = build_rhs_mono_unstead_moving_diff(operator, phase.source, capacity, bc_b, bc, Tᵢ, Δt, t[i], scheme)
-        BC_border_mono!(s.A, s.b, bc_b, capacity.mesh)
-
-        # CFL log
-        Vn_1 = capacity.A[2][1:end÷2, 1:end÷2]
-        Vn = capacity.A[2][end÷2+1:end, end÷2+1:end]
-
-        # Solve system
-        if method == \
-            A_reduced, b_reduced, rows_idx, cols_idx = remove_zero_rows_cols!(s.A, s.b)
-            x_reduced = A_reduced \ b_reduced
-            s.x = zeros(size(s.A, 1))
-            s.x[cols_idx] .= x_reduced
-        else
-            log = get(kwargs, :log, false)
-            if log
-                s.x, s.ch = method(s.A, s.b; kwargs...)
-            else
-                s.x = method(s.A, s.b; kwargs...)
-            end
-        end
-
-        push!(s.states, s.x)
-        @show maximum(abs.(s.x))
-        Tᵢ = s.x
-    end
-
+    return residuals1, residuals2
 end
