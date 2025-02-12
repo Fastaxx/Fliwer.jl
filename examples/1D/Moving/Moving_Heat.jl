@@ -14,13 +14,14 @@ mesh = CartesianMesh((nx,), (lx,), (x0,))
 
 # Define the time mesh
 Δt = 0.5 * (lx/nx)^2
-Tend = 1.0
+Tend = 3.0
 nt = Int(Tend/Δt)
 t = [i*Δt for i in 0:nt]
 
 # Define the body
-xf = 0.5*lx   # Interface position
-c = 0.001     # Interface velocity
+xf = 0.01*lx   # Interface position$
+println("Initial interface position: ", xf)
+c = 1.0     # Interface velocity
 initial_body = Body((x,_=0)->(x - xf), (x,_)->(x), domain, false)  # Initial body
 body = Body((x,t, _=0)->(x - xf - c*sqrt(t)), (x,)->(x,), domain, false)  # Body moving to the right
 final_body = Body((x,_=0)->(x - xf - c*sqrt(Tend)), (x,_)->(x), domain, false)  # Final body
@@ -42,22 +43,21 @@ Vn = capacity.A[2][end÷2+1:end, end÷2+1:end]
 δt = capacity.A[1][1:end÷2, 1:end÷2]
 V = diag(capacity.V[1:end÷2, 1:end÷2])
 
-ΔV = -diag(Vn_1 - Vn)
-w_int_δt = ΔV
-# if ΔV has one non-zero value : stay in the same cell
-# if ΔV has two non-zero values : move to the right or to the left and cross the cell
-# if ΔV has more than two non-zero values : impossible to solve the problem
-cfl = w_int_δt ./ V
-@show w_int_δt
-@show cfl
-readline()
+w_int = -diag(Vn_1 - Vn)/Δt
+@show w_int
+# if w_int has one non-zero value : stay in the same cell
+# if w_int has two non-zero values : move to the right or to the left and cross the cell
+# if Δw_int has more than two non-zero values : impossible to solve the problem
+δt = 0.5 * (lx/nx)^2/maximum(diagm(w_int))
+@show δt
+
 # Define the operators
 operator = SpaceTimeOps(capacity.A, capacity.B, capacity.V, capacity.W, (nx+1, 2))
 operator_init = DiffusionOps(capacity_init.A, capacity_init.B, capacity_init.V, capacity_init.W, (nx+1,))
 operator_final = DiffusionOps(capacity_final.A, capacity_final.B, capacity_final.V, capacity_final.W, (nx+1,))
 
 # Define the boundary conditions
-bc = Dirichlet(1.0)
+bc = Dirichlet(0.0)
 bc1 = Dirichlet(0.0)
 
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:top => Dirichlet(0.0), :bottom => Dirichlet(1.0)))
@@ -68,7 +68,13 @@ f = (x,y,z,t)-> 0.0 #sin(x)*cos(10*y)
 Fluide = Phase(capacity, operator, f, 1.0)
 
 # Initial condition
-u0ₒ = zeros((nx+1))
+function stefan_1d_1ph_analytical(x::Float64)
+    t = Tend
+    λ = c/2
+    return 1.0 - 1.0/erf(λ) * erf(x/(2*sqrt(t)))
+end
+x = range(x0, stop=lx, length=nx+1)
+u0ₒ = [stefan_1d_1ph_analytical(x[i]-xf) for i in 1:nx+1]
 u0ᵧ = zeros((nx+1))
 u0 = vcat(u0ₒ, u0ᵧ)
 
@@ -85,19 +91,19 @@ solve_MovingDiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, nt, bc_b, bc, 
 plot_solution(solver, mesh, body, capacity; state_i=1)
 
 # Animation
-animate_solution(solver, mesh, body)
+#animate_solution(solver, mesh, body)
 
 # Analytical solution
 function stefan_1d_1ph_analytical(x::Float64)
     t = Tend
     λ = c/2
-    return 1.0 - 1.0/erf(2λ) * erf(x/(2*sqrt(t)))
+    return 1.0 - 1.0/erf(λ) * erf(x/(2*sqrt(t)))
 end
 
 function grad_stefan_1d_1ph_analytical(x::Float64)
     t = Tend
     λ = c/2
-    return -1.0/(sqrt(t)) * exp(-x^2/(4*t)) / (sqrt(pi) * erf(2λ))
+    return -1.0/(sqrt(t)) * exp(-x^2/(4*t)) / (sqrt(pi) * erf(λ))
 end
 
 using CairoMakie
@@ -107,19 +113,20 @@ ls = [final_body.sdf(x[i]) for i in 1:nx+1]
 xfaces = x[1:end-1] .+ 0.5*diff(x)
 y=[stefan_1d_1ph_analytical(x[i]) for i in 1:nx+1]
 y_p=[grad_stefan_1d_1ph_analytical(xfaces[i]) for i in 1:nx]
-y[x .> xf + c*Tend] .= 0.0
+y[x .> xf + c*sqrt(t[end-1])] .= NaN
+y_p[xfaces .> xf + c*sqrt(t[end-1])] .= NaN
 
 ∇_num = ∇(operator_final, solver.x)
-
+∇_num = ∇_num .+0.01
 fig = Figure()
 ax = Axis(fig[1, 1], xlabel = "x", ylabel = "u", title = "1D 1 phase Stefan problem")
 lines!(ax, x, y, color = :blue, linewidth = 2, label = "Analytical solution")
 scatter!(ax, x, solver.states[end][1:nx+1], color = :red, label = "Numerical solution")
 # add a vertical line to show the interface position
-vlines!(ax, xf + c*Tend, color = :black, linestyle = :dash, label = "Interface position")
+vlines!(ax, xf + c*sqrt(t[end]), color = :black, linestyle = :dash, label = "Interface position")
 axislegend(ax)
 display(fig)
-
+readline()
 #u_ana, u_num, global_err, full_err, cut_err, empty_err = check_convergence(stefan_1d_1ph_analytical, solver, capacity_init, mesh, 2, false)
 
 # Plot gradient
@@ -128,7 +135,7 @@ ax = Axis(fig[1, 1], xlabel = "x", ylabel = "∇u", title = "1D 1 phase Stefan p
 lines!(ax, xfaces, y_p, color = :blue, linewidth = 2, label = "Analytical gradient")
 scatter!(ax, x, ∇_num, color = :red, label = "Numerical gradient")
 # add a vertical line to show the interface position
-vlines!(ax, xf + c*Tend, color = :black, linestyle = :dash, label = "Interface position")
+vlines!(ax, xf + c*sqrt(t[end]), color = :black, linestyle = :dash, label = "Interface position")
 axislegend(ax)
 display(fig)
 
