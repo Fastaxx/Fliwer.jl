@@ -264,10 +264,10 @@ function DiffusionUnsteadyMono(phase::Phase, bc_b::BorderConditions, bc_i::Abstr
 
     if scheme == "CN"
         s.A = build_mono_unstead_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i, Δt, "CN")
-        s.b = build_rhs_mono_unstead_diff(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0, "CN")
+        s.b = build_rhs_mono_unstead_diff(phase.operator, phase.source, phase.Diffusion_coeff, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0, "CN")
     else
         s.A = build_mono_unstead_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc_i, Δt, "BE")
-        s.b = build_rhs_mono_unstead_diff(phase.operator, phase.source, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0, "BE")
+        s.b = build_rhs_mono_unstead_diff(phase.operator, phase.source, phase.Diffusion_coeff, phase.capacity, bc_b, bc_i, Tᵢ, Δt, 0.0, "BE")
     end
     BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
 
@@ -305,7 +305,7 @@ function build_mono_unstead_diff_matrix(operator::DiffusionOps, capacite::Capaci
     return A
 end
 
-function build_rhs_mono_unstead_diff(operator::DiffusionOps, f, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary, Tᵢ, Δt::Float64, t::Float64, scheme::String)
+function build_rhs_mono_unstead_diff(operator::DiffusionOps, f, D::Float64, capacite::Capacity, bc_b::BorderConditions, bc::AbstractBoundary, Tᵢ, Δt::Float64, t::Float64, scheme::String)
     N = prod(operator.size)
     b = zeros(2N)
 
@@ -313,12 +313,13 @@ function build_rhs_mono_unstead_diff(operator::DiffusionOps, f, capacite::Capaci
     fₒn, fₒn1 = build_source(operator, f, t, capacite), build_source(operator, f, t+Δt, capacite)
     gᵧn, gᵧn1 = build_g_g(operator, bc, capacite, t), build_g_g(operator, bc, capacite, t+Δt)
     Iₐ, Iᵦ = build_I_bc(operator, bc)
+    Id = build_I_D(operator, D, capacite)
 
     Tₒ, Tᵧ = Tᵢ[1:N], Tᵢ[N+1:end]
 
     # Build the right-hand side
     if scheme=="CN"
-        b1 = (operator.V - Δt/2 * operator.G' * operator.Wꜝ * operator.G)*Tₒ - Δt/2 * operator.G' * operator.Wꜝ * operator.H * Tᵧ + Δt/2 * operator.V * (fₒn + fₒn1)
+        b1 = (operator.V - Δt/2 * Id * operator.G' * operator.Wꜝ * operator.G)*Tₒ - Δt/2 * Id * operator.G' * operator.Wꜝ * operator.H * Tᵧ + Δt/2 * operator.V * (fₒn + fₒn1)
         b2 = Δt/2 * Iᵧ * (gᵧn+gᵧn1) - Δt/2 * Iᵦ * operator.H' * operator.Wꜝ * operator.G * Tₒ - Δt/2 * Iᵦ * operator.H' * operator.Wꜝ * operator.H * Tᵧ - Δt/2 * Iₐ * Iᵧ * Tᵧ
     else
         b1 = (operator.V)*Tₒ + Δt * operator.V * (fₒn1)
@@ -364,10 +365,10 @@ function solve_DiffusionUnsteadyMono!(s::Solver, phase::Phase, Tᵢ, Δt::Float6
         println("Time: ", t)
         if scheme == "CN"
             s.A = build_mono_unstead_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc, Δt, "CN")
-            s.b = build_rhs_mono_unstead_diff(phase.operator, phase.source, phase.capacity, bc_b, bc, Tᵢ, Δt, t, "CN")
+            s.b = build_rhs_mono_unstead_diff(phase.operator, phase.source, phase.Diffusion_coeff, phase.capacity, bc_b, bc, Tᵢ, Δt, t, "CN")
         else
             s.A = build_mono_unstead_diff_matrix(phase.operator, phase.capacity, phase.Diffusion_coeff, bc_b, bc, Δt, "BE")
-            s.b = build_rhs_mono_unstead_diff(phase.operator, phase.source, phase.capacity, bc_b, bc, Tᵢ, Δt, t, "BE")
+            s.b = build_rhs_mono_unstead_diff(phase.operator, phase.source, phase.Diffusion_coeff, phase.capacity, bc_b, bc, Tᵢ, Δt, t, "BE")
         end
         BC_border_mono!(s.A, s.b, bc_b, phase.capacity.mesh)
         
