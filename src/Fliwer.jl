@@ -56,6 +56,7 @@ export AdvectionUnsteadyMono
 export solve_AdvectionUnsteadyMono!
 export AdvectionDiffusionSteadyMono, AdvectionDiffusionSteadyDiph, AdvectionDiffusionUnsteadyMono, AdvectionDiffusionUnsteadyDiph
 export solve_AdvectionDiffusionSteadyMono!, solve_AdvectionDiffusionSteadyDiph!, solve_AdvectionDiffusionUnsteadyMono!, solve_AdvectionDiffusionUnsteadyDiph!
+export BC_border_mono!
 
 include("SolverVec.jl")
 export DiffusionVecUnsteadyMono, solve_DiffusionVecUnsteadyMono!
@@ -66,6 +67,10 @@ export MovingDiffusionUnsteadyMono, solve_MovingDiffusionUnsteadyMono!
 export MovingDiffusionUnsteadyMono2, solve_MovingDiffusionUnsteadyMono2!
 export MovingDiffusionUnsteadyDiph, solve_MovingDiffusionUnsteadyDiph!
 export MovingDiffusionUnsteadyDiph2, solve_MovingDiffusionUnsteadyDiph2!
+export build_mono_unstead_diff_moving_matrix, build_rhs_mono_unstead_moving_diff
+
+include("NonPrescribedMovingSolver.jl")
+export MotionDiffusionUnsteadyMono, solve_MotionDiffusionUnsteadyMono!
 
 include("Solve.jl")
 export solve!

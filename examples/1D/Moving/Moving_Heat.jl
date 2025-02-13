@@ -57,7 +57,7 @@ operator_init = DiffusionOps(capacity_init.A, capacity_init.B, capacity_init.V, 
 operator_final = DiffusionOps(capacity_final.A, capacity_final.B, capacity_final.V, capacity_final.W, (nx+1,))
 
 # Define the boundary conditions
-bc = Dirichlet(0.0)
+bc = Dirichlet(1.0)
 bc1 = Dirichlet(0.0)
 
 bc_b = BorderConditions(Dict{Symbol, AbstractBoundary}(:top => Dirichlet(0.0), :bottom => Dirichlet(1.0)))
@@ -91,7 +91,7 @@ solve_MovingDiffusionUnsteadyMono!(solver, Fluide, u0, Δt, Tend, nt, bc_b, bc, 
 plot_solution(solver, mesh, body, capacity; state_i=1)
 
 # Animation
-#animate_solution(solver, mesh, body)
+animate_solution(solver, mesh, body)
 
 # Analytical solution
 function stefan_1d_1ph_analytical(x::Float64)
@@ -179,5 +179,4 @@ p_global, _ = do_fit(log.(L2_err[1:end-1]))
 p_global = round(p_global, digits=2)
 
 println("Estimated order of convergence (global) = ", p_global)
-
 """
